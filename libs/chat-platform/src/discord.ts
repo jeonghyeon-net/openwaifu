@@ -31,7 +31,14 @@ export class DiscordPlatform extends ChatPlatform {
 					handler({
 						channelId: msg.channelId,
 						userId: msg.author.id,
+						username: msg.author.username,
 						text: msg.content,
+						metadata: {
+							guildId: msg.guildId ?? "",
+							guildName: msg.guild?.name ?? "",
+							channelName:
+								"name" in msg.channel ? (msg.channel.name ?? "") : "",
+						},
 					}),
 				).catch((e: unknown) => {
 					console.error("Message handler error:", e);

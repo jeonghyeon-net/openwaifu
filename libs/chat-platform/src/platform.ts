@@ -3,7 +3,9 @@ export const PLATFORM_TOKEN = "ChatPlatform";
 export type IncomingMessage = {
 	channelId: string;
 	userId: string;
+	username: string;
 	text: string;
+	metadata: Record<string, string>;
 };
 
 export type MessageHandler = (msg: IncomingMessage) => void | Promise<void>;

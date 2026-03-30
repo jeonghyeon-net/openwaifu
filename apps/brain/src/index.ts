@@ -38,7 +38,15 @@ platform.onMessage(async (msg) => {
 		await bot.interrupt(sessionId).catch(() => {});
 	}
 
-	const chat = bot.chat(msg.text, sessionId ? { sessionId } : undefined);
+	const meta = Object.entries(msg.metadata)
+		.filter(([, v]) => v)
+		.map(([k, v]) => `${k}: ${v}`)
+		.join(", ");
+	const context = `[channelId: ${msg.channelId}, userId: ${msg.userId}, username: ${msg.username}${meta ? `, ${meta}` : ""}]`;
+	const chat = bot.chat(
+		`${context}\n${msg.text}`,
+		sessionId ? { sessionId } : undefined,
+	);
 
 	activeChannels.add(msg.channelId);
 	try {

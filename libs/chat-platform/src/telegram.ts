@@ -21,7 +21,12 @@ export class TelegramPlatform extends ChatPlatform {
 					handler({
 						channelId: String(ctx.chat.id),
 						userId: String(ctx.from.id),
+						username: ctx.from.username ?? ctx.from.first_name,
 						text: ctx.message.text,
+						metadata: {
+							chatType: ctx.chat.type,
+							chatTitle: "title" in ctx.chat ? (ctx.chat.title ?? "") : "",
+						},
 					}),
 				).catch((e: unknown) => {
 					console.error("Message handler error:", e);
