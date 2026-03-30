@@ -18,13 +18,17 @@ export type ChatOptions = {
 	attachments?: ChatAttachment[];
 };
 
+export type StreamChunk =
+	| { type: "text"; text: string }
+	| { type: "message_break" };
+
 export type ChatResult = {
 	/**
 	 * Session ID for this chat. Empty string until the stream emits
 	 * its first event. Consume the stream before reading this value.
 	 */
 	sessionId: string;
-	stream: AsyncIterable<string>;
+	stream: AsyncIterable<StreamChunk>;
 };
 
 export abstract class ChatBot {

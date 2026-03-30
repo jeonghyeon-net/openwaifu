@@ -194,20 +194,20 @@ export class ClaudeCodeBot extends ChatBot {
 					self.sessions.set(sessionId, session);
 				}
 
-				// 새 텍스트 블록 시작 시 이전 텍스트와 구분
+				// 새 텍스트 블록 시작 = tool 호출 후 새 응답 → 새 메시지로 분리
 				if (
 					msg.type === "stream_event" &&
 					msg.event.type === "content_block_start" &&
 					msg.event.content_block.type === "text" &&
 					hasYielded
 				) {
-					yield " ";
+					yield { type: "message_break" as const };
 				}
 
 				const text = isTextDelta(msg);
 				if (text !== null) {
 					hasYielded = true;
-					yield text;
+					yield { type: "text" as const, text };
 				}
 
 				if ("result" in msg) return;

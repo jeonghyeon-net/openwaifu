@@ -110,7 +110,12 @@ export class TelegramPlatform extends ChatPlatform {
 		return [];
 	}
 
-	async sendStream(channelId: string, stream: AsyncIterable<string>) {
+	async sendStream(
+		channelId: string,
+		stream: AsyncIterable<
+			string | { type: "text"; text: string } | { type: "message_break" }
+		>,
+	) {
 		if (!this.bot) throw new Error("Bot not started yet");
 		const bot = this.bot;
 		const chatId = Number(channelId);
@@ -129,6 +134,14 @@ export class TelegramPlatform extends ChatPlatform {
 			}
 		};
 
+		const flush = async () => {
+			if (msgId && buffer) {
+				await editSafe(msgId, buffer);
+			} else if (!msgId && buffer) {
+				await bot.api.sendMessage(chatId, buffer);
+			}
+		};
+
 		await bot.api.sendChatAction(chatId, "typing");
 		const typingInterval = setInterval(() => {
 			if (!msgId) bot.api.sendChatAction(chatId, "typing");
@@ -136,7 +149,21 @@ export class TelegramPlatform extends ChatPlatform {
 
 		try {
 			for await (const chunk of stream) {
-				buffer += chunk;
+				const text =
+					typeof chunk === "string"
+						? chunk
+						: chunk.type === "text"
+							? chunk.text
+							: null;
+
+				if (text === null) {
+					await flush();
+					msgId = null;
+					buffer = "";
+					continue;
+				}
+
+				buffer += text;
 
 				if (buffer.length > CHUNK_THRESHOLD && msgId) {
 					await editSafe(msgId, buffer.slice(0, MESSAGE_LIMIT));
@@ -153,11 +180,7 @@ export class TelegramPlatform extends ChatPlatform {
 				}
 			}
 
-			if (msgId && buffer) {
-				await editSafe(msgId, buffer);
-			} else if (!msgId && buffer) {
-				await bot.api.sendMessage(chatId, buffer);
-			}
+			await flush();
 		} finally {
 			clearInterval(typingInterval);
 		}

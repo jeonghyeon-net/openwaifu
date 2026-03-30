@@ -189,7 +189,7 @@ export class CodexBot extends ChatBot {
 						const prev = seen.get(event.item.id) ?? 0;
 						const text = event.item.text;
 						if (text.length > prev) {
-							yield text.slice(prev);
+							yield { type: "text" as const, text: text.slice(prev) };
 							seen.set(event.item.id, text.length);
 						}
 					}

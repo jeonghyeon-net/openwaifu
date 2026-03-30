@@ -20,7 +20,9 @@ export async function startRepl(bot: ChatBot): Promise<void> {
 		const chat = bot.chat(input, sessionId ? { sessionId } : undefined);
 
 		for await (const chunk of chat.stream) {
-			process.stdout.write(chunk);
+			if (chunk.type === "text") {
+				process.stdout.write(chunk.text);
+			}
 		}
 		console.log("\n");
 
