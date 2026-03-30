@@ -66,6 +66,7 @@ type Session = {
 
 @injectable()
 export class ClaudeCodeBot extends ChatBot {
+	readonly name = "claude-code";
 	private sessions = new Map<string, Session>();
 	private mcpFactory: McpServerFactory = () => ({});
 

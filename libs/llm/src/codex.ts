@@ -38,6 +38,7 @@ function buildCodex(mcpServers: Record<string, McpServerConfig>): Codex {
 
 @injectable()
 export class CodexBot extends ChatBot {
+	readonly name = "codex";
 	private codex: Codex | null = null;
 	private mcpFactory: McpServerFactory = () => ({});
 	private threads = new Map<string, Thread>();

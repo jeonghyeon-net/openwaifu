@@ -4,17 +4,17 @@ import {
 	DiscordPlatform,
 	PLATFORM_TOKEN,
 } from "@lib/chat-platform";
-import { CHATBOT_TOKEN, type ChatBot, ClaudeCodeBot } from "@lib/llm";
+import { CHATBOT_TOKEN, type ChatBot, CodexBot } from "@lib/llm";
 import { discoverMcpServers } from "@lib/mcp-discovery";
 import { SessionStore } from "@lib/session-store";
 import { container } from "tsyringe";
 
-container.register(CHATBOT_TOKEN, { useClass: ClaudeCodeBot });
+container.register(CHATBOT_TOKEN, { useClass: CodexBot });
 container.register(PLATFORM_TOKEN, { useClass: DiscordPlatform });
 
 const bot = container.resolve<ChatBot>(CHATBOT_TOKEN);
 const platform = container.resolve<ChatPlatform>(PLATFORM_TOKEN);
-const sessions = new SessionStore("sessions.db");
+const sessions = new SessionStore("sessions.db", bot.name);
 
 await platform.start();
 
