@@ -18,5 +18,9 @@ export abstract class ChatPlatform {
 		channelId: string,
 		stream: AsyncIterable<string>,
 	): Promise<void>;
+	/**
+	 * Factory that creates a fresh MCP server instance per call.
+	 * Each session needs its own instance — they cannot be shared.
+	 */
 	abstract createMcpServer(): Record<string, McpServerConfig>;
 }

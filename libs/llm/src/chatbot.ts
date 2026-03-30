@@ -4,6 +4,8 @@ export const CHATBOT_TOKEN = "ChatBot";
 
 export type McpServerConfig = AgentMcpServerConfig;
 
+export type McpServerFactory = () => Record<string, McpServerConfig>;
+
 export type ChatOptions = {
 	sessionId?: string;
 };
@@ -20,8 +22,5 @@ export type ChatResult = {
 export abstract class ChatBot {
 	abstract chat(message: string, options?: ChatOptions): ChatResult;
 	abstract interrupt(sessionId: string): Promise<void>;
-	abstract setMcpServers(
-		servers: Record<string, McpServerConfig>,
-		sessionId?: string,
-	): Promise<void>;
+	abstract setMcpServers(factory: McpServerFactory): void;
 }

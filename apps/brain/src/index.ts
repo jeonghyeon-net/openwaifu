@@ -14,10 +14,17 @@ container.register(PLATFORM_TOKEN, { useClass: DiscordPlatform });
 const bot = container.resolve<ChatBot>(CHATBOT_TOKEN);
 const platform = container.resolve<ChatPlatform>(PLATFORM_TOKEN);
 
-// MCP: standalone servers from mcps/
+await platform.start();
+
+// MCP factory: 매 세션마다 새 인스턴스 생성
 const standaloneMcp = discoverMcpServers();
+bot.setMcpServers(() => ({
+	...standaloneMcp,
+	...platform.createMcpServer(),
+}));
+
 console.log(
-	`MCP (standalone): ${Object.keys(standaloneMcp).join(", ") || "none"}`,
+	`MCP: ${Object.keys(standaloneMcp).join(", ") || "none"} + platform`,
 );
 
 // 채널/스레드별 세션 관리
@@ -27,7 +34,6 @@ const activeChannels = new Set<string>();
 platform.onMessage(async (msg) => {
 	const sessionId = sessions.get(msg.channelId);
 
-	// 진행 중인 응답이 있으면 중단
 	if (sessionId && activeChannels.has(msg.channelId)) {
 		await bot.interrupt(sessionId).catch((e: unknown) => {
 			console.error("Interrupt failed:", e);
@@ -47,13 +53,6 @@ platform.onMessage(async (msg) => {
 		sessions.set(msg.channelId, chat.sessionId);
 	}
 });
-
-await platform.start();
-
-// Wire in-process platform MCP server after start (needs live client)
-const allMcp = { ...standaloneMcp, ...platform.createMcpServer() };
-console.log(`MCP (all): ${Object.keys(allMcp).join(", ")}`);
-await bot.setMcpServers(allMcp);
 
 // Graceful shutdown
 const shutdown = async () => {

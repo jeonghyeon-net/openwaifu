@@ -5,6 +5,7 @@ import {
 	type ChatOptions,
 	type ChatResult,
 	type McpServerConfig,
+	type McpServerFactory,
 } from "./chatbot.js";
 
 type CodexConfigValue =
@@ -20,11 +21,7 @@ function isStdio(
 	return "command" in server;
 }
 
-function buildCodex(mcpServers?: Record<string, McpServerConfig>): Codex {
-	if (!mcpServers || Object.keys(mcpServers).length === 0) {
-		return new Codex();
-	}
-
+function buildCodex(mcpServers: Record<string, McpServerConfig>): Codex {
 	const mcpConfig: { [key: string]: CodexConfigValue } = {};
 	for (const [name, server] of Object.entries(mcpServers)) {
 		if (!isStdio(server)) continue;
@@ -35,19 +32,16 @@ function buildCodex(mcpServers?: Record<string, McpServerConfig>): Codex {
 		mcpConfig[name] = entry;
 	}
 
+	if (Object.keys(mcpConfig).length === 0) return new Codex();
 	return new Codex({ config: { mcp_servers: mcpConfig } });
 }
 
 @injectable()
 export class CodexBot extends ChatBot {
-	private codex: Codex;
+	private codex: Codex | null = null;
+	private mcpFactory: McpServerFactory = () => ({});
 	private threads = new Map<string, Thread>();
 	private abortControllers = new Map<string, AbortController>();
-
-	constructor() {
-		super();
-		this.codex = new Codex();
-	}
 
 	async interrupt(sessionId: string) {
 		const controller = this.abortControllers.get(sessionId);
@@ -57,25 +51,28 @@ export class CodexBot extends ChatBot {
 		}
 	}
 
-	async setMcpServers(servers: Record<string, McpServerConfig>) {
-		if (this.threads.size > 0) {
-			throw new Error(
-				"Cannot change MCP servers while sessions are active. Create a new CodexBot instance instead.",
-			);
+	setMcpServers(factory: McpServerFactory) {
+		this.mcpFactory = factory;
+		this.codex = null;
+	}
+
+	private getCodex(): Codex {
+		if (!this.codex) {
+			this.codex = buildCodex(this.mcpFactory());
 		}
-		this.codex = buildCodex(servers);
+		return this.codex;
 	}
 
 	private getThread(sessionId?: string): Thread {
 		if (sessionId) {
 			let thread = this.threads.get(sessionId);
 			if (!thread) {
-				thread = this.codex.resumeThread(sessionId);
+				thread = this.getCodex().resumeThread(sessionId);
 				this.threads.set(sessionId, thread);
 			}
 			return thread;
 		}
-		return this.codex.startThread({ approvalPolicy: "never" });
+		return this.getCodex().startThread({ approvalPolicy: "never" });
 	}
 
 	chat(message: string, options?: ChatOptions): ChatResult {

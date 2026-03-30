@@ -6,7 +6,12 @@ import {
 	type SDKUserMessage,
 } from "@anthropic-ai/claude-agent-sdk";
 import { injectable } from "tsyringe";
-import { ChatBot, type ChatOptions, type ChatResult } from "./chatbot.js";
+import {
+	ChatBot,
+	type ChatOptions,
+	type ChatResult,
+	type McpServerFactory,
+} from "./chatbot.js";
 
 function isTextDelta(msg: SDKMessage): string | null {
 	if (
@@ -62,7 +67,7 @@ type Session = {
 @injectable()
 export class ClaudeCodeBot extends ChatBot {
 	private sessions = new Map<string, Session>();
-	private mcpServers: Record<string, AgentMcpServerConfig> = {};
+	private mcpFactory: McpServerFactory = () => ({});
 
 	async interrupt(sessionId: string) {
 		const session = this.sessions.get(sessionId);
@@ -71,21 +76,13 @@ export class ClaudeCodeBot extends ChatBot {
 		await session.query.interrupt();
 	}
 
-	async setMcpServers(
-		servers: Record<string, AgentMcpServerConfig>,
-		sessionId?: string,
-	) {
-		this.mcpServers = servers;
-
-		if (sessionId) {
-			const target = this.sessions.get(sessionId);
-			if (!target) throw new Error(`Session not found: ${sessionId}`);
-			await target.query.setMcpServers(servers);
-		}
+	setMcpServers(factory: McpServerFactory) {
+		this.mcpFactory = factory;
 	}
 
 	private createSession(): Session {
 		const stream = new MessageStream();
+		const mcpServers = this.mcpFactory();
 
 		const q = query({
 			prompt: stream as AsyncIterable<never>,
@@ -93,7 +90,7 @@ export class ClaudeCodeBot extends ChatBot {
 				includePartialMessages: true,
 				permissionMode: "bypassPermissions",
 				allowDangerouslySkipPermissions: true,
-				mcpServers: this.mcpServers,
+				mcpServers: mcpServers as Record<string, AgentMcpServerConfig>,
 			},
 		});
 
@@ -129,7 +126,6 @@ export class ClaudeCodeBot extends ChatBot {
 				const { value: msg, done } = await session.iterator.next();
 				if (done) return;
 
-				// 다른 턴이 시작됐으면 즉시 종료
 				if (session.turnId !== myTurn) return;
 
 				if (msg.type === "system" && msg.subtype === "init") {
