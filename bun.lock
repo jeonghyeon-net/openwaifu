@@ -6,7 +6,7 @@
       "dependencies": {
         "@anthropic-ai/claude-agent-sdk": "^0.2.87",
         "@modelcontextprotocol/sdk": "^1.28.0",
-        "@openai/codex-sdk": "^0.117.0",
+        "@openai/codex-sdk": "0.117.0",
         "reflect-metadata": "^0.2.2",
         "tsyringe": "^4.10.0",
         "zod": "^4.3.6",
@@ -23,6 +23,7 @@
       "dependencies": {
         "@lib/llm": "workspace:*",
         "@lib/mcp-discovery": "workspace:*",
+        "@lib/repl": "workspace:*",
       },
     },
     "libs/llm": {
@@ -30,6 +31,15 @@
     },
     "libs/mcp-discovery": {
       "name": "@lib/mcp-discovery",
+      "dependencies": {
+        "@lib/llm": "workspace:*",
+      },
+    },
+    "libs/repl": {
+      "name": "@lib/repl",
+      "dependencies": {
+        "@lib/llm": "workspace:*",
+      },
     },
     "mcps/greeter": {
       "name": "@mcp/greeter",
@@ -139,6 +149,8 @@
     "@lib/llm": ["@lib/llm@workspace:libs/llm"],
 
     "@lib/mcp-discovery": ["@lib/mcp-discovery@workspace:libs/mcp-discovery"],
+
+    "@lib/repl": ["@lib/repl@workspace:libs/repl"],
 
     "@mcp/greeter": ["@mcp/greeter@workspace:mcps/greeter"],
 
