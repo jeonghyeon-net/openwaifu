@@ -18,6 +18,8 @@ function findWorkspaceRoot(from: string): string {
 export function discoverMcpServers(): Record<string, McpServerConfig> {
 	const root = findWorkspaceRoot(process.cwd());
 	const mcpsDir = join(root, "mcps");
+	const envFile = join(root, ".env");
+	const hasEnv = existsSync(envFile);
 	const servers: Record<string, McpServerConfig> = {};
 
 	let dirs: string[];
@@ -38,10 +40,11 @@ export function discoverMcpServers(): Record<string, McpServerConfig> {
 
 			if (typeof entryPoint !== "string") continue;
 
-			servers[dir] = {
-				command: "bun",
-				args: ["run", join(mcpsDir, dir, entryPoint)],
-			};
+			const args = hasEnv
+				? ["--env-file", envFile, "run", join(mcpsDir, dir, entryPoint)]
+				: ["run", join(mcpsDir, dir, entryPoint)];
+
+			servers[dir] = { command: "bun", args };
 		} catch {
 			// skip packages without valid exports
 		}
