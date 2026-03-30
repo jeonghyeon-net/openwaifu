@@ -112,15 +112,10 @@ export class TelegramPlatform extends ChatPlatform {
 		const MESSAGE_LIMIT = 4096;
 		const CHUNK_THRESHOLD = 3800;
 		const EDIT_INTERVAL_MS = 1000;
-		const SEND_BUFFER_MS = 200;
-		const SEND_MIN_LENGTH = 20;
 
 		let buffer = "";
 		let msgId: number | null = null;
 		let lastEditTime = 0;
-		let lastChunkTime = 0;
-		let pendingSend: ReturnType<typeof setTimeout> | null = null;
-		let sending = false;
 
 		const editSafe = async (id: number, text: string) => {
 			try {
@@ -131,60 +126,31 @@ export class TelegramPlatform extends ChatPlatform {
 			}
 		};
 
-		const flushSend = async () => {
-			if (msgId || !buffer || sending) return;
-			sending = true;
-			if (pendingSend) {
-				clearTimeout(pendingSend);
-				pendingSend = null;
-			}
-			const sent = await bot.api.sendMessage(chatId, buffer);
-			msgId = sent.message_id;
-			lastEditTime = Date.now();
-			sending = false;
-		};
+		await bot.api.sendChatAction(chatId, "typing");
 
-		bot.api.sendChatAction(chatId, "typing");
-		const typingInterval = setInterval(() => {
-			if (Date.now() - lastChunkTime > 500) {
-				bot.api.sendChatAction(chatId, "typing");
-			}
-		}, 1000);
+		for await (const chunk of stream) {
+			buffer += chunk;
 
-		try {
-			for await (const chunk of stream) {
-				lastChunkTime = Date.now();
-				buffer += chunk;
-
-				if (buffer.length > CHUNK_THRESHOLD && msgId) {
-					await editSafe(msgId, buffer.slice(0, MESSAGE_LIMIT));
-					msgId = null;
-					buffer = buffer.slice(MESSAGE_LIMIT);
-				}
-
-				if (!msgId) {
-					if (buffer.length >= SEND_MIN_LENGTH) {
-						await flushSend();
-					} else if (!pendingSend) {
-						pendingSend = setTimeout(() => {
-							flushSend();
-						}, SEND_BUFFER_MS);
-					}
-				} else if (Date.now() - lastEditTime >= EDIT_INTERVAL_MS) {
-					await editSafe(msgId, buffer);
-					lastEditTime = Date.now();
-				}
+			if (buffer.length > CHUNK_THRESHOLD && msgId) {
+				await editSafe(msgId, buffer.slice(0, MESSAGE_LIMIT));
+				msgId = null;
+				buffer = buffer.slice(MESSAGE_LIMIT);
 			}
 
-			if (pendingSend) clearTimeout(pendingSend);
-			if (msgId && buffer) {
+			if (!msgId) {
+				const sent = await bot.api.sendMessage(chatId, buffer);
+				msgId = sent.message_id;
+				lastEditTime = Date.now();
+			} else if (Date.now() - lastEditTime >= EDIT_INTERVAL_MS) {
 				await editSafe(msgId, buffer);
-			} else if (!msgId && buffer) {
-				await bot.api.sendMessage(chatId, buffer);
+				lastEditTime = Date.now();
 			}
-		} finally {
-			clearInterval(typingInterval);
-			if (pendingSend) clearTimeout(pendingSend);
+		}
+
+		if (msgId && buffer) {
+			await editSafe(msgId, buffer);
+		} else if (!msgId && buffer) {
+			await bot.api.sendMessage(chatId, buffer);
 		}
 	}
 }
