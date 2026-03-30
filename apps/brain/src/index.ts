@@ -10,13 +10,12 @@ const mcpServers = discoverMcpServers();
 
 console.log(`MCP: ${Object.keys(mcpServers).join(", ") || "none"}`);
 
-const chat = bot.chat("안녕!");
+// 채팅 전에 MCP 등록
+await bot.setMcpServers(mcpServers);
+
+const chat = bot.chat("greeter mcp 호출해봐!");
 
 for await (const chunk of chat.stream) {
 	process.stdout.write(chunk);
 }
 console.log();
-
-if (chat.sessionId && Object.keys(mcpServers).length > 0) {
-	await bot.setMcpServers(mcpServers, chat.sessionId);
-}

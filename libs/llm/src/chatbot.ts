@@ -10,6 +10,10 @@ export type ChatOptions = {
 };
 
 export type ChatResult = {
+	/**
+	 * Session ID for this chat. Empty string until the stream emits
+	 * its first event. Consume the stream before reading this value.
+	 */
 	sessionId: string;
 	stream: AsyncIterable<string>;
 };

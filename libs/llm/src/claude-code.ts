@@ -15,14 +15,22 @@ import {
 @injectable()
 export class ClaudeCodeBot extends ChatBot {
 	private sessions = new Map<string, Query>();
+	private mcpServers: Record<string, McpServerConfig> = {};
 
 	async setMcpServers(
 		servers: Record<string, McpServerConfig>,
 		sessionId?: string,
 	) {
-		const target = sessionId ? this.sessions.get(sessionId) : undefined;
-		if (!target) throw new Error("Session not found");
-		await target.setMcpServers(servers as Record<string, AgentMcpServerConfig>);
+		this.mcpServers = servers;
+
+		if (sessionId) {
+			const target = this.sessions.get(sessionId);
+			if (target) {
+				await target.setMcpServers(
+					servers as Record<string, AgentMcpServerConfig>,
+				);
+			}
+		}
 	}
 
 	chat(message: string, options?: ChatOptions): ChatResult {
@@ -62,8 +70,8 @@ export class ClaudeCodeBot extends ChatBot {
 				const q = query({
 					prompt: message,
 					options: {
-						allowedTools: [],
 						includePartialMessages: true,
+						mcpServers: self.mcpServers as Record<string, AgentMcpServerConfig>,
 					},
 				});
 

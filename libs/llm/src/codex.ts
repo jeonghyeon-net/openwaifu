@@ -14,6 +14,23 @@ type CodexConfigValue =
 	| CodexConfigValue[]
 	| { [key: string]: CodexConfigValue };
 
+function buildCodex(mcpServers?: Record<string, McpServerConfig>): Codex {
+	if (!mcpServers || Object.keys(mcpServers).length === 0) {
+		return new Codex();
+	}
+
+	const mcpConfig: { [key: string]: CodexConfigValue } = {};
+	for (const [name, server] of Object.entries(mcpServers)) {
+		const entry: { command: string; args?: string[] } = {
+			command: server.command,
+		};
+		if (server.args.length > 0) entry.args = server.args;
+		mcpConfig[name] = entry;
+	}
+
+	return new Codex({ config: { mcp_servers: mcpConfig } });
+}
+
 @injectable()
 export class CodexBot extends ChatBot {
 	private codex: Codex;
@@ -25,20 +42,12 @@ export class CodexBot extends ChatBot {
 	}
 
 	async setMcpServers(servers: Record<string, McpServerConfig>) {
-		const mcpConfig: { [key: string]: CodexConfigValue } = {};
-		for (const [name, server] of Object.entries(servers)) {
-			const entry: {
-				command: string;
-				args?: string[];
-			} = { command: server.command };
-			if (server.args.length > 0) entry.args = server.args;
-			mcpConfig[name] = entry;
+		if (this.threads.size > 0) {
+			throw new Error(
+				"Cannot change MCP servers while sessions are active. Create a new CodexBot instance instead.",
+			);
 		}
-
-		this.codex = new Codex({
-			config: { mcp_servers: mcpConfig },
-		});
-		this.threads.clear();
+		this.codex = buildCodex(servers);
 	}
 
 	private getThread(sessionId?: string): Thread {

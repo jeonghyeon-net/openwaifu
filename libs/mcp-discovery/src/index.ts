@@ -1,7 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-
-export type McpServerMap = Record<string, { command: string; args: string[] }>;
+import type { McpServerConfig } from "@lib/llm";
 
 function findWorkspaceRoot(from: string): string {
 	let dir = resolve(from);
@@ -16,10 +15,10 @@ function findWorkspaceRoot(from: string): string {
 	throw new Error("Workspace root not found");
 }
 
-export function discoverMcpServers(): McpServerMap {
+export function discoverMcpServers(): Record<string, McpServerConfig> {
 	const root = findWorkspaceRoot(process.cwd());
 	const mcpsDir = join(root, "mcps");
-	const servers: McpServerMap = {};
+	const servers: Record<string, McpServerConfig> = {};
 
 	let dirs: string[];
 	try {
