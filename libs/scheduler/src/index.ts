@@ -162,6 +162,9 @@ export class Scheduler {
 			.query<{ name: string }, []>("PRAGMA table_info(schedules)")
 			.all();
 		if (oldCols.some((c) => c.name === "channel_id")) {
+			console.warn(
+				"Scheduler: 구 스키마 감지, 기존 스케줄 삭제 후 테이블 재생성",
+			);
 			this.db.run("DROP TABLE schedules");
 		}
 
