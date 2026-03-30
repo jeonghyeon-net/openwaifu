@@ -1,3 +1,4 @@
+import { env } from "@lib/env";
 import {
 	Client,
 	Events,
@@ -40,10 +41,7 @@ export class DiscordPlatform extends ChatPlatform {
 	}
 
 	async start() {
-		const key = "DISCORD_TOKEN";
-		const token = process.env[key];
-		if (!token) throw new Error("DISCORD_TOKEN is required");
-		await this.client.login(token);
+		await this.client.login(env("DISCORD_TOKEN"));
 	}
 
 	async stop() {

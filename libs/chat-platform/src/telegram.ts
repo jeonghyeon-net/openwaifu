@@ -1,3 +1,4 @@
+import { env } from "@lib/env";
 import { Bot } from "grammy";
 import { injectable } from "tsyringe";
 import { ChatPlatform, type MessageHandler } from "./platform.js";
@@ -12,11 +13,7 @@ export class TelegramPlatform extends ChatPlatform {
 	}
 
 	async start() {
-		const key = "TELEGRAM_TOKEN";
-		const token = process.env[key];
-		if (!token) throw new Error("TELEGRAM_TOKEN is required");
-
-		this.bot = new Bot(token);
+		this.bot = new Bot(env("TELEGRAM_TOKEN"));
 
 		this.bot.on("message:text", (ctx) => {
 			for (const handler of this.handlers) {
