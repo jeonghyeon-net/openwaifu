@@ -70,14 +70,12 @@ export class DiscordPlatform extends ChatPlatform {
 		if (!channel?.isTextBased()) return;
 
 		const textChannel = channel as TextChannel;
-		let lastChunkTime = Date.now();
 
+		// 첫 메시지 전까지만 typing 표시. 이후는 메시지 edit이 실시간으로 보임.
 		await textChannel.sendTyping();
 		const typingInterval = setInterval(() => {
-			if (Date.now() - lastChunkTime < 3000) {
-				textChannel.sendTyping();
-			}
-		}, 3000);
+			textChannel.sendTyping();
+		}, 5000);
 
 		const MESSAGE_LIMIT = 2000;
 		const CHUNK_THRESHOLD = 1800;
@@ -89,7 +87,6 @@ export class DiscordPlatform extends ChatPlatform {
 
 		try {
 			for await (const chunk of stream) {
-				lastChunkTime = Date.now();
 				buffer += chunk;
 
 				if (buffer.length > CHUNK_THRESHOLD && msg) {
@@ -99,6 +96,7 @@ export class DiscordPlatform extends ChatPlatform {
 				}
 
 				if (!msg) {
+					clearInterval(typingInterval);
 					msg = await textChannel.send(buffer);
 					lastEditTime = Date.now();
 				} else if (Date.now() - lastEditTime >= EDIT_INTERVAL_MS) {
