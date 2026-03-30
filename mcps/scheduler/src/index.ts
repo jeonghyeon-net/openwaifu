@@ -15,25 +15,27 @@ const server = new McpServer({
 
 server.tool(
 	"add_schedule",
-	"Add a new cron schedule. The prompt will be sent to the LLM at the scheduled time.",
+	"Add a new cron schedule. The prompt is sent to the LLM at the scheduled time. The LLM can then use tools (e.g. discord send_message) to act on it.",
 	{
 		cronExpression: z
 			.string()
 			.describe("Cron expression (minute hour dayOfMonth month dayOfWeek)"),
-		prompt: z.string().describe("Prompt to send to the LLM when triggered"),
-		channelId: z.string().describe("Channel ID to send the response to"),
+		prompt: z
+			.string()
+			.describe(
+				"Prompt to send to the LLM when triggered. Include instructions like which channel to send to.",
+			),
 		createdBy: z.string().describe("User ID who created this schedule"),
 		once: z
 			.boolean()
 			.optional()
 			.describe("If true, the schedule runs once and is automatically removed"),
 	},
-	async ({ cronExpression, prompt, channelId, createdBy, once }) => {
+	async ({ cronExpression, prompt, createdBy, once }) => {
 		try {
 			const id = scheduler.add({
 				cronExpression,
 				prompt,
-				channelId,
 				createdBy,
 				once: once ?? false,
 			});

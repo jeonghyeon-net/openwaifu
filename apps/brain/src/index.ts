@@ -41,7 +41,11 @@ console.log(`Sessions restored: ${sessions.all().length}`);
 
 scheduler.start(async (schedule) => {
 	const chat = bot.chat(schedule.prompt, {});
-	await platform.sendStream(schedule.channelId, chat.stream);
+	// AI가 프롬프트에 따라 MCP 도구로 직접 행동 (메시지 전송 등)
+	// 스트림을 소비해야 실행이 진행됨
+	for await (const _ of chat.stream) {
+		// AI 응답 텍스트는 무시 — 도구로 직접 행동
+	}
 });
 console.log(`Scheduler started with ${scheduler.list().length} schedule(s).`);
 

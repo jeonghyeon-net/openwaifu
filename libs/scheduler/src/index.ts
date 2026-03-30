@@ -4,7 +4,6 @@ export type Schedule = {
 	id: string;
 	cronExpression: string;
 	prompt: string;
-	channelId: string;
 	createdBy: string;
 	enabled: boolean;
 	once: boolean;
@@ -14,7 +13,6 @@ type ScheduleRow = {
 	id: string;
 	cron_expression: string;
 	prompt: string;
-	channel_id: string;
 	created_by: string;
 	enabled: number;
 	once: number;
@@ -159,22 +157,30 @@ export class Scheduler {
 	}
 
 	private migrate(): void {
+		// 구 스키마(channel_id 포함) 감지 시 테이블 재생성
+		const oldCols = this.db
+			.query<{ name: string }, []>("PRAGMA table_info(schedules)")
+			.all();
+		if (oldCols.some((c) => c.name === "channel_id")) {
+			this.db.run("DROP TABLE schedules");
+		}
+
 		this.db.run(`
 			CREATE TABLE IF NOT EXISTS schedules (
 				id TEXT PRIMARY KEY,
 				cron_expression TEXT NOT NULL,
 				prompt TEXT NOT NULL,
-				channel_id TEXT NOT NULL,
 				created_by TEXT NOT NULL,
 				enabled INTEGER NOT NULL DEFAULT 1,
 				once INTEGER NOT NULL DEFAULT 0
 			)
 		`);
+
 		// 기존 테이블에 once 컬럼이 없으면 추가
-		const cols = this.db
+		const newCols = this.db
 			.query<{ name: string }, []>("PRAGMA table_info(schedules)")
 			.all();
-		if (!cols.some((c) => c.name === "once")) {
+		if (!newCols.some((c) => c.name === "once")) {
 			this.db.run(
 				"ALTER TABLE schedules ADD COLUMN once INTEGER NOT NULL DEFAULT 0",
 			);
@@ -187,13 +193,12 @@ export class Scheduler {
 		}
 		const id = generateId();
 		this.db.run(
-			`INSERT INTO schedules (id, cron_expression, prompt, channel_id, created_by, enabled, once)
-			 VALUES (?, ?, ?, ?, ?, 1, ?)`,
+			`INSERT INTO schedules (id, cron_expression, prompt, created_by, enabled, once)
+			 VALUES (?, ?, ?, ?, 1, ?)`,
 			[
 				id,
 				schedule.cronExpression,
 				schedule.prompt,
-				schedule.channelId,
 				schedule.createdBy,
 				schedule.once ? 1 : 0,
 			],
@@ -289,7 +294,6 @@ function rowToSchedule(row: ScheduleRow): Schedule {
 		id: row.id,
 		cronExpression: row.cron_expression,
 		prompt: row.prompt,
-		channelId: row.channel_id,
 		createdBy: row.created_by,
 		enabled: row.enabled === 1,
 		once: row.once === 1,
