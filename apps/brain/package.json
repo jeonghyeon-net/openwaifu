@@ -8,6 +8,7 @@
 	},
 	"dependencies": {
 		"@lib/chat-platform": "workspace:*",
+		"@lib/env": "workspace:*",
 		"@lib/llm": "workspace:*",
 		"@lib/mcp-discovery": "workspace:*",
 		"@lib/scheduler": "workspace:*",

@@ -6,6 +6,7 @@ import {
 	DiscordPlatform,
 	PLATFORM_TOKEN,
 } from "@lib/chat-platform";
+import { findWorkspaceRoot } from "@lib/env";
 import { CHATBOT_TOKEN, type ChatBot, ClaudeCodeBot } from "@lib/llm";
 import { discoverMcpServers } from "@lib/mcp-discovery";
 import { Scheduler } from "@lib/scheduler";
@@ -17,7 +18,7 @@ container.register(PLATFORM_TOKEN, { useClass: DiscordPlatform });
 
 const bot = container.resolve<ChatBot>(CHATBOT_TOKEN);
 const platform = container.resolve<ChatPlatform>(PLATFORM_TOKEN);
-const dataDir = join("..", "..");
+const dataDir = findWorkspaceRoot();
 const sessions = new SessionStore(join(dataDir, "sessions.db"), bot.name);
 const scheduler = new Scheduler(join(dataDir, "scheduler.db"));
 
@@ -26,7 +27,7 @@ await platform.start();
 const mcpServers = discoverMcpServers();
 bot.setMcpServers(() => mcpServers);
 
-const persona = readFileSync(join("..", "..", "PERSONA.md"), "utf-8");
+const persona = readFileSync(join(dataDir, "PERSONA.md"), "utf-8");
 const systemRules = `${persona}
 
 응답 시스템 규칙 (절대 위반 금지)

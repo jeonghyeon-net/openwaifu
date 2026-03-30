@@ -88,9 +88,14 @@ server.tool(
 	"Enable a disabled cron schedule",
 	{ id: z.string().describe("Schedule ID to enable") },
 	async ({ id }) => {
-		scheduler.enable(id);
+		const found = scheduler.enable(id);
 		return {
-			content: [{ type: "text", text: `Schedule ${id} enabled` }],
+			content: [
+				{
+					type: "text",
+					text: found ? `Schedule ${id} enabled` : `Schedule ${id} not found`,
+				},
+			],
 		};
 	},
 );
@@ -100,9 +105,14 @@ server.tool(
 	"Disable a cron schedule without removing it",
 	{ id: z.string().describe("Schedule ID to disable") },
 	async ({ id }) => {
-		scheduler.disable(id);
+		const found = scheduler.disable(id);
 		return {
-			content: [{ type: "text", text: `Schedule ${id} disabled` }],
+			content: [
+				{
+					type: "text",
+					text: found ? `Schedule ${id} disabled` : `Schedule ${id} not found`,
+				},
+			],
 		};
 	},
 );

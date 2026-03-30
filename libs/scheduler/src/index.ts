@@ -101,6 +101,15 @@ export function matchesCron(expression: string, date: Date): boolean {
 	return true;
 }
 
+const CRON_FIELD_PATTERN =
+	/^(\*|[0-9]+(-[0-9]+)?)(\/([0-9]+))?(,(\*|[0-9]+(-[0-9]+)?)(\/([0-9]+))?)*$/;
+
+export function isValidCron(expression: string): boolean {
+	const fields = expression.trim().split(/\s+/);
+	if (fields.length !== 5) return false;
+	return fields.every((field) => CRON_FIELD_PATTERN.test(field));
+}
+
 export class Scheduler {
 	private db: Database;
 	private timer: ReturnType<typeof setInterval> | undefined;
@@ -108,6 +117,8 @@ export class Scheduler {
 
 	constructor(dbPath: string) {
 		this.db = new Database(dbPath);
+		this.db.run("PRAGMA journal_mode=WAL");
+		this.db.run("PRAGMA busy_timeout=5000");
 		this.migrate();
 	}
 
@@ -135,6 +146,9 @@ export class Scheduler {
 	}
 
 	add(schedule: Omit<Schedule, "id" | "enabled">): string {
+		if (!isValidCron(schedule.cronExpression)) {
+			throw new Error(`Invalid cron expression: ${schedule.cronExpression}`);
+		}
 		const id = generateId();
 		this.db.run(
 			`INSERT INTO schedules (id, cron_expression, prompt, channel_id, created_by, enabled, once)
@@ -153,6 +167,7 @@ export class Scheduler {
 
 	remove(id: string): boolean {
 		const result = this.db.run("DELETE FROM schedules WHERE id = ?", [id]);
+		this.lastTriggered.delete(id);
 		return result.changes > 0;
 	}
 
@@ -163,12 +178,20 @@ export class Scheduler {
 		return rows.map(rowToSchedule);
 	}
 
-	enable(id: string): void {
-		this.db.run("UPDATE schedules SET enabled = 1 WHERE id = ?", [id]);
+	enable(id: string): boolean {
+		const result = this.db.run(
+			"UPDATE schedules SET enabled = 1 WHERE id = ?",
+			[id],
+		);
+		return result.changes > 0;
 	}
 
-	disable(id: string): void {
-		this.db.run("UPDATE schedules SET enabled = 0 WHERE id = ?", [id]);
+	disable(id: string): boolean {
+		const result = this.db.run(
+			"UPDATE schedules SET enabled = 0 WHERE id = ?",
+			[id],
+		);
+		return result.changes > 0;
 	}
 
 	start(onTrigger: (schedule: Schedule) => Promise<void>): void {

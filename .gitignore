@@ -28,5 +28,8 @@ Thumbs.db
 
 # test coverage
 coverage/
-sessions.db
-scheduler.db
+
+# data
+*.db
+*.db-wal
+*.db-shm
