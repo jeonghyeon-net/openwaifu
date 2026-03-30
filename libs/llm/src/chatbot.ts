@@ -20,6 +20,7 @@ export type ChatResult = {
 
 export abstract class ChatBot {
 	abstract chat(message: string, options?: ChatOptions): ChatResult;
+	abstract interrupt(sessionId: string): Promise<void>;
 	abstract setMcpServers(
 		servers: Record<string, McpServerConfig>,
 		sessionId?: string,

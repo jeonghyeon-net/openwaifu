@@ -35,10 +35,19 @@ function buildCodex(mcpServers?: Record<string, McpServerConfig>): Codex {
 export class CodexBot extends ChatBot {
 	private codex: Codex;
 	private threads = new Map<string, Thread>();
+	private abortControllers = new Map<string, AbortController>();
 
 	constructor() {
 		super();
 		this.codex = new Codex();
+	}
+
+	async interrupt(sessionId: string) {
+		const controller = this.abortControllers.get(sessionId);
+		if (controller) {
+			controller.abort();
+			this.abortControllers.delete(sessionId);
+		}
 	}
 
 	async setMcpServers(servers: Record<string, McpServerConfig>) {
@@ -67,14 +76,19 @@ export class CodexBot extends ChatBot {
 		const thread = this.getThread(options?.sessionId);
 
 		const self = this;
+		const controller = new AbortController();
+
 		const stream = async function* () {
-			const { events } = await thread.runStreamed(message);
+			const { events } = await thread.runStreamed(message, {
+				signal: controller.signal,
+			});
 			const seen = new Map<string, number>();
 
 			for await (const event of events) {
 				if (event.type === "thread.started") {
 					sessionId = event.thread_id;
 					self.threads.set(sessionId, thread);
+					self.abortControllers.set(sessionId, controller);
 				}
 
 				if (
@@ -89,6 +103,8 @@ export class CodexBot extends ChatBot {
 					}
 				}
 			}
+
+			self.abortControllers.delete(sessionId);
 		};
 
 		return {

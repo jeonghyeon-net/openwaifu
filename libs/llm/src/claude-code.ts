@@ -68,6 +68,12 @@ export class ClaudeCodeBot extends ChatBot {
 	private sessions = new Map<string, Session>();
 	private mcpServers: Record<string, McpServerConfig> = {};
 
+	async interrupt(sessionId: string) {
+		const session = this.sessions.get(sessionId);
+		if (!session) throw new Error(`Session not found: ${sessionId}`);
+		await session.query.interrupt();
+	}
+
 	async setMcpServers(
 		servers: Record<string, McpServerConfig>,
 		sessionId?: string,

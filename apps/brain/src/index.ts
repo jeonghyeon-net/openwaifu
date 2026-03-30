@@ -27,6 +27,11 @@ const sessions = new Map<string, string>();
 platform.onMessage(async (msg) => {
 	const sessionId = sessions.get(msg.channelId);
 
+	// 진행 중인 응답이 있으면 중단
+	if (sessionId) {
+		await bot.interrupt(sessionId).catch(() => {});
+	}
+
 	const chat = bot.chat(msg.text, sessionId ? { sessionId } : undefined);
 
 	await platform.sendStream(msg.channelId, chat.stream);
