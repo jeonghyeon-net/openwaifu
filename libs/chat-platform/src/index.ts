@@ -2,6 +2,7 @@ export { DiscordPlatform } from "./discord.js";
 export {
 	type Attachment,
 	ChatPlatform,
+	type HistoryMessage,
 	type IncomingMessage,
 	type MessageHandler,
 	PLATFORM_TOKEN,

@@ -105,6 +105,11 @@ export class TelegramPlatform extends ChatPlatform {
 		if (this.bot) await this.bot.stop();
 	}
 
+	async fetchHistory() {
+		// Telegram Bot API does not support fetching chat history
+		return [];
+	}
+
 	async sendStream(channelId: string, stream: AsyncIterable<string>) {
 		if (!this.bot) throw new Error("Bot not started yet");
 		const bot = this.bot;

@@ -65,6 +65,19 @@ export class DiscordPlatform extends ChatPlatform {
 		this.handlers.push(handler);
 	}
 
+	async fetchHistory(channelId: string, limit: number) {
+		const channel = await this.client.channels.fetch(channelId);
+		if (!channel?.isTextBased()) return [];
+		const msgs = await (channel as TextChannel).messages.fetch({ limit });
+		const selfId = this.client.user?.id;
+		return [...msgs.values()].reverse().map((m) => ({
+			userId: m.author.id,
+			username: m.author.username,
+			text: m.content,
+			isSelf: m.author.id === selfId,
+		}));
+	}
+
 	async sendStream(channelId: string, stream: AsyncIterable<string>) {
 		const channel = await this.client.channels.fetch(channelId);
 		if (!channel?.isTextBased()) return;

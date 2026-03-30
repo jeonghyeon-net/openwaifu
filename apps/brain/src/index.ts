@@ -43,7 +43,17 @@ platform.onMessage(async (msg) => {
 		.map(([k, v]) => `${k}: ${v}`)
 		.join(", ");
 	const context = `[channelId: ${msg.channelId}, userId: ${msg.userId}, username: ${msg.username}${meta ? `, ${meta}` : ""}]`;
-	const chat = bot.chat(`${context}\n${msg.text}`, {
+
+	// 채널 최근 대화 히스토리를 컨텍스트에 포함
+	const history = await platform.fetchHistory(msg.channelId, 30);
+	const historyText = history
+		.map((h) => `${h.isSelf ? "(나)" : h.username}: ${h.text}`)
+		.join("\n");
+	const fullMessage = historyText
+		? `<recent_chat_history>\n${historyText}\n</recent_chat_history>\n${context}\n${msg.text}`
+		: `${context}\n${msg.text}`;
+
+	const chat = bot.chat(fullMessage, {
 		...(sessionId && { sessionId }),
 		...(msg.attachments.length > 0 && { attachments: msg.attachments }),
 	});

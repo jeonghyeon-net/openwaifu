@@ -7,6 +7,13 @@ export type Attachment = {
 	size: number;
 };
 
+export type HistoryMessage = {
+	userId: string;
+	username: string;
+	text: string;
+	isSelf: boolean;
+};
+
 export type IncomingMessage = {
 	channelId: string;
 	userId: string;
@@ -26,4 +33,8 @@ export abstract class ChatPlatform {
 		channelId: string,
 		stream: AsyncIterable<string>,
 	): Promise<void>;
+	abstract fetchHistory(
+		channelId: string,
+		limit: number,
+	): Promise<HistoryMessage[]>;
 }
