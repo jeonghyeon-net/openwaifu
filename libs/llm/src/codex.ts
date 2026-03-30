@@ -69,6 +69,7 @@ export class CodexBot extends ChatBot {
 		const self = this;
 		const stream = async function* () {
 			const { events } = await thread.runStreamed(message);
+			const seen = new Map<string, number>();
 
 			for await (const event of events) {
 				if (event.type === "thread.started") {
@@ -80,7 +81,12 @@ export class CodexBot extends ChatBot {
 					(event.type === "item.updated" || event.type === "item.completed") &&
 					event.item.type === "agent_message"
 				) {
-					yield event.item.text;
+					const prev = seen.get(event.item.id) ?? 0;
+					const text = event.item.text;
+					if (text.length > prev) {
+						yield text.slice(prev);
+						seen.set(event.item.id, text.length);
+					}
 				}
 			}
 		};
