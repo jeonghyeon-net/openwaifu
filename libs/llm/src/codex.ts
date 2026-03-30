@@ -83,6 +83,11 @@ export class CodexBot extends ChatBot {
 		const self = this;
 		const controller = new AbortController();
 
+		// 기존 세션이면 즉시 controller 등록
+		if (sessionId) {
+			self.abortControllers.set(sessionId, controller);
+		}
+
 		const stream = async function* () {
 			const { events } = await thread.runStreamed(message, {
 				signal: controller.signal,
