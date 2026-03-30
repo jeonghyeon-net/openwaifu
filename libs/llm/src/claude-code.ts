@@ -69,6 +69,11 @@ export class ClaudeCodeBot extends ChatBot {
 	readonly name = "claude-code";
 	private sessions = new Map<string, Session>();
 	private mcpFactory: McpServerFactory = () => ({});
+	private systemPrompt = "";
+
+	setSystemPrompt(prompt: string) {
+		this.systemPrompt = prompt;
+	}
 
 	async interrupt(sessionId: string) {
 		const session = this.sessions.get(sessionId);
@@ -93,6 +98,13 @@ export class ClaudeCodeBot extends ChatBot {
 				allowDangerouslySkipPermissions: true,
 				mcpServers: mcpServers as Record<string, AgentMcpServerConfig>,
 				...(resumeId && { resume: resumeId }),
+				...(this.systemPrompt && {
+					systemPrompt: {
+						type: "preset" as const,
+						preset: "claude_code" as const,
+						append: this.systemPrompt,
+					},
+				}),
 			},
 		});
 

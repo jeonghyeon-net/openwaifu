@@ -1,15 +1,17 @@
 import "reflect-metadata";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import {
 	type ChatPlatform,
 	DiscordPlatform,
 	PLATFORM_TOKEN,
 } from "@lib/chat-platform";
-import { CHATBOT_TOKEN, type ChatBot, CodexBot } from "@lib/llm";
+import { CHATBOT_TOKEN, type ChatBot, ClaudeCodeBot } from "@lib/llm";
 import { discoverMcpServers } from "@lib/mcp-discovery";
 import { SessionStore } from "@lib/session-store";
 import { container } from "tsyringe";
 
-container.register(CHATBOT_TOKEN, { useClass: CodexBot });
+container.register(CHATBOT_TOKEN, { useClass: ClaudeCodeBot });
 container.register(PLATFORM_TOKEN, { useClass: DiscordPlatform });
 
 const bot = container.resolve<ChatBot>(CHATBOT_TOKEN);
@@ -20,6 +22,9 @@ await platform.start();
 
 const mcpServers = discoverMcpServers();
 bot.setMcpServers(() => mcpServers);
+
+const persona = readFileSync(join("..", "..", "PERSONA.md"), "utf-8");
+bot.setSystemPrompt(persona);
 
 console.log(`MCP: ${Object.keys(mcpServers).join(", ") || "none"}`);
 console.log(`Sessions restored: ${sessions.all().length}`);

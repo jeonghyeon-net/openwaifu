@@ -21,7 +21,10 @@ function isStdio(
 	return "command" in server;
 }
 
-function buildCodex(mcpServers: Record<string, McpServerConfig>): Codex {
+function buildCodex(
+	mcpServers: Record<string, McpServerConfig>,
+	systemPrompt?: string,
+): Codex {
 	const mcpConfig: { [key: string]: CodexConfigValue } = {};
 	for (const [name, server] of Object.entries(mcpServers)) {
 		if (!isStdio(server)) continue;
@@ -32,8 +35,11 @@ function buildCodex(mcpServers: Record<string, McpServerConfig>): Codex {
 		mcpConfig[name] = entry;
 	}
 
-	if (Object.keys(mcpConfig).length === 0) return new Codex();
-	return new Codex({ config: { mcp_servers: mcpConfig } });
+	const config: { [key: string]: CodexConfigValue } = {};
+	if (Object.keys(mcpConfig).length > 0) config["mcp_servers"] = mcpConfig;
+	if (systemPrompt) config["instructions"] = systemPrompt;
+	if (Object.keys(config).length === 0) return new Codex();
+	return new Codex({ config });
 }
 
 @injectable()
@@ -41,8 +47,14 @@ export class CodexBot extends ChatBot {
 	readonly name = "codex";
 	private codex: Codex | null = null;
 	private mcpFactory: McpServerFactory = () => ({});
+	private systemPrompt = "";
 	private threads = new Map<string, Thread>();
 	private locks = new Map<string, Promise<void>>();
+
+	setSystemPrompt(prompt: string) {
+		this.systemPrompt = prompt;
+		this.codex = null;
+	}
 
 	async interrupt() {
 		// Codex responds in one shot — queuing handles concurrency instead
@@ -55,7 +67,7 @@ export class CodexBot extends ChatBot {
 
 	private getCodex(): Codex {
 		if (!this.codex) {
-			this.codex = buildCodex(this.mcpFactory());
+			this.codex = buildCodex(this.mcpFactory(), this.systemPrompt);
 		}
 		return this.codex;
 	}

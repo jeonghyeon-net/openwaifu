@@ -24,4 +24,5 @@ export abstract class ChatBot {
 	abstract chat(message: string, options?: ChatOptions): ChatResult;
 	abstract interrupt(sessionId: string): Promise<void>;
 	abstract setMcpServers(factory: McpServerFactory): void;
+	abstract setSystemPrompt(prompt: string): void;
 }
