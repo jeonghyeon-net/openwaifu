@@ -9,8 +9,7 @@
 	"dependencies": {
 		"@lib/chat-platform": "workspace:*",
 		"@lib/llm": "workspace:*",
-		"@lib/mcp-discovery": "workspace:*",
-		"@lib/repl": "workspace:*"
+		"@lib/mcp-discovery": "workspace:*"
 	},
 	"devDependencies": {}
 }
