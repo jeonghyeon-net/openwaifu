@@ -24,17 +24,48 @@ function isTextDelta(msg: SDKMessage): string | null {
 	return null;
 }
 
-function isIdle(msg: SDKMessage): boolean {
-	return (
-		msg.type === "system" &&
-		msg.subtype === "session_state_changed" &&
-		msg.state === "idle"
-	);
+class MessageStream {
+	private queue: SDKUserMessage[] = [];
+	private resolve: (() => void) | null = null;
+	private done = false;
+
+	push(msg: SDKUserMessage) {
+		this.queue.push(msg);
+		this.resolve?.();
+		this.resolve = null;
+	}
+
+	end() {
+		this.done = true;
+		this.resolve?.();
+		this.resolve = null;
+	}
+
+	async *[Symbol.asyncIterator](): AsyncGenerator<SDKUserMessage> {
+		while (!this.done) {
+			while (this.queue.length === 0 && !this.done) {
+				await new Promise<void>((r) => {
+					this.resolve = r;
+				});
+			}
+			while (this.queue.length > 0) {
+				const msg = this.queue.shift();
+				if (msg) yield msg;
+			}
+		}
+	}
 }
+
+type Session = {
+	stream: MessageStream;
+	query: Query;
+	iterator: AsyncIterator<SDKMessage>;
+	sessionId: string | null;
+};
 
 @injectable()
 export class ClaudeCodeBot extends ChatBot {
-	private sessions = new Map<string, Query>();
+	private sessions = new Map<string, Session>();
 	private mcpServers: Record<string, McpServerConfig> = {};
 
 	async setMcpServers(
@@ -46,57 +77,58 @@ export class ClaudeCodeBot extends ChatBot {
 		if (sessionId) {
 			const target = this.sessions.get(sessionId);
 			if (!target) throw new Error(`Session not found: ${sessionId}`);
-			await target.setMcpServers(
+			await target.query.setMcpServers(
 				servers as Record<string, AgentMcpServerConfig>,
 			);
 		}
 	}
 
+	private createSession(): Session {
+		const stream = new MessageStream();
+
+		const q = query({
+			prompt: stream as AsyncIterable<never>,
+			options: {
+				includePartialMessages: true,
+				permissionMode: "bypassPermissions",
+				allowDangerouslySkipPermissions: true,
+				mcpServers: this.mcpServers as Record<string, AgentMcpServerConfig>,
+			},
+		});
+
+		return {
+			stream,
+			query: q,
+			iterator: q[Symbol.asyncIterator](),
+			sessionId: null,
+		};
+	}
+
 	chat(message: string, options?: ChatOptions): ChatResult {
-		let sessionId = options?.sessionId ?? "";
 		const existing = options?.sessionId
 			? this.sessions.get(options.sessionId)
 			: undefined;
 
+		const session = existing ?? this.createSession();
 		const self = this;
+		let sessionId = options?.sessionId ?? "";
 
-		const stream = async function* () {
-			let q: Query;
+		// 메시지를 stream에 push
+		session.stream.push({
+			type: "user",
+			message: { role: "user", content: message },
+			parent_tool_use_id: null,
+		});
 
-			if (existing) {
-				q = existing;
-
-				const userMessage: SDKUserMessage = {
-					type: "user",
-					message: { role: "user", content: message },
-					parent_tool_use_id: null,
-				};
-
-				await q.streamInput(
-					(async function* () {
-						yield userMessage;
-					})(),
-				);
-			} else {
-				q = query({
-					prompt: message,
-					options: {
-						includePartialMessages: true,
-						permissionMode: "bypassPermissions",
-						allowDangerouslySkipPermissions: true,
-						mcpServers: self.mcpServers as Record<string, AgentMcpServerConfig>,
-					},
-				});
-			}
-
-			// 수동 iteration — break 없이 idle에서 return하면 generator를 닫지 않음
+		const responseStream = async function* () {
 			for (;;) {
-				const { value: msg, done } = await q.next();
+				const { value: msg, done } = await session.iterator.next();
 				if (done) return;
 
 				if (msg.type === "system" && msg.subtype === "init") {
+					session.sessionId = msg.session_id;
 					sessionId = msg.session_id;
-					self.sessions.set(sessionId, q);
+					self.sessions.set(sessionId, session);
 				}
 
 				const text = isTextDelta(msg);
@@ -104,7 +136,7 @@ export class ClaudeCodeBot extends ChatBot {
 					yield text;
 				}
 
-				if (isIdle(msg)) return;
+				if ("result" in msg) return;
 			}
 		};
 
@@ -112,7 +144,7 @@ export class ClaudeCodeBot extends ChatBot {
 			get sessionId() {
 				return sessionId;
 			},
-			stream: stream(),
+			stream: responseStream(),
 		};
 	}
 }
