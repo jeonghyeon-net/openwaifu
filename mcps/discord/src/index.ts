@@ -251,5 +251,7 @@ const key = "DISCORD_TOKEN";
 const token = process.env[key];
 if (!token) throw new Error("DISCORD_TOKEN required");
 
-await client.login(token);
+// MCP 연결을 먼저 열고, Discord 로그인은 비동기로
+const loginPromise = client.login(token);
 await server.connect(new StdioServerTransport());
+await loginPromise;

@@ -33,6 +33,7 @@ function buildCodex(mcpServers: Record<string, McpServerConfig>): Codex {
 	}
 
 	if (Object.keys(mcpConfig).length === 0) return new Codex();
+	console.log("[CodexBot] buildCodex mcp_servers:", JSON.stringify(mcpConfig));
 	return new Codex({ config: { mcp_servers: mcpConfig } });
 }
 
@@ -55,7 +56,12 @@ export class CodexBot extends ChatBot {
 
 	private getCodex(): Codex {
 		if (!this.codex) {
-			this.codex = buildCodex(this.mcpFactory());
+			const mcpServers = this.mcpFactory();
+			console.log(
+				"[CodexBot] MCP config:",
+				JSON.stringify(Object.keys(mcpServers)),
+			);
+			this.codex = buildCodex(mcpServers);
 		}
 		return this.codex;
 	}
