@@ -84,8 +84,8 @@ export class TelegramPlatform extends ChatPlatform {
 
 			if (msgId && buffer) {
 				await editSafe(msgId, buffer);
-			} else if (!msgId) {
-				await bot.api.sendMessage(chatId, buffer || "(empty response)");
+			} else if (!msgId && buffer) {
+				await bot.api.sendMessage(chatId, buffer);
 			}
 		} finally {
 			clearInterval(typingInterval);

@@ -89,10 +89,10 @@ export class DiscordPlatform extends ChatPlatform {
 				}
 			}
 
-			if (msg) {
-				await msg.edit(buffer || "(empty response)");
-			} else {
-				await textChannel.send(buffer || "(empty response)");
+			if (msg && buffer) {
+				await msg.edit(buffer);
+			} else if (!msg && buffer) {
+				await textChannel.send(buffer);
 			}
 		} finally {
 			clearInterval(typingInterval);

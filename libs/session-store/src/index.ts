@@ -7,23 +7,25 @@ export class SessionStore {
 	constructor(dbPath: string, botType: string) {
 		this.db = new Database(dbPath);
 		this.botType = botType;
+		this.db.run(`DROP TABLE IF EXISTS sessions`);
 		this.db.run(`
 			CREATE TABLE IF NOT EXISTS sessions (
-				channel_id TEXT PRIMARY KEY,
+				channel_id TEXT NOT NULL,
 				session_id TEXT NOT NULL,
 				bot_type TEXT NOT NULL,
-				updated_at INTEGER NOT NULL
+				updated_at INTEGER NOT NULL,
+				PRIMARY KEY (channel_id, bot_type)
 			)
 		`);
 	}
 
 	get(channelId: string): string | undefined {
 		const row = this.db
-			.query<{ session_id: string; bot_type: string }, [string]>(
-				"SELECT session_id, bot_type FROM sessions WHERE channel_id = ?",
+			.query<{ session_id: string }, [string, string]>(
+				"SELECT session_id FROM sessions WHERE channel_id = ? AND bot_type = ?",
 			)
-			.get(channelId);
-		if (!row || row.bot_type !== this.botType) return undefined;
+			.get(channelId, this.botType);
+		if (!row) return undefined;
 		return row.session_id;
 	}
 
@@ -31,16 +33,18 @@ export class SessionStore {
 		this.db.run(
 			`INSERT INTO sessions (channel_id, session_id, bot_type, updated_at)
 			 VALUES (?, ?, ?, ?)
-			 ON CONFLICT(channel_id) DO UPDATE SET
+			 ON CONFLICT(channel_id, bot_type) DO UPDATE SET
 			   session_id = excluded.session_id,
-			   bot_type = excluded.bot_type,
 			   updated_at = excluded.updated_at`,
 			[channelId, sessionId, this.botType, Date.now()],
 		);
 	}
 
 	delete(channelId: string): void {
-		this.db.run("DELETE FROM sessions WHERE channel_id = ?", [channelId]);
+		this.db.run("DELETE FROM sessions WHERE channel_id = ? AND bot_type = ?", [
+			channelId,
+			this.botType,
+		]);
 	}
 
 	all(): Array<{ channelId: string; sessionId: string }> {
