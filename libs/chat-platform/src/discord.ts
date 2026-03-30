@@ -101,14 +101,24 @@ export class DiscordPlatform extends ChatPlatform {
 			if (!state.msg) textChannel.sendTyping();
 		}, 5000);
 
-		const flush = async (isBreak = false) => {
+		// 중간 flush: tool 호출 사이에서 현재 메시지 마무리. edit 실패 시 무시 (메시지 삭제된 경우)
+		const flushForBreak = async () => {
 			if (state.msg && state.buffer) {
 				try {
 					await state.msg.edit(state.buffer);
 				} catch {
-					// message_break中のedit失敗は無視（メッセージ削除済み）
-					// 最終flushの場合のみ再送信
-					if (!isBreak) await textChannel.send(state.buffer);
+					// 메시지가 삭제된 경우 무시
+				}
+			}
+		};
+
+		// 최종 flush: 스트림 끝. 미전송 버퍼가 있으면 새 메시지로 전송
+		const flushFinal = async () => {
+			if (state.msg && state.buffer) {
+				try {
+					await state.msg.edit(state.buffer);
+				} catch {
+					await textChannel.send(state.buffer);
 				}
 			} else if (!state.msg && state.buffer) {
 				await textChannel.send(state.buffer);
@@ -126,7 +136,7 @@ export class DiscordPlatform extends ChatPlatform {
 
 				if (text === null) {
 					// message_break: 현재 메시지 마무리, 새 메시지 시작
-					await flush(true);
+					await flushForBreak();
 					state.msg = null;
 					state.buffer = "";
 					continue;
@@ -152,7 +162,7 @@ export class DiscordPlatform extends ChatPlatform {
 				}
 			}
 
-			await flush();
+			await flushFinal();
 		} finally {
 			clearInterval(typingInterval);
 		}
