@@ -6,6 +6,7 @@ import {
 } from "@lib/chat-platform";
 import { CHATBOT_TOKEN, type ChatBot, ClaudeCodeBot } from "@lib/llm";
 import { discoverMcpServers } from "@lib/mcp-discovery";
+import { SessionStore } from "@lib/session-store";
 import { container } from "tsyringe";
 
 container.register(CHATBOT_TOKEN, { useClass: ClaudeCodeBot });
@@ -13,10 +14,10 @@ container.register(PLATFORM_TOKEN, { useClass: DiscordPlatform });
 
 const bot = container.resolve<ChatBot>(CHATBOT_TOKEN);
 const platform = container.resolve<ChatPlatform>(PLATFORM_TOKEN);
+const sessions = new SessionStore("sessions.db");
 
 await platform.start();
 
-// MCP factory: 매 세션마다 새 인스턴스 생성
 const standaloneMcp = discoverMcpServers();
 bot.setMcpServers(() => ({
 	...standaloneMcp,
@@ -26,9 +27,8 @@ bot.setMcpServers(() => ({
 console.log(
 	`MCP: ${Object.keys(standaloneMcp).join(", ") || "none"} + platform`,
 );
+console.log(`Sessions restored: ${sessions.all().length}`);
 
-// 채널/스레드별 세션 관리
-const sessions = new Map<string, string>();
 const activeChannels = new Set<string>();
 
 platform.onMessage(async (msg) => {
@@ -54,9 +54,9 @@ platform.onMessage(async (msg) => {
 	}
 });
 
-// Graceful shutdown
 const shutdown = async () => {
 	console.log("Shutting down...");
+	sessions.close();
 	await platform.stop();
 	process.exit(0);
 };
