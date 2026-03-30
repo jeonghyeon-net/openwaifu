@@ -8,7 +8,8 @@
 	},
 	"dependencies": {
 		"@lib/llm": "workspace:*",
-		"@lib/mcp-discovery": "workspace:*"
+		"@lib/mcp-discovery": "workspace:*",
+		"@lib/repl": "workspace:*"
 	},
 	"devDependencies": {}
 }
