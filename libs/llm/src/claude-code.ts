@@ -1,9 +1,10 @@
+import { writeFileSync } from "node:fs";
+import { join } from "node:path";
 import {
-	type McpServerConfig as AgentMcpServerConfig,
-	type Query,
-	query,
 	type SDKMessage,
-	type SDKUserMessage,
+	type SDKSession,
+	unstable_v2_createSession,
+	unstable_v2_resumeSession,
 } from "@anthropic-ai/claude-agent-sdk";
 import { injectable } from "tsyringe";
 import {
@@ -32,169 +33,71 @@ function isIdle(msg: SDKMessage): boolean {
 	);
 }
 
-type TurnChannel = {
-	push(text: string): void;
-	end(): void;
-};
-
-function createTurnChannel(): TurnChannel & { stream: AsyncIterable<string> } {
-	const queue: string[] = [];
-	let done = false;
-	let resolve: (() => void) | null = null;
-
-	const stream: AsyncIterable<string> = {
-		[Symbol.asyncIterator]() {
-			return {
-				async next() {
-					while (queue.length === 0 && !done) {
-						await new Promise<void>((r) => {
-							resolve = r;
-						});
-					}
-					if (queue.length > 0) {
-						const val = queue.shift();
-						if (val !== undefined) {
-							return { value: val, done: false };
-						}
-					}
-					return { value: undefined, done: true };
-				},
-			};
-		},
-	};
-
-	return {
-		stream,
-		push(text: string) {
-			queue.push(text);
-			resolve?.();
-			resolve = null;
-		},
-		end() {
-			done = true;
-			resolve?.();
-			resolve = null;
-		},
-	};
-}
-
 @injectable()
 export class ClaudeCodeBot extends ChatBot {
-	private sessions = new Map<string, Query>();
-	private channels = new Map<string, TurnChannel>();
-	private mcpServers: Record<string, McpServerConfig> = {};
+	private sessions = new Map<string, SDKSession>();
 
-	async setMcpServers(
-		servers: Record<string, McpServerConfig>,
-		sessionId?: string,
-	) {
-		this.mcpServers = servers;
-
-		if (sessionId) {
-			const target = this.sessions.get(sessionId);
-			if (!target) throw new Error(`Session not found: ${sessionId}`);
-			await target.setMcpServers(
-				servers as Record<string, AgentMcpServerConfig>,
-			);
-		}
-	}
-
-	private startPump(sessionId: string, q: Query) {
-		(async () => {
-			for await (const msg of q) {
-				const text = isTextDelta(msg);
-				if (text !== null) {
-					this.channels.get(sessionId)?.push(text);
-				}
-
-				if (isIdle(msg)) {
-					this.channels.get(sessionId)?.end();
-				}
-			}
-		})();
+	async setMcpServers(servers: Record<string, McpServerConfig>) {
+		const mcpJson = {
+			mcpServers: Object.fromEntries(
+				Object.entries(servers).map(([name, config]) => [
+					name,
+					{ command: config.command, args: config.args },
+				]),
+			),
+		};
+		writeFileSync(
+			join(process.cwd(), ".mcp.json"),
+			JSON.stringify(mcpJson, null, "\t"),
+		);
 	}
 
 	chat(message: string, options?: ChatOptions): ChatResult {
-		let sessionId = options?.sessionId ?? "";
-		const existing = options?.sessionId
-			? this.sessions.get(options.sessionId)
-			: undefined;
-
-		const channel = createTurnChannel();
 		const self = this;
+		let sessionId = options?.sessionId ?? "";
 
-		if (existing) {
-			this.channels.set(sessionId, channel);
+		const stream = async function* () {
+			let session: SDKSession;
 
-			const userMessage: SDKUserMessage = {
-				type: "user",
-				message: { role: "user", content: message },
-				parent_tool_use_id: null,
-			};
+			const cached = sessionId ? self.sessions.get(sessionId) : undefined;
 
-			existing.streamInput(
-				(async function* () {
-					yield userMessage;
-				})(),
-			);
-		} else {
-			const q = query({
-				prompt: message,
-				options: {
-					includePartialMessages: true,
+			if (cached) {
+				session = cached;
+			} else if (sessionId) {
+				session = unstable_v2_resumeSession(sessionId, {
+					model: "claude-sonnet-4-6",
 					permissionMode: "bypassPermissions",
-					allowDangerouslySkipPermissions: true,
-					mcpServers: self.mcpServers as Record<string, AgentMcpServerConfig>,
-				},
-			});
+				});
+				self.sessions.set(sessionId, session);
+			} else {
+				session = unstable_v2_createSession({
+					model: "claude-sonnet-4-6",
+					permissionMode: "bypassPermissions",
+				});
+			}
 
-			// pump를 시작하기 전에 init 이벤트에서 sessionId를 캡처해야 하므로
-			// 첫 번째 턴은 stream에서 직접 처리
-			const wrappedStream: AsyncIterable<string> = {
-				[Symbol.asyncIterator]() {
-					return {
-						async next() {
-							for (;;) {
-								const { value: msg, done } = await q.next();
-								if (done) {
-									return { value: undefined, done: true };
-								}
+			await session.send(message);
 
-								if (msg.type === "system" && msg.subtype === "init") {
-									sessionId = msg.session_id;
-									self.sessions.set(sessionId, q);
-									self.channels.set(sessionId, channel);
-								}
+			for await (const msg of session.stream()) {
+				if (!sessionId && msg.type === "system" && msg.subtype === "init") {
+					sessionId = msg.session_id;
+					self.sessions.set(sessionId, session);
+				}
 
-								const text = isTextDelta(msg);
-								if (text !== null) {
-									return { value: text, done: false };
-								}
+				const text = isTextDelta(msg);
+				if (text !== null) {
+					yield text;
+				}
 
-								if (isIdle(msg)) {
-									// 첫 턴 종료 후 백그라운드 pump 시작
-									self.startPump(sessionId, q);
-									return { value: undefined, done: true };
-								}
-							}
-						},
-					};
-				},
-			};
-
-			return {
-				get sessionId() {
-					return sessionId;
-				},
-				stream: wrappedStream,
-			};
-		}
+				if (isIdle(msg)) break;
+			}
+		};
 
 		return {
 			get sessionId() {
 				return sessionId;
 			},
-			stream: channel.stream,
+			stream: stream(),
 		};
 	}
 }
