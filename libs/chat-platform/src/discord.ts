@@ -72,12 +72,10 @@ export class DiscordPlatform extends ChatPlatform {
 		const textChannel = channel as TextChannel;
 		const MESSAGE_LIMIT = 2000;
 		const CHUNK_THRESHOLD = 1800;
-		const EDIT_INTERVAL_MS = 1000;
 
 		const state = {
 			buffer: "",
 			msg: null as Awaited<ReturnType<TextChannel["send"]>> | null,
-			lastEditTime: 0,
 		};
 
 		await textChannel.sendTyping();
@@ -93,10 +91,8 @@ export class DiscordPlatform extends ChatPlatform {
 
 			if (!state.msg) {
 				state.msg = await textChannel.send(state.buffer);
-				state.lastEditTime = Date.now();
-			} else if (Date.now() - state.lastEditTime >= EDIT_INTERVAL_MS) {
+			} else {
 				await state.msg.edit(state.buffer);
-				state.lastEditTime = Date.now();
 			}
 		}
 
