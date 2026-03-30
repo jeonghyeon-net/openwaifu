@@ -142,7 +142,6 @@ export class TelegramPlatform extends ChatPlatform {
 				}
 
 				if (!msgId) {
-					clearInterval(typingInterval);
 					const sent = await bot.api.sendMessage(chatId, buffer);
 					msgId = sent.message_id;
 					lastEditTime = Date.now();

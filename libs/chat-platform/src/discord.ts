@@ -94,20 +94,19 @@ export class DiscordPlatform extends ChatPlatform {
 				}
 
 				if (!msg) {
-					// 첫 메시지 전송 시 typing indicator 중지
-					clearInterval(typingInterval);
 					msg = await textChannel.send(buffer);
 					lastEditTime = Date.now();
+					textChannel.sendTyping();
 				} else if (Date.now() - lastEditTime >= EDIT_INTERVAL_MS) {
 					await msg.edit(buffer);
 					lastEditTime = Date.now();
 				}
 			}
 
+			clearInterval(typingInterval);
 			if (msg && buffer) {
 				await msg.edit(buffer);
 			} else if (!msg && buffer) {
-				clearInterval(typingInterval);
 				await textChannel.send(buffer);
 			}
 		} finally {
