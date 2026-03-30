@@ -247,6 +247,37 @@ server.tool(
 	},
 );
 
+// .env를 직접 로드 (MCP 서버는 별도 프로세스라 부모 env를 못 받을 수 있음)
+import { existsSync, readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+
+function loadEnvFile(): void {
+	let dir = process.cwd();
+	while (dir !== dirname(dir)) {
+		const envPath = join(dir, ".env");
+		if (existsSync(envPath)) {
+			for (const line of readFileSync(envPath, "utf-8").split("\n")) {
+				const trimmed = line.trim();
+				if (!trimmed || trimmed.startsWith("#")) continue;
+				const eqIdx = trimmed.indexOf("=");
+				if (eqIdx === -1) continue;
+				const k = trimmed.slice(0, eqIdx).trim();
+				let v = trimmed.slice(eqIdx + 1).trim();
+				if (
+					(v.startsWith('"') && v.endsWith('"')) ||
+					(v.startsWith("'") && v.endsWith("'"))
+				) {
+					v = v.slice(1, -1);
+				}
+				if (!process.env[k]) process.env[k] = v;
+			}
+			return;
+		}
+		dir = dirname(dir);
+	}
+}
+loadEnvFile();
+
 const key = "DISCORD_TOKEN";
 const token = process.env[key];
 if (!token) throw new Error("DISCORD_TOKEN required");
