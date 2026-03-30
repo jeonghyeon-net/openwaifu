@@ -70,6 +70,8 @@ export class ClaudeCodeBot extends ChatBot {
 					prompt: message,
 					options: {
 						includePartialMessages: true,
+						permissionMode: "bypassPermissions",
+						allowDangerouslySkipPermissions: true,
 						mcpServers: self.mcpServers as Record<string, AgentMcpServerConfig>,
 					},
 				});
