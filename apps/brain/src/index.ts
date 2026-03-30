@@ -8,6 +8,7 @@ import {
 } from "@lib/chat-platform";
 import { CHATBOT_TOKEN, type ChatBot, ClaudeCodeBot } from "@lib/llm";
 import { discoverMcpServers } from "@lib/mcp-discovery";
+import { Scheduler } from "@lib/scheduler";
 import { SessionStore } from "@lib/session-store";
 import { container } from "tsyringe";
 
@@ -17,6 +18,7 @@ container.register(PLATFORM_TOKEN, { useClass: DiscordPlatform });
 const bot = container.resolve<ChatBot>(CHATBOT_TOKEN);
 const platform = container.resolve<ChatPlatform>(PLATFORM_TOKEN);
 const sessions = new SessionStore("sessions.db", bot.name);
+const scheduler = new Scheduler(join("..", "..", "scheduler.db"));
 
 await platform.start();
 
@@ -34,6 +36,12 @@ bot.setSystemPrompt(systemRules);
 
 console.log(`MCP: ${Object.keys(mcpServers).join(", ") || "none"}`);
 console.log(`Sessions restored: ${sessions.all().length}`);
+
+scheduler.start(async (schedule) => {
+	const chat = bot.chat(schedule.prompt, {});
+	await platform.sendStream(schedule.channelId, chat.stream);
+});
+console.log(`Scheduler started with ${scheduler.list().length} schedule(s).`);
 
 const activeChannels = new Set<string>();
 
@@ -80,6 +88,7 @@ platform.onMessage(async (msg) => {
 
 const shutdown = async () => {
 	console.log("Shutting down...");
+	scheduler.stop();
 	sessions.close();
 	await platform.stop();
 	process.exit(0);
