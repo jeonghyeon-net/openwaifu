@@ -70,63 +70,76 @@ export class DiscordPlatform extends ChatPlatform {
 		if (!channel?.isTextBased()) return;
 
 		const textChannel = channel as TextChannel;
-
 		const MESSAGE_LIMIT = 2000;
 		const CHUNK_THRESHOLD = 1800;
 		const EDIT_INTERVAL_MS = 1000;
-		let buffer = "";
-		let msg: Awaited<ReturnType<TextChannel["send"]>> | null = null;
-		let lastEditTime = 0;
-		let lastChunkTime = 0;
-		let typing = false;
+		const SEND_BUFFER_MS = 200;
+		const SEND_MIN_LENGTH = 20;
 
-		const startTyping = () => {
-			if (typing) return;
-			typing = true;
-			textChannel.sendTyping();
+		const state = {
+			buffer: "",
+			msg: null as Awaited<ReturnType<TextChannel["send"]>> | null,
+			lastEditTime: 0,
+			lastChunkTime: 0,
+			pendingSend: null as ReturnType<typeof setTimeout> | null,
+			sending: false,
 		};
 
-		const stopTyping = () => {
-			typing = false;
-		};
-
-		startTyping();
-		// 1초마다 체크: chunk가 500ms 이상 안 오면 typing, 오고 있으면 중지
+		await textChannel.sendTyping();
 		const typingInterval = setInterval(() => {
-			if (Date.now() - lastChunkTime > 500) {
-				startTyping();
-			} else {
-				stopTyping();
+			if (Date.now() - state.lastChunkTime > 500) {
+				textChannel.sendTyping();
 			}
 		}, 3000);
 
+		const doSend = async () => {
+			if (state.msg || !state.buffer || state.sending) return;
+			state.sending = true;
+			if (state.pendingSend) {
+				clearTimeout(state.pendingSend);
+				state.pendingSend = null;
+			}
+			state.msg = await textChannel.send(state.buffer);
+			state.lastEditTime = Date.now();
+			state.sending = false;
+		};
+
 		try {
 			for await (const chunk of stream) {
-				lastChunkTime = Date.now();
-				buffer += chunk;
+				state.lastChunkTime = Date.now();
+				state.buffer += chunk;
 
-				if (buffer.length > CHUNK_THRESHOLD && msg) {
-					await msg.edit(buffer.slice(0, MESSAGE_LIMIT));
-					msg = null;
-					buffer = buffer.slice(MESSAGE_LIMIT);
+				if (state.buffer.length > CHUNK_THRESHOLD && state.msg) {
+					await state.msg.edit(state.buffer.slice(0, MESSAGE_LIMIT));
+					state.msg = null;
+					state.buffer = state.buffer.slice(MESSAGE_LIMIT);
 				}
 
-				if (!msg) {
-					msg = await textChannel.send(buffer);
-					lastEditTime = Date.now();
-				} else if (Date.now() - lastEditTime >= EDIT_INTERVAL_MS) {
-					await msg.edit(buffer);
-					lastEditTime = Date.now();
+				if (!state.msg && !state.sending) {
+					if (state.buffer.length >= SEND_MIN_LENGTH) {
+						await doSend();
+					} else if (!state.pendingSend) {
+						state.pendingSend = setTimeout(() => {
+							doSend();
+						}, SEND_BUFFER_MS);
+					}
+				} else if (
+					state.msg &&
+					Date.now() - state.lastEditTime >= EDIT_INTERVAL_MS
+				) {
+					await state.msg.edit(state.buffer);
+					state.lastEditTime = Date.now();
 				}
 			}
 
-			if (msg && buffer) {
-				await msg.edit(buffer);
-			} else if (!msg && buffer) {
-				await textChannel.send(buffer);
+			if (state.pendingSend) clearTimeout(state.pendingSend);
+			if (!state.msg && !state.sending) await doSend();
+			if (state.msg && state.buffer) {
+				await state.msg.edit(state.buffer);
 			}
 		} finally {
 			clearInterval(typingInterval);
+			if (state.pendingSend) clearTimeout(state.pendingSend);
 		}
 	}
 }

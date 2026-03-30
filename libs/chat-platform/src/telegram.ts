@@ -112,10 +112,37 @@ export class TelegramPlatform extends ChatPlatform {
 		const MESSAGE_LIMIT = 4096;
 		const CHUNK_THRESHOLD = 3800;
 		const EDIT_INTERVAL_MS = 1000;
+		const SEND_BUFFER_MS = 200;
+		const SEND_MIN_LENGTH = 20;
+
 		let buffer = "";
 		let msgId: number | null = null;
 		let lastEditTime = 0;
 		let lastChunkTime = 0;
+		let pendingSend: ReturnType<typeof setTimeout> | null = null;
+		let sending = false;
+
+		const editSafe = async (id: number, text: string) => {
+			try {
+				await bot.api.editMessageText(chatId, id, text);
+			} catch (e: unknown) {
+				const m = e instanceof Error ? e.message : String(e);
+				if (!m.includes("message is not modified")) throw e;
+			}
+		};
+
+		const flushSend = async () => {
+			if (msgId || !buffer || sending) return;
+			sending = true;
+			if (pendingSend) {
+				clearTimeout(pendingSend);
+				pendingSend = null;
+			}
+			const sent = await bot.api.sendMessage(chatId, buffer);
+			msgId = sent.message_id;
+			lastEditTime = Date.now();
+			sending = false;
+		};
 
 		bot.api.sendChatAction(chatId, "typing");
 		const typingInterval = setInterval(() => {
@@ -123,15 +150,6 @@ export class TelegramPlatform extends ChatPlatform {
 				bot.api.sendChatAction(chatId, "typing");
 			}
 		}, 1000);
-
-		const editSafe = async (id: number, text: string) => {
-			try {
-				await bot.api.editMessageText(chatId, id, text);
-			} catch (e: unknown) {
-				const msg = e instanceof Error ? e.message : String(e);
-				if (!msg.includes("message is not modified")) throw e;
-			}
-		};
 
 		try {
 			for await (const chunk of stream) {
@@ -145,15 +163,20 @@ export class TelegramPlatform extends ChatPlatform {
 				}
 
 				if (!msgId) {
-					const sent = await bot.api.sendMessage(chatId, buffer);
-					msgId = sent.message_id;
-					lastEditTime = Date.now();
+					if (buffer.length >= SEND_MIN_LENGTH) {
+						await flushSend();
+					} else if (!pendingSend) {
+						pendingSend = setTimeout(() => {
+							flushSend();
+						}, SEND_BUFFER_MS);
+					}
 				} else if (Date.now() - lastEditTime >= EDIT_INTERVAL_MS) {
 					await editSafe(msgId, buffer);
 					lastEditTime = Date.now();
 				}
 			}
 
+			if (pendingSend) clearTimeout(pendingSend);
 			if (msgId && buffer) {
 				await editSafe(msgId, buffer);
 			} else if (!msgId && buffer) {
@@ -161,6 +184,7 @@ export class TelegramPlatform extends ChatPlatform {
 			}
 		} finally {
 			clearInterval(typingInterval);
+			if (pendingSend) clearTimeout(pendingSend);
 		}
 	}
 }
