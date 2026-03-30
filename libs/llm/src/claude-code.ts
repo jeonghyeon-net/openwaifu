@@ -80,7 +80,7 @@ export class ClaudeCodeBot extends ChatBot {
 		this.mcpFactory = factory;
 	}
 
-	private createSession(): Session {
+	private createSession(resumeId?: string): Session {
 		const stream = new MessageStream();
 		const mcpServers = this.mcpFactory();
 
@@ -91,22 +91,34 @@ export class ClaudeCodeBot extends ChatBot {
 				permissionMode: "bypassPermissions",
 				allowDangerouslySkipPermissions: true,
 				mcpServers: mcpServers as Record<string, AgentMcpServerConfig>,
+				...(resumeId && { resume: resumeId }),
 			},
 		});
 
-		return {
+		const session: Session = {
 			stream,
 			query: q,
 			iterator: q[Symbol.asyncIterator](),
-			sessionId: null,
+			sessionId: resumeId ?? null,
 			turnId: 0,
 		};
+
+		if (resumeId) {
+			this.sessions.set(resumeId, session);
+		}
+
+		return session;
 	}
 
 	chat(message: string, options?: ChatOptions): ChatResult {
-		const existing = options?.sessionId
+		let existing = options?.sessionId
 			? this.sessions.get(options.sessionId)
 			: undefined;
+
+		// 저장된 sessionId가 있지만 메모리에 없으면 resume
+		if (!existing && options?.sessionId) {
+			existing = this.createSession(options.sessionId);
+		}
 
 		const session = existing ?? this.createSession();
 		session.turnId++;
