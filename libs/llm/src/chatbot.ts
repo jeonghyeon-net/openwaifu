@@ -1,9 +1,8 @@
+import type { McpServerConfig as AgentMcpServerConfig } from "@anthropic-ai/claude-agent-sdk";
+
 export const CHATBOT_TOKEN = "ChatBot";
 
-export type McpServerConfig = {
-	command: string;
-	args: string[];
-};
+export type McpServerConfig = AgentMcpServerConfig;
 
 export type ChatOptions = {
 	sessionId?: string;

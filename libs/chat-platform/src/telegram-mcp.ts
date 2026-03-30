@@ -6,6 +6,10 @@ function ok(text: string) {
 	return { content: [{ type: "text" as const, text }] };
 }
 
+function err(text: string) {
+	return { content: [{ type: "text" as const, text }], isError: true };
+}
+
 export function createTelegramMcpServer(bot: Bot) {
 	const sendMessage = tool(
 		"telegram_send_message",
@@ -16,12 +20,16 @@ export function createTelegramMcpServer(bot: Bot) {
 			parseMode: z.enum(["HTML", "Markdown", "MarkdownV2"]).optional(),
 		},
 		async ({ chatId, text, parseMode }) => {
-			const msg = await bot.api.sendMessage(
-				Number(chatId),
-				text,
-				parseMode ? { parse_mode: parseMode } : {},
-			);
-			return ok(`Sent message ${msg.message_id}`);
+			try {
+				const msg = await bot.api.sendMessage(
+					Number(chatId),
+					text,
+					parseMode ? { parse_mode: parseMode } : {},
+				);
+				return ok(`Sent message ${msg.message_id}`);
+			} catch (e: unknown) {
+				return err(e instanceof Error ? e.message : String(e));
+			}
 		},
 	);
 
@@ -30,8 +38,12 @@ export function createTelegramMcpServer(bot: Bot) {
 		"Edit a message in a Telegram chat",
 		{ chatId: z.string(), messageId: z.number(), text: z.string() },
 		async ({ chatId, messageId, text }) => {
-			await bot.api.editMessageText(Number(chatId), messageId, text);
-			return ok(`Edited message ${messageId}`);
+			try {
+				await bot.api.editMessageText(Number(chatId), messageId, text);
+				return ok(`Edited message ${messageId}`);
+			} catch (e: unknown) {
+				return err(e instanceof Error ? e.message : String(e));
+			}
 		},
 	);
 
@@ -40,8 +52,12 @@ export function createTelegramMcpServer(bot: Bot) {
 		"Delete a message from a Telegram chat",
 		{ chatId: z.string(), messageId: z.number() },
 		async ({ chatId, messageId }) => {
-			await bot.api.deleteMessage(Number(chatId), messageId);
-			return ok(`Deleted message ${messageId}`);
+			try {
+				await bot.api.deleteMessage(Number(chatId), messageId);
+				return ok(`Deleted message ${messageId}`);
+			} catch (e: unknown) {
+				return err(e instanceof Error ? e.message : String(e));
+			}
 		},
 	);
 
@@ -54,12 +70,16 @@ export function createTelegramMcpServer(bot: Bot) {
 			messageId: z.number(),
 		},
 		async ({ fromChatId, toChatId, messageId }) => {
-			const msg = await bot.api.forwardMessage(
-				Number(toChatId),
-				Number(fromChatId),
-				messageId,
-			);
-			return ok(`Forwarded message ${msg.message_id}`);
+			try {
+				const msg = await bot.api.forwardMessage(
+					Number(toChatId),
+					Number(fromChatId),
+					messageId,
+				);
+				return ok(`Forwarded message ${msg.message_id}`);
+			} catch (e: unknown) {
+				return err(e instanceof Error ? e.message : String(e));
+			}
 		},
 	);
 
@@ -72,12 +92,16 @@ export function createTelegramMcpServer(bot: Bot) {
 			caption: z.string().optional(),
 		},
 		async ({ chatId, photoUrl, caption }) => {
-			const msg = await bot.api.sendPhoto(
-				Number(chatId),
-				photoUrl,
-				caption ? { caption } : {},
-			);
-			return ok(`Sent photo ${msg.message_id}`);
+			try {
+				const msg = await bot.api.sendPhoto(
+					Number(chatId),
+					photoUrl,
+					caption ? { caption } : {},
+				);
+				return ok(`Sent photo ${msg.message_id}`);
+			} catch (e: unknown) {
+				return err(e instanceof Error ? e.message : String(e));
+			}
 		},
 	);
 
@@ -86,8 +110,12 @@ export function createTelegramMcpServer(bot: Bot) {
 		"Get information about a chat",
 		{ chatId: z.string() },
 		async ({ chatId }) => {
-			const chat = await bot.api.getChat(Number(chatId));
-			return ok(JSON.stringify(chat));
+			try {
+				const chat = await bot.api.getChat(Number(chatId));
+				return ok(JSON.stringify(chat));
+			} catch (e: unknown) {
+				return err(e instanceof Error ? e.message : String(e));
+			}
 		},
 	);
 
@@ -96,8 +124,12 @@ export function createTelegramMcpServer(bot: Bot) {
 		"Get the number of members in a chat",
 		{ chatId: z.string() },
 		async ({ chatId }) => {
-			const count = await bot.api.getChatMemberCount(Number(chatId));
-			return ok(`${count} members`);
+			try {
+				const count = await bot.api.getChatMemberCount(Number(chatId));
+				return ok(`${count} members`);
+			} catch (e: unknown) {
+				return err(e instanceof Error ? e.message : String(e));
+			}
 		},
 	);
 
@@ -106,8 +138,12 @@ export function createTelegramMcpServer(bot: Bot) {
 		"Get info about a member of a chat",
 		{ chatId: z.string(), userId: z.number() },
 		async ({ chatId, userId }) => {
-			const member = await bot.api.getChatMember(Number(chatId), userId);
-			return ok(JSON.stringify(member));
+			try {
+				const member = await bot.api.getChatMember(Number(chatId), userId);
+				return ok(JSON.stringify(member));
+			} catch (e: unknown) {
+				return err(e instanceof Error ? e.message : String(e));
+			}
 		},
 	);
 
@@ -116,8 +152,12 @@ export function createTelegramMcpServer(bot: Bot) {
 		"Pin a message in a chat",
 		{ chatId: z.string(), messageId: z.number() },
 		async ({ chatId, messageId }) => {
-			await bot.api.pinChatMessage(Number(chatId), messageId);
-			return ok(`Pinned message ${messageId}`);
+			try {
+				await bot.api.pinChatMessage(Number(chatId), messageId);
+				return ok(`Pinned message ${messageId}`);
+			} catch (e: unknown) {
+				return err(e instanceof Error ? e.message : String(e));
+			}
 		},
 	);
 
@@ -126,8 +166,12 @@ export function createTelegramMcpServer(bot: Bot) {
 		"Unpin a message in a chat",
 		{ chatId: z.string(), messageId: z.number() },
 		async ({ chatId, messageId }) => {
-			await bot.api.unpinChatMessage(Number(chatId), messageId);
-			return ok(`Unpinned message ${messageId}`);
+			try {
+				await bot.api.unpinChatMessage(Number(chatId), messageId);
+				return ok(`Unpinned message ${messageId}`);
+			} catch (e: unknown) {
+				return err(e instanceof Error ? e.message : String(e));
+			}
 		},
 	);
 
@@ -136,8 +180,12 @@ export function createTelegramMcpServer(bot: Bot) {
 		"Set the title of a group or channel",
 		{ chatId: z.string(), title: z.string() },
 		async ({ chatId, title }) => {
-			await bot.api.setChatTitle(Number(chatId), title);
-			return ok(`Set title to ${title}`);
+			try {
+				await bot.api.setChatTitle(Number(chatId), title);
+				return ok(`Set title to ${title}`);
+			} catch (e: unknown) {
+				return err(e instanceof Error ? e.message : String(e));
+			}
 		},
 	);
 
@@ -146,8 +194,12 @@ export function createTelegramMcpServer(bot: Bot) {
 		"Set the description of a group or channel",
 		{ chatId: z.string(), description: z.string() },
 		async ({ chatId, description }) => {
-			await bot.api.setChatDescription(Number(chatId), description);
-			return ok(`Set description`);
+			try {
+				await bot.api.setChatDescription(Number(chatId), description);
+				return ok(`Set description`);
+			} catch (e: unknown) {
+				return err(e instanceof Error ? e.message : String(e));
+			}
 		},
 	);
 
@@ -156,8 +208,12 @@ export function createTelegramMcpServer(bot: Bot) {
 		"Get information about the bot itself",
 		{},
 		async () => {
-			const me = await bot.api.getMe();
-			return ok(JSON.stringify(me));
+			try {
+				const me = await bot.api.getMe();
+				return ok(JSON.stringify(me));
+			} catch (e: unknown) {
+				return err(e instanceof Error ? e.message : String(e));
+			}
 		},
 	);
 

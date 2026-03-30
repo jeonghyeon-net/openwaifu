@@ -14,6 +14,12 @@ type CodexConfigValue =
 	| CodexConfigValue[]
 	| { [key: string]: CodexConfigValue };
 
+function isStdio(
+	server: McpServerConfig,
+): server is { type?: "stdio"; command: string; args?: string[] } {
+	return "command" in server;
+}
+
 function buildCodex(mcpServers?: Record<string, McpServerConfig>): Codex {
 	if (!mcpServers || Object.keys(mcpServers).length === 0) {
 		return new Codex();
@@ -21,10 +27,11 @@ function buildCodex(mcpServers?: Record<string, McpServerConfig>): Codex {
 
 	const mcpConfig: { [key: string]: CodexConfigValue } = {};
 	for (const [name, server] of Object.entries(mcpServers)) {
+		if (!isStdio(server)) continue;
 		const entry: { command: string; args?: string[] } = {
 			command: server.command,
 		};
-		if (server.args.length > 0) entry.args = server.args;
+		if (server.args && server.args.length > 0) entry.args = server.args;
 		mcpConfig[name] = entry;
 	}
 

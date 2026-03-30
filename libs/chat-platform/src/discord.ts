@@ -26,10 +26,14 @@ export class DiscordPlatform extends ChatPlatform {
 			if (msg.author.bot) return;
 
 			for (const handler of this.handlers) {
-				handler({
-					channelId: msg.channelId,
-					userId: msg.author.id,
-					text: msg.content,
+				Promise.resolve(
+					handler({
+						channelId: msg.channelId,
+						userId: msg.author.id,
+						text: msg.content,
+					}),
+				).catch((e: unknown) => {
+					console.error("Message handler error:", e);
 				});
 			}
 		});
@@ -64,17 +68,30 @@ export class DiscordPlatform extends ChatPlatform {
 			textChannel.sendTyping();
 		}, 5000);
 
+		const MESSAGE_LIMIT = 2000;
+		const CHUNK_THRESHOLD = 1800;
+		const EDIT_INTERVAL_MS = 1000;
+
 		let buffer = "";
 		let msg: Awaited<ReturnType<TextChannel["send"]>> | null = null;
+		let lastEditTime = 0;
 
 		try {
 			for await (const chunk of stream) {
 				buffer += chunk;
 
+				if (buffer.length > CHUNK_THRESHOLD && msg) {
+					await msg.edit(buffer.slice(0, MESSAGE_LIMIT));
+					msg = null;
+					buffer = buffer.slice(MESSAGE_LIMIT);
+				}
+
 				if (!msg) {
 					msg = await textChannel.send(buffer);
-				} else if (buffer.length % 100 < chunk.length) {
+					lastEditTime = Date.now();
+				} else if (Date.now() - lastEditTime >= EDIT_INTERVAL_MS) {
 					await msg.edit(buffer);
+					lastEditTime = Date.now();
 				}
 			}
 

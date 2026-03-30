@@ -6,12 +6,7 @@ import {
 	type SDKUserMessage,
 } from "@anthropic-ai/claude-agent-sdk";
 import { injectable } from "tsyringe";
-import {
-	ChatBot,
-	type ChatOptions,
-	type ChatResult,
-	type McpServerConfig,
-} from "./chatbot.js";
+import { ChatBot, type ChatOptions, type ChatResult } from "./chatbot.js";
 
 function isTextDelta(msg: SDKMessage): string | null {
 	if (
@@ -66,7 +61,7 @@ type Session = {
 @injectable()
 export class ClaudeCodeBot extends ChatBot {
 	private sessions = new Map<string, Session>();
-	private mcpServers: Record<string, McpServerConfig> = {};
+	private mcpServers: Record<string, AgentMcpServerConfig> = {};
 
 	async interrupt(sessionId: string) {
 		const session = this.sessions.get(sessionId);
@@ -75,7 +70,7 @@ export class ClaudeCodeBot extends ChatBot {
 	}
 
 	async setMcpServers(
-		servers: Record<string, McpServerConfig>,
+		servers: Record<string, AgentMcpServerConfig>,
 		sessionId?: string,
 	) {
 		this.mcpServers = servers;
@@ -83,9 +78,7 @@ export class ClaudeCodeBot extends ChatBot {
 		if (sessionId) {
 			const target = this.sessions.get(sessionId);
 			if (!target) throw new Error(`Session not found: ${sessionId}`);
-			await target.query.setMcpServers(
-				servers as Record<string, AgentMcpServerConfig>,
-			);
+			await target.query.setMcpServers(servers);
 		}
 	}
 
@@ -98,7 +91,7 @@ export class ClaudeCodeBot extends ChatBot {
 				includePartialMessages: true,
 				permissionMode: "bypassPermissions",
 				allowDangerouslySkipPermissions: true,
-				mcpServers: this.mcpServers as Record<string, AgentMcpServerConfig>,
+				mcpServers: this.mcpServers,
 			},
 		});
 

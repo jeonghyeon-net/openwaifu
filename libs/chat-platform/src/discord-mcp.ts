@@ -16,10 +16,14 @@ export function createDiscordMcpServer(client: Client) {
 		"Send a message to a Discord channel",
 		{ channelId: z.string(), content: z.string() },
 		async ({ channelId, content }) => {
-			const ch = await client.channels.fetch(channelId);
-			if (!ch?.isTextBased()) return err("Not a text channel");
-			const msg = await (ch as TextChannel).send(content);
-			return ok(`Sent message ${msg.id}`);
+			try {
+				const ch = await client.channels.fetch(channelId);
+				if (!ch?.isTextBased()) return err("Not a text channel");
+				const msg = await (ch as TextChannel).send(content);
+				return ok(`Sent message ${msg.id}`);
+			} catch (e: unknown) {
+				return err(e instanceof Error ? e.message : String(e));
+			}
 		},
 	);
 
@@ -28,11 +32,15 @@ export function createDiscordMcpServer(client: Client) {
 		"Edit a message in a Discord channel",
 		{ channelId: z.string(), messageId: z.string(), content: z.string() },
 		async ({ channelId, messageId, content }) => {
-			const ch = await client.channels.fetch(channelId);
-			if (!ch?.isTextBased()) return err("Not a text channel");
-			const msg = await (ch as TextChannel).messages.fetch(messageId);
-			await msg.edit(content);
-			return ok(`Edited message ${messageId}`);
+			try {
+				const ch = await client.channels.fetch(channelId);
+				if (!ch?.isTextBased()) return err("Not a text channel");
+				const msg = await (ch as TextChannel).messages.fetch(messageId);
+				await msg.edit(content);
+				return ok(`Edited message ${messageId}`);
+			} catch (e: unknown) {
+				return err(e instanceof Error ? e.message : String(e));
+			}
 		},
 	);
 
@@ -41,11 +49,15 @@ export function createDiscordMcpServer(client: Client) {
 		"Delete a message from a Discord channel",
 		{ channelId: z.string(), messageId: z.string() },
 		async ({ channelId, messageId }) => {
-			const ch = await client.channels.fetch(channelId);
-			if (!ch?.isTextBased()) return err("Not a text channel");
-			const msg = await (ch as TextChannel).messages.fetch(messageId);
-			await msg.delete();
-			return ok(`Deleted message ${messageId}`);
+			try {
+				const ch = await client.channels.fetch(channelId);
+				if (!ch?.isTextBased()) return err("Not a text channel");
+				const msg = await (ch as TextChannel).messages.fetch(messageId);
+				await msg.delete();
+				return ok(`Deleted message ${messageId}`);
+			} catch (e: unknown) {
+				return err(e instanceof Error ? e.message : String(e));
+			}
 		},
 	);
 
@@ -54,18 +66,22 @@ export function createDiscordMcpServer(client: Client) {
 		"Fetch recent messages from a Discord channel",
 		{ channelId: z.string(), limit: z.number().optional() },
 		async ({ channelId, limit }) => {
-			const ch = await client.channels.fetch(channelId);
-			if (!ch?.isTextBased()) return err("Not a text channel");
-			const msgs = await (ch as TextChannel).messages.fetch({
-				limit: limit ?? 20,
-			});
-			const result = msgs.map((m) => ({
-				id: m.id,
-				author: m.author.username,
-				content: m.content,
-				timestamp: m.createdAt.toISOString(),
-			}));
-			return ok(JSON.stringify(result));
+			try {
+				const ch = await client.channels.fetch(channelId);
+				if (!ch?.isTextBased()) return err("Not a text channel");
+				const msgs = await (ch as TextChannel).messages.fetch({
+					limit: limit ?? 20,
+				});
+				const result = msgs.map((m) => ({
+					id: m.id,
+					author: m.author.username,
+					content: m.content,
+					timestamp: m.createdAt.toISOString(),
+				}));
+				return ok(JSON.stringify(result));
+			} catch (e: unknown) {
+				return err(e instanceof Error ? e.message : String(e));
+			}
 		},
 	);
 
@@ -74,14 +90,18 @@ export function createDiscordMcpServer(client: Client) {
 		"List all channels in a guild",
 		{ guildId: z.string() },
 		async ({ guildId }) => {
-			const guild = await client.guilds.fetch(guildId);
-			const channels = await guild.channels.fetch();
-			const result = channels.map((ch) => ({
-				id: ch?.id,
-				name: ch?.name,
-				type: ch?.type,
-			}));
-			return ok(JSON.stringify(result));
+			try {
+				const guild = await client.guilds.fetch(guildId);
+				const channels = await guild.channels.fetch();
+				const result = channels.map((ch) => ({
+					id: ch?.id,
+					name: ch?.name,
+					type: ch?.type,
+				}));
+				return ok(JSON.stringify(result));
+			} catch (e: unknown) {
+				return err(e instanceof Error ? e.message : String(e));
+			}
 		},
 	);
 
@@ -90,18 +110,22 @@ export function createDiscordMcpServer(client: Client) {
 		"Create a new text channel in a guild",
 		{ guildId: z.string(), name: z.string(), topic: z.string().optional() },
 		async ({ guildId, name, topic }) => {
-			const guild = await client.guilds.fetch(guildId);
-			const opts: {
-				name: string;
-				type: ChannelType.GuildText;
-				topic?: string;
-			} = {
-				name,
-				type: ChannelType.GuildText,
-			};
-			if (topic) opts.topic = topic;
-			const ch = await guild.channels.create(opts);
-			return ok(`Created channel ${ch.id} (${ch.name})`);
+			try {
+				const guild = await client.guilds.fetch(guildId);
+				const opts: {
+					name: string;
+					type: ChannelType.GuildText;
+					topic?: string;
+				} = {
+					name,
+					type: ChannelType.GuildText,
+				};
+				if (topic) opts.topic = topic;
+				const ch = await guild.channels.create(opts);
+				return ok(`Created channel ${ch.id} (${ch.name})`);
+			} catch (e: unknown) {
+				return err(e instanceof Error ? e.message : String(e));
+			}
 		},
 	);
 
@@ -110,10 +134,14 @@ export function createDiscordMcpServer(client: Client) {
 		"Delete a Discord channel",
 		{ channelId: z.string() },
 		async ({ channelId }) => {
-			const ch = await client.channels.fetch(channelId);
-			if (!ch) return err("Channel not found");
-			await ch.delete();
-			return ok(`Deleted channel ${channelId}`);
+			try {
+				const ch = await client.channels.fetch(channelId);
+				if (!ch) return err("Channel not found");
+				await ch.delete();
+				return ok(`Deleted channel ${channelId}`);
+			} catch (e: unknown) {
+				return err(e instanceof Error ? e.message : String(e));
+			}
 		},
 	);
 
@@ -122,11 +150,15 @@ export function createDiscordMcpServer(client: Client) {
 		"Add a reaction to a message",
 		{ channelId: z.string(), messageId: z.string(), emoji: z.string() },
 		async ({ channelId, messageId, emoji }) => {
-			const ch = await client.channels.fetch(channelId);
-			if (!ch?.isTextBased()) return err("Not a text channel");
-			const msg = await (ch as TextChannel).messages.fetch(messageId);
-			await msg.react(emoji);
-			return ok(`Reacted with ${emoji}`);
+			try {
+				const ch = await client.channels.fetch(channelId);
+				if (!ch?.isTextBased()) return err("Not a text channel");
+				const msg = await (ch as TextChannel).messages.fetch(messageId);
+				await msg.react(emoji);
+				return ok(`Reacted with ${emoji}`);
+			} catch (e: unknown) {
+				return err(e instanceof Error ? e.message : String(e));
+			}
 		},
 	);
 
@@ -135,11 +167,15 @@ export function createDiscordMcpServer(client: Client) {
 		"Pin a message in a channel",
 		{ channelId: z.string(), messageId: z.string() },
 		async ({ channelId, messageId }) => {
-			const ch = await client.channels.fetch(channelId);
-			if (!ch?.isTextBased()) return err("Not a text channel");
-			const msg = await (ch as TextChannel).messages.fetch(messageId);
-			await msg.pin();
-			return ok(`Pinned message ${messageId}`);
+			try {
+				const ch = await client.channels.fetch(channelId);
+				if (!ch?.isTextBased()) return err("Not a text channel");
+				const msg = await (ch as TextChannel).messages.fetch(messageId);
+				await msg.pin();
+				return ok(`Pinned message ${messageId}`);
+			} catch (e: unknown) {
+				return err(e instanceof Error ? e.message : String(e));
+			}
 		},
 	);
 
@@ -148,11 +184,15 @@ export function createDiscordMcpServer(client: Client) {
 		"Unpin a message in a channel",
 		{ channelId: z.string(), messageId: z.string() },
 		async ({ channelId, messageId }) => {
-			const ch = await client.channels.fetch(channelId);
-			if (!ch?.isTextBased()) return err("Not a text channel");
-			const msg = await (ch as TextChannel).messages.fetch(messageId);
-			await msg.unpin();
-			return ok(`Unpinned message ${messageId}`);
+			try {
+				const ch = await client.channels.fetch(channelId);
+				if (!ch?.isTextBased()) return err("Not a text channel");
+				const msg = await (ch as TextChannel).messages.fetch(messageId);
+				await msg.unpin();
+				return ok(`Unpinned message ${messageId}`);
+			} catch (e: unknown) {
+				return err(e instanceof Error ? e.message : String(e));
+			}
 		},
 	);
 
@@ -161,11 +201,15 @@ export function createDiscordMcpServer(client: Client) {
 		"Create a thread from a message",
 		{ channelId: z.string(), messageId: z.string(), name: z.string() },
 		async ({ channelId, messageId, name }) => {
-			const ch = await client.channels.fetch(channelId);
-			if (!ch?.isTextBased()) return err("Not a text channel");
-			const msg = await (ch as TextChannel).messages.fetch(messageId);
-			const thread = await msg.startThread({ name });
-			return ok(`Created thread ${thread.id} (${thread.name})`);
+			try {
+				const ch = await client.channels.fetch(channelId);
+				if (!ch?.isTextBased()) return err("Not a text channel");
+				const msg = await (ch as TextChannel).messages.fetch(messageId);
+				const thread = await msg.startThread({ name });
+				return ok(`Created thread ${thread.id} (${thread.name})`);
+			} catch (e: unknown) {
+				return err(e instanceof Error ? e.message : String(e));
+			}
 		},
 	);
 
@@ -174,9 +218,13 @@ export function createDiscordMcpServer(client: Client) {
 		"List all guilds the bot is in",
 		{},
 		async () => {
-			const guilds = await client.guilds.fetch();
-			const result = guilds.map((g) => ({ id: g.id, name: g.name }));
-			return ok(JSON.stringify(result));
+			try {
+				const guilds = await client.guilds.fetch();
+				const result = guilds.map((g) => ({ id: g.id, name: g.name }));
+				return ok(JSON.stringify(result));
+			} catch (e: unknown) {
+				return err(e instanceof Error ? e.message : String(e));
+			}
 		},
 	);
 
@@ -185,15 +233,19 @@ export function createDiscordMcpServer(client: Client) {
 		"List members in a guild",
 		{ guildId: z.string(), limit: z.number().optional() },
 		async ({ guildId, limit }) => {
-			const guild = await client.guilds.fetch(guildId);
-			const members = await guild.members.fetch({ limit: limit ?? 50 });
-			const result = members.map((m) => ({
-				id: m.id,
-				username: m.user.username,
-				nickname: m.nickname,
-				roles: m.roles.cache.map((r) => r.name),
-			}));
-			return ok(JSON.stringify(result));
+			try {
+				const guild = await client.guilds.fetch(guildId);
+				const members = await guild.members.fetch({ limit: limit ?? 50 });
+				const result = members.map((m) => ({
+					id: m.id,
+					username: m.user.username,
+					nickname: m.nickname,
+					roles: m.roles.cache.map((r) => r.name),
+				}));
+				return ok(JSON.stringify(result));
+			} catch (e: unknown) {
+				return err(e instanceof Error ? e.message : String(e));
+			}
 		},
 	);
 
@@ -206,21 +258,25 @@ export function createDiscordMcpServer(client: Client) {
 			limit: z.number().optional(),
 		},
 		async ({ channelId, query, limit }) => {
-			const ch = await client.channels.fetch(channelId);
-			if (!ch?.isTextBased()) return err("Not a text channel");
-			const msgs = await (ch as TextChannel).messages.fetch({
-				limit: limit ?? 100,
-			});
-			const matched = msgs.filter((m) =>
-				m.content.toLowerCase().includes(query.toLowerCase()),
-			);
-			const result = matched.map((m) => ({
-				id: m.id,
-				author: m.author.username,
-				content: m.content,
-				timestamp: m.createdAt.toISOString(),
-			}));
-			return ok(JSON.stringify(result));
+			try {
+				const ch = await client.channels.fetch(channelId);
+				if (!ch?.isTextBased()) return err("Not a text channel");
+				const msgs = await (ch as TextChannel).messages.fetch({
+					limit: limit ?? 100,
+				});
+				const matched = msgs.filter((m) =>
+					m.content.toLowerCase().includes(query.toLowerCase()),
+				);
+				const result = matched.map((m) => ({
+					id: m.id,
+					author: m.author.username,
+					content: m.content,
+					timestamp: m.createdAt.toISOString(),
+				}));
+				return ok(JSON.stringify(result));
+			} catch (e: unknown) {
+				return err(e instanceof Error ? e.message : String(e));
+			}
 		},
 	);
 
@@ -229,10 +285,15 @@ export function createDiscordMcpServer(client: Client) {
 		"Set the topic of a text channel",
 		{ channelId: z.string(), topic: z.string() },
 		async ({ channelId, topic }) => {
-			const ch = await client.channels.fetch(channelId);
-			if (ch?.type !== ChannelType.GuildText) return err("Not a text channel");
-			await (ch as TextChannel).setTopic(topic);
-			return ok(`Set topic for ${channelId}`);
+			try {
+				const ch = await client.channels.fetch(channelId);
+				if (ch?.type !== ChannelType.GuildText)
+					return err("Not a text channel");
+				await (ch as TextChannel).setTopic(topic);
+				return ok(`Set topic for ${channelId}`);
+			} catch (e: unknown) {
+				return err(e instanceof Error ? e.message : String(e));
+			}
 		},
 	);
 

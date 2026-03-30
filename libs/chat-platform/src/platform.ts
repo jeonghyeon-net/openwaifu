@@ -6,7 +6,7 @@ export type IncomingMessage = {
 	text: string;
 };
 
-export type MessageHandler = (msg: IncomingMessage) => void;
+export type MessageHandler = (msg: IncomingMessage) => void | Promise<void>;
 
 export abstract class ChatPlatform {
 	abstract start(): Promise<void>;
