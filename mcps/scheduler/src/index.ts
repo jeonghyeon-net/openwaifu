@@ -23,14 +23,19 @@ server.tool(
 		prompt: z.string().describe("Prompt to send to the LLM when triggered"),
 		channelId: z.string().describe("Channel ID to send the response to"),
 		createdBy: z.string().describe("User ID who created this schedule"),
+		once: z
+			.boolean()
+			.optional()
+			.describe("If true, the schedule runs once and is automatically removed"),
 	},
-	async ({ cronExpression, prompt, channelId, createdBy }) => {
+	async ({ cronExpression, prompt, channelId, createdBy, once }) => {
 		try {
 			const id = scheduler.add({
 				cronExpression,
 				prompt,
 				channelId,
 				createdBy,
+				once: once ?? false,
 			});
 			return {
 				content: [{ type: "text", text: `Schedule created with ID: ${id}` }],
