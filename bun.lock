@@ -26,11 +26,17 @@
         "@lib/chat-platform": "workspace:*",
         "@lib/llm": "workspace:*",
         "@lib/mcp-discovery": "workspace:*",
-        "@lib/repl": "workspace:*",
+        "@lib/session-store": "workspace:*",
       },
     },
     "libs/chat-platform": {
       "name": "@lib/chat-platform",
+      "dependencies": {
+        "@lib/env": "workspace:*",
+      },
+    },
+    "libs/env": {
+      "name": "@lib/env",
     },
     "libs/llm": {
       "name": "@lib/llm",
@@ -45,6 +51,15 @@
       "name": "@lib/repl",
       "dependencies": {
         "@lib/llm": "workspace:*",
+      },
+    },
+    "libs/session-store": {
+      "name": "@lib/session-store",
+    },
+    "mcps/discord": {
+      "name": "@mcp/discord",
+      "dependencies": {
+        "@lib/env": "workspace:*",
       },
     },
     "mcps/greeter": {
@@ -168,11 +183,17 @@
 
     "@lib/chat-platform": ["@lib/chat-platform@workspace:libs/chat-platform"],
 
+    "@lib/env": ["@lib/env@workspace:libs/env"],
+
     "@lib/llm": ["@lib/llm@workspace:libs/llm"],
 
     "@lib/mcp-discovery": ["@lib/mcp-discovery@workspace:libs/mcp-discovery"],
 
     "@lib/repl": ["@lib/repl@workspace:libs/repl"],
+
+    "@lib/session-store": ["@lib/session-store@workspace:libs/session-store"],
+
+    "@mcp/discord": ["@mcp/discord@workspace:mcps/discord"],
 
     "@mcp/greeter": ["@mcp/greeter@workspace:mcps/greeter"],
 
