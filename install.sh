@@ -46,6 +46,7 @@ if [[ "$answer" =~ ^[Yy]$ ]]; then
     <key>ProgramArguments</key>
     <array>
         <string>${BUN_PATH}</string>
+        <string>--env-file=${REPO_DIR}/.env</string>
         <string>--watch</string>
         <string>run</string>
         <string>src/index.ts</string>
