@@ -56,8 +56,8 @@ export class DiscordPlatform extends ChatPlatform {
 		this.handlers.push(handler);
 	}
 
-	createMcpServer(): McpServerConfig {
-		return createDiscordMcpServer(this.client);
+	createMcpServer(): Record<string, McpServerConfig> {
+		return { discord: createDiscordMcpServer(this.client) };
 	}
 
 	async sendStream(channelId: string, stream: AsyncIterable<string>) {

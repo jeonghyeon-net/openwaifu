@@ -13,9 +13,9 @@ export class TelegramPlatform extends ChatPlatform {
 		this.handlers.push(handler);
 	}
 
-	createMcpServer(): McpServerConfig {
+	createMcpServer(): Record<string, McpServerConfig> {
 		if (!this.bot) throw new Error("Bot not started yet");
-		return createTelegramMcpServer(this.bot);
+		return { telegram: createTelegramMcpServer(this.bot) };
 	}
 
 	async start() {

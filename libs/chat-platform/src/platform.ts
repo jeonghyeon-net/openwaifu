@@ -18,5 +18,5 @@ export abstract class ChatPlatform {
 		channelId: string,
 		stream: AsyncIterable<string>,
 	): Promise<void>;
-	abstract createMcpServer(): McpServerConfig;
+	abstract createMcpServer(): Record<string, McpServerConfig>;
 }

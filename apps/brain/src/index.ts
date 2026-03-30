@@ -51,7 +51,7 @@ platform.onMessage(async (msg) => {
 await platform.start();
 
 // Wire in-process platform MCP server after start (needs live client)
-const allMcp = { ...standaloneMcp, platform: platform.createMcpServer() };
+const allMcp = { ...standaloneMcp, ...platform.createMcpServer() };
 console.log(`MCP (all): ${Object.keys(allMcp).join(", ")}`);
 await bot.setMcpServers(allMcp);
 
