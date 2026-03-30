@@ -48,7 +48,7 @@ platform.onMessage(async (msg) => {
 	const history = await platform.fetchHistory(msg.channelId, 30);
 	const historyText = history
 		.map(
-			(h) => `${h.isSelf ? "(나)" : `${h.username}(${h.userId})`}: ${h.text}`,
+			(h) => `${h.username}(${h.userId})${h.isSelf ? "[너]" : ""}: ${h.text}`,
 		)
 		.join("\n");
 	const fullMessage = historyText
