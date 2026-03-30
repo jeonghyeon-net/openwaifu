@@ -1,6 +1,8 @@
+import type { McpServerConfig } from "@lib/llm";
 import { Bot } from "grammy";
 import { injectable } from "tsyringe";
 import { ChatPlatform, type MessageHandler } from "./platform.js";
+import { createTelegramMcpServer } from "./telegram-mcp.js";
 
 @injectable()
 export class TelegramPlatform extends ChatPlatform {
@@ -11,9 +13,9 @@ export class TelegramPlatform extends ChatPlatform {
 		this.handlers.push(handler);
 	}
 
-	getBot(): Bot {
+	createMcpServer(): McpServerConfig {
 		if (!this.bot) throw new Error("Bot not started yet");
-		return this.bot;
+		return createTelegramMcpServer(this.bot);
 	}
 
 	async start() {
@@ -45,7 +47,8 @@ export class TelegramPlatform extends ChatPlatform {
 	}
 
 	async sendStream(channelId: string, stream: AsyncIterable<string>) {
-		const bot = this.getBot();
+		if (!this.bot) throw new Error("Bot not started yet");
+		const bot = this.bot;
 		const chatId = Number(channelId);
 		const MESSAGE_LIMIT = 4096;
 		const CHUNK_THRESHOLD = 3800;

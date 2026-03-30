@@ -1,3 +1,5 @@
+import type { McpServerConfig } from "@lib/llm";
+
 export const PLATFORM_TOKEN = "ChatPlatform";
 
 export type IncomingMessage = {
@@ -16,4 +18,5 @@ export abstract class ChatPlatform {
 		channelId: string,
 		stream: AsyncIterable<string>,
 	): Promise<void>;
+	abstract createMcpServer(): McpServerConfig;
 }

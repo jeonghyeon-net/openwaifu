@@ -1,7 +1,6 @@
 import "reflect-metadata";
 import {
 	type ChatPlatform,
-	createDiscordMcpServer,
 	DiscordPlatform,
 	PLATFORM_TOKEN,
 } from "@lib/chat-platform";
@@ -52,9 +51,7 @@ platform.onMessage(async (msg) => {
 await platform.start();
 
 // Wire in-process platform MCP server after start (needs live client)
-const discordPlatform = platform as DiscordPlatform;
-const platformMcp = createDiscordMcpServer(discordPlatform.getClient());
-const allMcp = { ...standaloneMcp, discord: platformMcp };
+const allMcp = { ...standaloneMcp, platform: platform.createMcpServer() };
 console.log(`MCP (all): ${Object.keys(allMcp).join(", ")}`);
 await bot.setMcpServers(allMcp);
 
