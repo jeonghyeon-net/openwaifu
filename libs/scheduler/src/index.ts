@@ -157,17 +157,6 @@ export class Scheduler {
 	}
 
 	private migrate(): void {
-		// 구 스키마(channel_id 포함) 감지 시 테이블 재생성
-		const oldCols = this.db
-			.query<{ name: string }, []>("PRAGMA table_info(schedules)")
-			.all();
-		if (oldCols.some((c) => c.name === "channel_id")) {
-			console.warn(
-				"Scheduler: 구 스키마 감지, 기존 스케줄 삭제 후 테이블 재생성",
-			);
-			this.db.run("DROP TABLE schedules");
-		}
-
 		this.db.run(`
 			CREATE TABLE IF NOT EXISTS schedules (
 				id TEXT PRIMARY KEY,
@@ -178,16 +167,6 @@ export class Scheduler {
 				once INTEGER NOT NULL DEFAULT 0
 			)
 		`);
-
-		// 기존 테이블에 once 컬럼이 없으면 추가
-		const newCols = this.db
-			.query<{ name: string }, []>("PRAGMA table_info(schedules)")
-			.all();
-		if (!newCols.some((c) => c.name === "once")) {
-			this.db.run(
-				"ALTER TABLE schedules ADD COLUMN once INTEGER NOT NULL DEFAULT 0",
-			);
-		}
 	}
 
 	add(schedule: Omit<Schedule, "id" | "enabled">): string {
