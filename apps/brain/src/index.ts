@@ -24,7 +24,13 @@ const mcpServers = discoverMcpServers();
 bot.setMcpServers(() => mcpServers);
 
 const persona = readFileSync(join("..", "..", "PERSONA.md"), "utf-8");
-bot.setSystemPrompt(persona);
+const systemRules = `${persona}
+
+응답 시스템 규칙 (절대 위반 금지)
+- 너의 텍스트 응답은 자동으로 현재 대화 채널에 전송된다. send_message 도구로 현재 채널에 응답하지 마라.
+- send_message는 현재 대화 채널이 아닌 다른 채널에 메시지를 보낼 때만 사용한다.
+- <recent_chat_history>는 참고용 맥락이다. 이미 처리된 대화이므로 여기에 응답하지 마라. 새 메시지에만 응답한다.`;
+bot.setSystemPrompt(systemRules);
 
 console.log(`MCP: ${Object.keys(mcpServers).join(", ") || "none"}`);
 console.log(`Sessions restored: ${sessions.all().length}`);
