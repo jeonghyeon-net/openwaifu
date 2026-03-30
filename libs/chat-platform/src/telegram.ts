@@ -113,10 +113,14 @@ export class TelegramPlatform extends ChatPlatform {
 		const CHUNK_THRESHOLD = 3800;
 		const EDIT_INTERVAL_MS = 1000;
 
+		let lastChunkTime = Date.now();
+
 		await bot.api.sendChatAction(chatId, "typing");
 		const typingInterval = setInterval(() => {
-			bot.api.sendChatAction(chatId, "typing");
-		}, 4000);
+			if (Date.now() - lastChunkTime < 3000) {
+				bot.api.sendChatAction(chatId, "typing");
+			}
+		}, 3000);
 
 		let buffer = "";
 		let msgId: number | null = null;
@@ -133,6 +137,7 @@ export class TelegramPlatform extends ChatPlatform {
 
 		try {
 			for await (const chunk of stream) {
+				lastChunkTime = Date.now();
 				buffer += chunk;
 
 				if (buffer.length > CHUNK_THRESHOLD && msgId) {

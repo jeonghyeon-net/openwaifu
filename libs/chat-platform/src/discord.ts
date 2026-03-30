@@ -70,10 +70,14 @@ export class DiscordPlatform extends ChatPlatform {
 		if (!channel?.isTextBased()) return;
 
 		const textChannel = channel as TextChannel;
+		let lastChunkTime = Date.now();
+
 		await textChannel.sendTyping();
 		const typingInterval = setInterval(() => {
-			textChannel.sendTyping();
-		}, 5000);
+			if (Date.now() - lastChunkTime < 3000) {
+				textChannel.sendTyping();
+			}
+		}, 3000);
 
 		const MESSAGE_LIMIT = 2000;
 		const CHUNK_THRESHOLD = 1800;
@@ -85,6 +89,7 @@ export class DiscordPlatform extends ChatPlatform {
 
 		try {
 			for await (const chunk of stream) {
+				lastChunkTime = Date.now();
 				buffer += chunk;
 
 				if (buffer.length > CHUNK_THRESHOLD && msg) {
@@ -96,14 +101,12 @@ export class DiscordPlatform extends ChatPlatform {
 				if (!msg) {
 					msg = await textChannel.send(buffer);
 					lastEditTime = Date.now();
-					textChannel.sendTyping();
 				} else if (Date.now() - lastEditTime >= EDIT_INTERVAL_MS) {
 					await msg.edit(buffer);
 					lastEditTime = Date.now();
 				}
 			}
 
-			clearInterval(typingInterval);
 			if (msg && buffer) {
 				await msg.edit(buffer);
 			} else if (!msg && buffer) {
