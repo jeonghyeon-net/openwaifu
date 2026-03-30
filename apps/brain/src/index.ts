@@ -1,28 +1,22 @@
 import "reflect-metadata";
-import { Greeter } from "@lib/core";
-import { GreeterTool } from "@mcp/greeter";
-import { container, injectable } from "tsyringe";
+import { CHATBOT_TOKEN, type ChatBot, ClaudeCodeBot } from "@lib/llm";
+import { discoverMcpServers } from "@lib/mcp-discovery";
+import { container } from "tsyringe";
 
-@injectable()
-class OpenAILLM {
-	chat(message: string): string {
-		return `[OpenAI] ${message}`;
-	}
+container.register(CHATBOT_TOKEN, { useClass: ClaudeCodeBot });
+
+const bot = container.resolve<ChatBot>(CHATBOT_TOKEN);
+const mcpServers = discoverMcpServers();
+
+console.log(`MCP: ${Object.keys(mcpServers).join(", ") || "none"}`);
+
+const chat = bot.chat("안녕!");
+
+for await (const chunk of chat.stream) {
+	process.stdout.write(chunk);
 }
+console.log();
 
-@injectable()
-class Waifu {
-	constructor(private llm: OpenAILLM) {}
-
-	talk(message: string): string {
-		return this.llm.chat(message);
-	}
+if (chat.sessionId && Object.keys(mcpServers).length > 0) {
+	await bot.setMcpServers(mcpServers, chat.sessionId);
 }
-
-const waifu = container.resolve(Waifu);
-const greeter = container.resolve(Greeter);
-const greeterTool = container.resolve(GreeterTool);
-
-console.log(waifu.talk("안녕"));
-console.log(greeter.greet("Brain"));
-console.log(greeterTool.run("Waifu"));

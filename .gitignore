@@ -5,7 +5,7 @@ node_modules/
 dist/
 out/
 
-# lockfile
+# lockfile (bun.lock is committed for reproducible builds)
 bun.lockb
 
 # env

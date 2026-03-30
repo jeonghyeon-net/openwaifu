@@ -7,8 +7,8 @@
 		"check": "bunx tsc --noEmit"
 	},
 	"dependencies": {
-		"@lib/core": "workspace:*",
-		"@mcp/greeter": "workspace:*"
+		"@lib/llm": "workspace:*",
+		"@lib/mcp-discovery": "workspace:*"
 	},
 	"devDependencies": {}
 }

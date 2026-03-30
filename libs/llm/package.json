@@ -1,5 +1,5 @@
 {
-	"name": "@mcp/greeter",
+	"name": "@lib/llm",
 	"private": true,
 	"type": "module",
 	"scripts": {

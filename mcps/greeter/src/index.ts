@@ -1,11 +1,23 @@
-import type { Greeter } from "@lib/core";
-import { injectable } from "tsyringe";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { z } from "zod";
 
-@injectable()
-export class GreeterTool {
-	constructor(private greeter: Greeter) {}
+const server = new McpServer({
+	name: "greeter",
+	version: "0.0.1",
+});
 
-	run(name: string): string {
-		return this.greeter.greet(name);
-	}
+server.tool(
+	"greet",
+	"Greet someone by name",
+	{ name: z.string() },
+	async ({ name }) => ({
+		content: [{ type: "text" as const, text: `Hello, ${name}!` }],
+	}),
+);
+
+async function main() {
+	const transport = await import("@modelcontextprotocol/sdk/server/stdio.js");
+	await server.connect(new transport.StdioServerTransport());
 }
+
+main();

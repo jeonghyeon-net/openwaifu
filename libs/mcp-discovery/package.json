@@ -1,5 +1,5 @@
 {
-	"name": "@lib/core",
+	"name": "@lib/mcp-discovery",
 	"private": true,
 	"type": "module",
 	"scripts": {
