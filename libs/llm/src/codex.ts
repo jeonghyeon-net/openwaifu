@@ -1,4 +1,5 @@
-import { writeFileSync } from "node:fs";
+import { randomUUID } from "node:crypto";
+import { unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -96,19 +97,30 @@ export class CodexBot extends ChatBot {
 	private static async buildInput(
 		message: string,
 		attachments?: ChatAttachment[],
-	): Promise<Input> {
-		if (!attachments || attachments.length === 0) return message;
+	): Promise<{ input: Input; cleanup: () => void }> {
+		if (!attachments || attachments.length === 0) {
+			return { input: message, cleanup: () => {} };
+		}
 
 		const parts: UserInput[] = [];
+		const tempFiles: string[] = [];
 
 		for (const att of attachments) {
 			if (att.contentType.startsWith("image/")) {
-				const res = await fetch(att.url);
-				const buf = Buffer.from(await res.arrayBuffer());
-				const ext = att.filename.split(".").pop() ?? "jpg";
-				const path = join(tmpdir(), `codex-img-${Date.now()}.${ext}`);
-				writeFileSync(path, buf);
-				parts.push({ type: "local_image", path });
+				try {
+					const res = await fetch(att.url);
+					const buf = Buffer.from(await res.arrayBuffer());
+					const ext = att.filename.split(".").pop() ?? "jpg";
+					const path = join(tmpdir(), `codex-img-${randomUUID()}.${ext}`);
+					writeFileSync(path, buf);
+					tempFiles.push(path);
+					parts.push({ type: "local_image", path });
+				} catch {
+					parts.push({
+						type: "text",
+						text: `[Image unavailable: ${att.filename}]`,
+					});
+				}
 			} else {
 				parts.push({
 					type: "text",
@@ -121,7 +133,17 @@ export class CodexBot extends ChatBot {
 			parts.push({ type: "text", text: message });
 		}
 
-		return parts;
+		const cleanup = () => {
+			for (const f of tempFiles) {
+				try {
+					unlinkSync(f);
+				} catch {
+					// already deleted
+				}
+			}
+		};
+
+		return { input: parts, cleanup };
 	}
 
 	chat(message: string, options?: ChatOptions): ChatResult {
@@ -142,8 +164,12 @@ export class CodexBot extends ChatBot {
 			});
 			self.locks.set(lockKey, lock);
 
+			const { input, cleanup } = await CodexBot.buildInput(
+				message,
+				options?.attachments,
+			);
+
 			try {
-				const input = await CodexBot.buildInput(message, options?.attachments);
 				const { events } = await thread.runStreamed(input);
 				const seen = new Map<string, number>();
 
@@ -169,6 +195,7 @@ export class CodexBot extends ChatBot {
 					}
 				}
 			} finally {
+				cleanup();
 				resolve?.();
 				self.locks.delete(sessionId || lockKey);
 			}
