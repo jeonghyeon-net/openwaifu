@@ -1,4 +1,12 @@
-import { Codex, type Thread } from "@openai/codex-sdk";
+import { writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import {
+	Codex,
+	type Input,
+	type Thread,
+	type UserInput,
+} from "@openai/codex-sdk";
 import { injectable } from "tsyringe";
 import {
 	type ChatAttachment,
@@ -85,31 +93,40 @@ export class CodexBot extends ChatBot {
 		return this.getCodex().startThread({ approvalPolicy: "never" });
 	}
 
-	private static formatAttachments(
+	private static async buildInput(
 		message: string,
 		attachments?: ChatAttachment[],
-	): string {
+	): Promise<Input> {
 		if (!attachments || attachments.length === 0) return message;
 
-		const parts: string[] = [];
+		const parts: UserInput[] = [];
+
 		for (const att of attachments) {
 			if (att.contentType.startsWith("image/")) {
-				parts.push(`[Image: ${att.url}]`);
+				const res = await fetch(att.url);
+				const buf = Buffer.from(await res.arrayBuffer());
+				const ext = att.filename.split(".").pop() ?? "jpg";
+				const path = join(tmpdir(), `codex-img-${Date.now()}.${ext}`);
+				writeFileSync(path, buf);
+				parts.push({ type: "local_image", path });
 			} else {
-				parts.push(`[File: ${att.filename} (${att.url})]`);
+				parts.push({
+					type: "text",
+					text: `[File: ${att.filename} (${att.url})]`,
+				});
 			}
 		}
-		if (message) parts.push(message);
-		return parts.join("\n");
+
+		if (message) {
+			parts.push({ type: "text", text: message });
+		}
+
+		return parts;
 	}
 
 	chat(message: string, options?: ChatOptions): ChatResult {
 		let sessionId = options?.sessionId ?? "";
 		const lockKey = sessionId || "new";
-		const fullMessage = CodexBot.formatAttachments(
-			message,
-			options?.attachments,
-		);
 
 		const self = this;
 
@@ -126,7 +143,8 @@ export class CodexBot extends ChatBot {
 			self.locks.set(lockKey, lock);
 
 			try {
-				const { events } = await thread.runStreamed(fullMessage);
+				const input = await CodexBot.buildInput(message, options?.attachments);
+				const { events } = await thread.runStreamed(input);
 				const seen = new Map<string, number>();
 
 				for await (const event of events) {
