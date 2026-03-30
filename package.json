@@ -1,0 +1,23 @@
+{
+	"private": true,
+	"workspaces": [
+		"apps/*",
+		"libs/*",
+		"mcps/*"
+	],
+	"scripts": {
+		"check": "biome check . && bun --filter '*' check",
+		"fmt": "biome check --fix ."
+	},
+	"commitlint": {
+		"extends": [
+			"@commitlint/config-conventional"
+		]
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.4.9",
+		"@types/bun": "^1.3.11",
+		"@commitlint/cli": "^20.5.0",
+		"@commitlint/config-conventional": "^20.5.0"
+	}
+}

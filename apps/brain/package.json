@@ -1,0 +1,16 @@
+{
+	"name": "@app/brain",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "bun --watch run src/index.ts",
+		"check": "bunx tsc --noEmit"
+	},
+	"dependencies": {
+		"@lib/core": "workspace:*",
+		"@mcp/greeter": "workspace:*",
+		"inversify": "^8.1.0",
+		"reflect-metadata": "^0.2.2"
+	},
+	"devDependencies": {}
+}
