@@ -101,13 +101,49 @@ export function matchesCron(expression: string, date: Date): boolean {
 	return true;
 }
 
-const CRON_FIELD_PATTERN =
-	/^(\*|[0-9]+(-[0-9]+)?)(\/([0-9]+))?(,(\*|[0-9]+(-[0-9]+)?)(\/([0-9]+))?)*$/;
+const FIELD_RANGES: [number, number][] = [
+	[0, 59],
+	[0, 23],
+	[1, 31],
+	[1, 12],
+	[0, 6],
+];
+
+function isValidCronField(field: string, min: number, max: number): boolean {
+	for (const part of field.split(",")) {
+		const [rangePart, stepStr] = part.split("/");
+		if (rangePart === undefined) return false;
+
+		if (stepStr !== undefined) {
+			const step = Number(stepStr);
+			if (!Number.isInteger(step) || step <= 0) return false;
+		}
+
+		if (rangePart === "*") continue;
+
+		if (rangePart.includes("-")) {
+			const parts = rangePart.split("-").map(Number);
+			const a = parts[0];
+			const b = parts[1];
+			if (a === undefined || b === undefined) return false;
+			if (!Number.isInteger(a) || !Number.isInteger(b)) return false;
+			if (a < min || a > max || b < min || b > max || a > b) return false;
+			continue;
+		}
+
+		const num = Number(rangePart);
+		if (!Number.isInteger(num) || num < min || num > max) return false;
+	}
+	return true;
+}
 
 export function isValidCron(expression: string): boolean {
 	const fields = expression.trim().split(/\s+/);
 	if (fields.length !== 5) return false;
-	return fields.every((field) => CRON_FIELD_PATTERN.test(field));
+	return fields.every((field, i) => {
+		const [min, max] = FIELD_RANGES[i] ?? [0, 0];
+		return isValidCronField(field, min, max);
+	});
 }
 
 export class Scheduler {
