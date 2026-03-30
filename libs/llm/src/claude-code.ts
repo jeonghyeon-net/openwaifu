@@ -1,10 +1,9 @@
-import { writeFileSync } from "node:fs";
-import { join } from "node:path";
 import {
+	type McpServerConfig as AgentMcpServerConfig,
+	type Query,
+	query,
 	type SDKMessage,
-	type SDKSession,
-	unstable_v2_createSession,
-	unstable_v2_resumeSession,
+	type SDKUserMessage,
 } from "@anthropic-ai/claude-agent-sdk";
 import { injectable } from "tsyringe";
 import {
@@ -35,53 +34,69 @@ function isIdle(msg: SDKMessage): boolean {
 
 @injectable()
 export class ClaudeCodeBot extends ChatBot {
-	private sessions = new Map<string, SDKSession>();
+	private sessions = new Map<string, Query>();
+	private mcpServers: Record<string, McpServerConfig> = {};
 
-	async setMcpServers(servers: Record<string, McpServerConfig>) {
-		const mcpJson = {
-			mcpServers: Object.fromEntries(
-				Object.entries(servers).map(([name, config]) => [
-					name,
-					{ command: config.command, args: config.args },
-				]),
-			),
-		};
-		writeFileSync(
-			join(process.cwd(), ".mcp.json"),
-			JSON.stringify(mcpJson, null, "\t"),
-		);
+	async setMcpServers(
+		servers: Record<string, McpServerConfig>,
+		sessionId?: string,
+	) {
+		this.mcpServers = servers;
+
+		if (sessionId) {
+			const target = this.sessions.get(sessionId);
+			if (!target) throw new Error(`Session not found: ${sessionId}`);
+			await target.setMcpServers(
+				servers as Record<string, AgentMcpServerConfig>,
+			);
+		}
 	}
 
 	chat(message: string, options?: ChatOptions): ChatResult {
-		const self = this;
 		let sessionId = options?.sessionId ?? "";
+		const existing = options?.sessionId
+			? this.sessions.get(options.sessionId)
+			: undefined;
+
+		const self = this;
 
 		const stream = async function* () {
-			let session: SDKSession;
+			let q: Query;
 
-			const cached = sessionId ? self.sessions.get(sessionId) : undefined;
+			if (existing) {
+				q = existing;
 
-			if (cached) {
-				session = cached;
-			} else if (sessionId) {
-				session = unstable_v2_resumeSession(sessionId, {
-					model: "claude-sonnet-4-6",
-					permissionMode: "bypassPermissions",
-				});
-				self.sessions.set(sessionId, session);
+				const userMessage: SDKUserMessage = {
+					type: "user",
+					message: { role: "user", content: message },
+					parent_tool_use_id: null,
+				};
+
+				await q.streamInput(
+					(async function* () {
+						yield userMessage;
+					})(),
+				);
 			} else {
-				session = unstable_v2_createSession({
-					model: "claude-sonnet-4-6",
-					permissionMode: "bypassPermissions",
+				q = query({
+					prompt: message,
+					options: {
+						includePartialMessages: true,
+						permissionMode: "bypassPermissions",
+						allowDangerouslySkipPermissions: true,
+						mcpServers: self.mcpServers as Record<string, AgentMcpServerConfig>,
+					},
 				});
 			}
 
-			await session.send(message);
+			// 수동 iteration — break 없이 idle에서 return하면 generator를 닫지 않음
+			for (;;) {
+				const { value: msg, done } = await q.next();
+				if (done) return;
 
-			for await (const msg of session.stream()) {
-				if (!sessionId && msg.type === "system" && msg.subtype === "init") {
+				if (msg.type === "system" && msg.subtype === "init") {
 					sessionId = msg.session_id;
-					self.sessions.set(sessionId, session);
+					self.sessions.set(sessionId, q);
 				}
 
 				const text = isTextDelta(msg);
@@ -89,7 +104,7 @@ export class ClaudeCodeBot extends ChatBot {
 					yield text;
 				}
 
-				if (isIdle(msg)) break;
+				if (isIdle(msg)) return;
 			}
 		};
 
