@@ -18,15 +18,10 @@ const sessions = new SessionStore("sessions.db", bot.name);
 
 await platform.start();
 
-const standaloneMcp = discoverMcpServers();
-bot.setMcpServers(() => ({
-	...standaloneMcp,
-	...platform.createMcpServer(),
-}));
+const mcpServers = discoverMcpServers();
+bot.setMcpServers(() => mcpServers);
 
-console.log(
-	`MCP: ${Object.keys(standaloneMcp).join(", ") || "none"} + platform`,
-);
+console.log(`MCP: ${Object.keys(mcpServers).join(", ") || "none"}`);
 console.log(`Sessions restored: ${sessions.all().length}`);
 
 const activeChannels = new Set<string>();

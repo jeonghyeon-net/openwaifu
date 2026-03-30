@@ -1,5 +1,4 @@
 export { DiscordPlatform } from "./discord.js";
-export { createDiscordMcpServer } from "./discord-mcp.js";
 export {
 	ChatPlatform,
 	type IncomingMessage,
@@ -7,4 +6,3 @@ export {
 	PLATFORM_TOKEN,
 } from "./platform.js";
 export { TelegramPlatform } from "./telegram.js";
-export { createTelegramMcpServer } from "./telegram-mcp.js";

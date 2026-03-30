@@ -1,4 +1,3 @@
-import type { McpServerConfig } from "@lib/llm";
 import {
 	Client,
 	Events,
@@ -6,7 +5,6 @@ import {
 	type TextChannel,
 } from "discord.js";
 import { injectable } from "tsyringe";
-import { createDiscordMcpServer } from "./discord-mcp.js";
 import { ChatPlatform, type MessageHandler } from "./platform.js";
 
 @injectable()
@@ -54,10 +52,6 @@ export class DiscordPlatform extends ChatPlatform {
 
 	onMessage(handler: MessageHandler) {
 		this.handlers.push(handler);
-	}
-
-	createMcpServer(): Record<string, McpServerConfig> {
-		return { discord: createDiscordMcpServer(this.client) };
 	}
 
 	async sendStream(channelId: string, stream: AsyncIterable<string>) {

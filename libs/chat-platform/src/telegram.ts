@@ -1,8 +1,6 @@
-import type { McpServerConfig } from "@lib/llm";
 import { Bot } from "grammy";
 import { injectable } from "tsyringe";
 import { ChatPlatform, type MessageHandler } from "./platform.js";
-import { createTelegramMcpServer } from "./telegram-mcp.js";
 
 @injectable()
 export class TelegramPlatform extends ChatPlatform {
@@ -11,11 +9,6 @@ export class TelegramPlatform extends ChatPlatform {
 
 	onMessage(handler: MessageHandler) {
 		this.handlers.push(handler);
-	}
-
-	createMcpServer(): Record<string, McpServerConfig> {
-		if (!this.bot) throw new Error("Bot not started yet");
-		return { telegram: createTelegramMcpServer(this.bot) };
 	}
 
 	async start() {
