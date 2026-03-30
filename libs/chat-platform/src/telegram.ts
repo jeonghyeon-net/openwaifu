@@ -38,8 +38,8 @@ export class TelegramPlatform extends ChatPlatform {
 		this.handlers.push(handler);
 	}
 
-	async sendText(channelId: string, text: string) {
-		await this.bot.api.sendMessage(Number(channelId), text);
+	getBot(): Bot {
+		return this.bot;
 	}
 
 	async sendStream(channelId: string, stream: AsyncIterable<string>) {

@@ -50,11 +50,8 @@ export class DiscordPlatform extends ChatPlatform {
 		this.handlers.push(handler);
 	}
 
-	async sendText(channelId: string, text: string) {
-		const channel = await this.client.channels.fetch(channelId);
-		if (channel?.isTextBased()) {
-			await (channel as TextChannel).send(text);
-		}
+	getClient(): Client {
+		return this.client;
 	}
 
 	async sendStream(channelId: string, stream: AsyncIterable<string>) {

@@ -12,7 +12,6 @@ export abstract class ChatPlatform {
 	abstract start(): Promise<void>;
 	abstract stop(): Promise<void>;
 	abstract onMessage(handler: MessageHandler): void;
-	abstract sendText(channelId: string, text: string): Promise<void>;
 	abstract sendStream(
 		channelId: string,
 		stream: AsyncIterable<string>,
