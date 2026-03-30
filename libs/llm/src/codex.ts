@@ -42,18 +42,11 @@ export class CodexBot extends ChatBot {
 	private codex: Codex | null = null;
 	private mcpFactory: McpServerFactory = () => ({});
 	private threads = new Map<string, Thread>();
-	private abortControllers = new Map<string, AbortController>();
+	private turnCounters = new Map<string, number>();
 
 	async interrupt(sessionId: string) {
-		const controller = this.abortControllers.get(sessionId);
-		if (controller) {
-			this.abortControllers.delete(sessionId);
-			try {
-				controller.abort();
-			} catch {
-				// abort may throw if the process is already exiting
-			}
-		}
+		const current = this.turnCounters.get(sessionId) ?? 0;
+		this.turnCounters.set(sessionId, current + 1);
 	}
 
 	setMcpServers(factory: McpServerFactory) {
@@ -84,26 +77,25 @@ export class CodexBot extends ChatBot {
 		let sessionId = options?.sessionId ?? "";
 		const thread = this.getThread(options?.sessionId);
 
-		const self = this;
-		const controller = new AbortController();
-
-		// 기존 세션이면 즉시 controller 등록
+		const currentTurn = (this.turnCounters.get(sessionId) ?? 0) + 1;
 		if (sessionId) {
-			self.abortControllers.set(sessionId, controller);
+			this.turnCounters.set(sessionId, currentTurn);
 		}
 
+		const self = this;
+
 		const stream = async function* () {
-			const { events } = await thread.runStreamed(message, {
-				signal: controller.signal,
-			});
+			const { events } = await thread.runStreamed(message);
 			const seen = new Map<string, number>();
 
 			for await (const event of events) {
 				if (event.type === "thread.started") {
 					sessionId = event.thread_id;
 					self.threads.set(sessionId, thread);
-					self.abortControllers.set(sessionId, controller);
+					self.turnCounters.set(sessionId, currentTurn);
 				}
+
+				if (self.turnCounters.get(sessionId) !== currentTurn) return;
 
 				if (
 					(event.type === "item.updated" || event.type === "item.completed") &&
@@ -117,8 +109,6 @@ export class CodexBot extends ChatBot {
 					}
 				}
 			}
-
-			self.abortControllers.delete(sessionId);
 		};
 
 		return {
