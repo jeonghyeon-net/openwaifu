@@ -47,8 +47,12 @@ export class CodexBot extends ChatBot {
 	async interrupt(sessionId: string) {
 		const controller = this.abortControllers.get(sessionId);
 		if (controller) {
-			controller.abort();
 			this.abortControllers.delete(sessionId);
+			try {
+				controller.abort();
+			} catch {
+				// abort may throw if the process is already exiting
+			}
 		}
 	}
 
