@@ -1,0 +1,16 @@
+{
+	"hooks": {
+		"PreToolUse": [
+			{
+				"matcher": "Bash",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "jq -r '.tool_input.command' | grep -qE '^bun (run )?(apps|libs|mcps)/|^bun run dev:' && echo '{\"decision\":\"block\",\"reason\":\"Do not run packages from root. cd into the package directory first (e.g. cd apps/brain && bun run dev).\"}' || echo '{}'",
+						"statusMessage": "Checking bun run target..."
+					}
+				]
+			}
+		]
+	}
+}

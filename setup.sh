@@ -1,14 +1,72 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if ! command -v mise &>/dev/null; then
-  echo "mise not found. Install it first: https://mise.jdx.dev/getting-started.html"
-  exit 1
+REPO_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# brew
+if ! command -v brew &>/dev/null; then
+  echo "Installing Homebrew..."
+  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  eval "$(/opt/homebrew/bin/brew shellenv)"
 fi
 
+# mise
+if ! command -v mise &>/dev/null; then
+  echo "Installing mise..."
+  brew install mise
+  eval "$(mise activate bash)"
+fi
+
+# runtime
 mise trust
 mise install
 
+# dependencies
 bun install
 
+# git hooks
 git config core.hooksPath .githooks
+
+# launchd
+read -rp "Register brain as launchd service? [y/N] " answer
+if [[ "$answer" =~ ^[Yy]$ ]]; then
+  PLIST_NAME="com.openwaifu.brain.plist"
+  PLIST_PATH="$HOME/Library/LaunchAgents/$PLIST_NAME"
+  BUN_PATH="$(mise which bun)"
+
+  mkdir -p "$HOME/Library/LaunchAgents"
+
+  cat > "$PLIST_PATH" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.openwaifu.brain</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>${BUN_PATH}</string>
+        <string>--watch</string>
+        <string>run</string>
+        <string>src/index.ts</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>${REPO_DIR}/apps/brain</string>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>/tmp/openwaifu-brain.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/openwaifu-brain.err</string>
+</dict>
+</plist>
+EOF
+
+  launchctl unload "$PLIST_PATH" 2>/dev/null || true
+  launchctl load "$PLIST_PATH"
+  echo "Brain service registered and started."
+fi
+
+echo "Setup complete."
