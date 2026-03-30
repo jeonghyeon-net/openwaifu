@@ -94,6 +94,8 @@ export class DiscordPlatform extends ChatPlatform {
 				}
 
 				if (!msg) {
+					// 첫 메시지 전송 시 typing indicator 중지
+					clearInterval(typingInterval);
 					msg = await textChannel.send(buffer);
 					lastEditTime = Date.now();
 				} else if (Date.now() - lastEditTime >= EDIT_INTERVAL_MS) {
@@ -105,6 +107,7 @@ export class DiscordPlatform extends ChatPlatform {
 			if (msg && buffer) {
 				await msg.edit(buffer);
 			} else if (!msg && buffer) {
+				clearInterval(typingInterval);
 				await textChannel.send(buffer);
 			}
 		} finally {
