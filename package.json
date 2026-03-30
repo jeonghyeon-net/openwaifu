@@ -14,6 +14,10 @@
 			"@commitlint/config-conventional"
 		]
 	},
+	"dependencies": {
+		"tsyringe": "^4.10.0",
+		"reflect-metadata": "^0.2.2"
+	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.4.9",
 		"@types/bun": "^1.3.11",

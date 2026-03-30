@@ -8,9 +8,7 @@
 	},
 	"dependencies": {
 		"@lib/core": "workspace:*",
-		"@mcp/greeter": "workspace:*",
-		"inversify": "^8.1.0",
-		"reflect-metadata": "^0.2.2"
+		"@mcp/greeter": "workspace:*"
 	},
 	"devDependencies": {}
 }

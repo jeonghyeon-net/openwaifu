@@ -1,14 +1,10 @@
 import "reflect-metadata";
-import { greet } from "@lib/core";
-import { greeterTool } from "@mcp/greeter";
-import { Container, inject, injectable } from "inversify";
-
-interface LLM {
-	chat(message: string): string;
-}
+import { Greeter } from "@lib/core";
+import { GreeterTool } from "@mcp/greeter";
+import { container, injectable } from "tsyringe";
 
 @injectable()
-class OpenAILLM implements LLM {
+class OpenAILLM {
 	chat(message: string): string {
 		return `[OpenAI] ${message}`;
 	}
@@ -16,18 +12,17 @@ class OpenAILLM implements LLM {
 
 @injectable()
 class Waifu {
-	constructor(@inject("LLM") private llm: LLM) {}
+	constructor(private llm: OpenAILLM) {}
 
 	talk(message: string): string {
 		return this.llm.chat(message);
 	}
 }
 
-const container = new Container();
-container.bind<LLM>("LLM").to(OpenAILLM);
-container.bind(Waifu).toSelf();
+const waifu = container.resolve(Waifu);
+const greeter = container.resolve(Greeter);
+const greeterTool = container.resolve(GreeterTool);
 
-const waifu = container.get(Waifu);
 console.log(waifu.talk("안녕"));
-console.log(greet("Brain"));
-console.log(greeterTool("Waifu"));
+console.log(greeter.greet("Brain"));
+console.log(greeterTool.run("Waifu"));

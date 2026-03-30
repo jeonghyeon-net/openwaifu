@@ -1,5 +1,11 @@
-import { greet } from "@lib/core";
+import type { Greeter } from "@lib/core";
+import { injectable } from "tsyringe";
 
-export function greeterTool(name: string): string {
-	return greet(name);
+@injectable()
+export class GreeterTool {
+	constructor(private greeter: Greeter) {}
+
+	run(name: string): string {
+		return this.greeter.greet(name);
+	}
 }
