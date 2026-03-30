@@ -91,28 +91,37 @@ export class DiscordPlatform extends ChatPlatform {
 			msg: null as Awaited<ReturnType<TextChannel["send"]>> | null,
 		};
 
+		// 첫 메시지 전까지 typing 유지
 		await textChannel.sendTyping();
+		const typingInterval = setInterval(() => {
+			if (!state.msg) textChannel.sendTyping();
+		}, 5000);
 
-		for await (const chunk of stream) {
-			state.buffer += chunk;
+		try {
+			for await (const chunk of stream) {
+				state.buffer += chunk;
 
-			if (state.buffer.length > CHUNK_THRESHOLD && state.msg) {
-				await state.msg.edit(state.buffer.slice(0, MESSAGE_LIMIT));
-				state.msg = null;
-				state.buffer = state.buffer.slice(MESSAGE_LIMIT);
+				if (state.buffer.length > CHUNK_THRESHOLD && state.msg) {
+					await state.msg.edit(state.buffer.slice(0, MESSAGE_LIMIT));
+					state.msg = null;
+					state.buffer = state.buffer.slice(MESSAGE_LIMIT);
+				}
+
+				if (!state.msg) {
+					clearInterval(typingInterval);
+					state.msg = await textChannel.send(state.buffer);
+				} else {
+					await state.msg.edit(state.buffer);
+				}
 			}
 
-			if (!state.msg) {
-				state.msg = await textChannel.send(state.buffer);
-			} else {
+			if (state.msg && state.buffer) {
 				await state.msg.edit(state.buffer);
+			} else if (!state.msg && state.buffer) {
+				await textChannel.send(state.buffer);
 			}
-		}
-
-		if (state.msg && state.buffer) {
-			await state.msg.edit(state.buffer);
-		} else if (!state.msg && state.buffer) {
-			await textChannel.send(state.buffer);
+		} finally {
+			clearInterval(typingInterval);
 		}
 	}
 }

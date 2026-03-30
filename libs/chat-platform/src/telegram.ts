@@ -130,28 +130,36 @@ export class TelegramPlatform extends ChatPlatform {
 		};
 
 		await bot.api.sendChatAction(chatId, "typing");
+		const typingInterval = setInterval(() => {
+			if (!msgId) bot.api.sendChatAction(chatId, "typing");
+		}, 4000);
 
-		for await (const chunk of stream) {
-			buffer += chunk;
+		try {
+			for await (const chunk of stream) {
+				buffer += chunk;
 
-			if (buffer.length > CHUNK_THRESHOLD && msgId) {
-				await editSafe(msgId, buffer.slice(0, MESSAGE_LIMIT));
-				msgId = null;
-				buffer = buffer.slice(MESSAGE_LIMIT);
+				if (buffer.length > CHUNK_THRESHOLD && msgId) {
+					await editSafe(msgId, buffer.slice(0, MESSAGE_LIMIT));
+					msgId = null;
+					buffer = buffer.slice(MESSAGE_LIMIT);
+				}
+
+				if (!msgId) {
+					clearInterval(typingInterval);
+					const sent = await bot.api.sendMessage(chatId, buffer);
+					msgId = sent.message_id;
+				} else {
+					await editSafe(msgId, buffer);
+				}
 			}
 
-			if (!msgId) {
-				const sent = await bot.api.sendMessage(chatId, buffer);
-				msgId = sent.message_id;
-			} else {
+			if (msgId && buffer) {
 				await editSafe(msgId, buffer);
+			} else if (!msgId && buffer) {
+				await bot.api.sendMessage(chatId, buffer);
 			}
-		}
-
-		if (msgId && buffer) {
-			await editSafe(msgId, buffer);
-		} else if (!msgId && buffer) {
-			await bot.api.sendMessage(chatId, buffer);
+		} finally {
+			clearInterval(typingInterval);
 		}
 	}
 }
