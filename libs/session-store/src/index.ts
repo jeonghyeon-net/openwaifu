@@ -7,16 +7,42 @@ export class SessionStore {
 	constructor(dbPath: string, botType: string) {
 		this.db = new Database(dbPath);
 		this.botType = botType;
-		this.db.run(`DROP TABLE IF EXISTS sessions`);
-		this.db.run(`
-			CREATE TABLE IF NOT EXISTS sessions (
-				channel_id TEXT NOT NULL,
-				session_id TEXT NOT NULL,
-				bot_type TEXT NOT NULL,
-				updated_at INTEGER NOT NULL,
-				PRIMARY KEY (channel_id, bot_type)
-			)
-		`);
+		this.migrate();
+	}
+
+	private migrate() {
+		const tableInfo = this.db
+			.query<{ name: string }, []>("PRAGMA table_info(sessions)")
+			.all();
+
+		if (tableInfo.length > 0) {
+			this.db.run(`
+				CREATE TABLE IF NOT EXISTS sessions_new (
+					channel_id TEXT NOT NULL,
+					session_id TEXT NOT NULL,
+					bot_type TEXT NOT NULL,
+					updated_at INTEGER NOT NULL,
+					PRIMARY KEY (channel_id, bot_type)
+				)
+			`);
+			this.db.run(`
+				INSERT OR IGNORE INTO sessions_new
+				SELECT channel_id, session_id, bot_type, updated_at
+				FROM sessions
+			`);
+			this.db.run("DROP TABLE sessions");
+			this.db.run("ALTER TABLE sessions_new RENAME TO sessions");
+		} else {
+			this.db.run(`
+				CREATE TABLE IF NOT EXISTS sessions (
+					channel_id TEXT NOT NULL,
+					session_id TEXT NOT NULL,
+					bot_type TEXT NOT NULL,
+					updated_at INTEGER NOT NULL,
+					PRIMARY KEY (channel_id, bot_type)
+				)
+			`);
+		}
 	}
 
 	get(channelId: string): string | undefined {
