@@ -50,6 +50,8 @@ export class CodexBot extends ChatBot {
 			this.abortControllers.delete(sessionId);
 			controller.abort();
 		}
+		// abort 후 Thread가 꼬이므로 새 Thread로 교체
+		this.threads.delete(sessionId);
 	}
 
 	setMcpServers(factory: McpServerFactory) {
