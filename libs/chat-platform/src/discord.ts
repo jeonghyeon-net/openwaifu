@@ -101,12 +101,14 @@ export class DiscordPlatform extends ChatPlatform {
 			if (!state.msg) textChannel.sendTyping();
 		}, 5000);
 
-		const flush = async () => {
+		const flush = async (isBreak = false) => {
 			if (state.msg && state.buffer) {
 				try {
 					await state.msg.edit(state.buffer);
 				} catch {
-					await textChannel.send(state.buffer);
+					// message_break中のedit失敗は無視（メッセージ削除済み）
+					// 最終flushの場合のみ再送信
+					if (!isBreak) await textChannel.send(state.buffer);
 				}
 			} else if (!state.msg && state.buffer) {
 				await textChannel.send(state.buffer);
@@ -124,7 +126,7 @@ export class DiscordPlatform extends ChatPlatform {
 
 				if (text === null) {
 					// message_break: 현재 메시지 마무리, 새 메시지 시작
-					await flush();
+					await flush(true);
 					state.msg = null;
 					state.buffer = "";
 					continue;
