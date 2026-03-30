@@ -42,11 +42,14 @@ export class CodexBot extends ChatBot {
 	private codex: Codex | null = null;
 	private mcpFactory: McpServerFactory = () => ({});
 	private threads = new Map<string, Thread>();
-	private turnCounters = new Map<string, number>();
+	private abortControllers = new Map<string, AbortController>();
 
 	async interrupt(sessionId: string) {
-		const current = this.turnCounters.get(sessionId) ?? 0;
-		this.turnCounters.set(sessionId, current + 1);
+		const controller = this.abortControllers.get(sessionId);
+		if (controller) {
+			this.abortControllers.delete(sessionId);
+			controller.abort();
+		}
 	}
 
 	setMcpServers(factory: McpServerFactory) {
@@ -77,37 +80,45 @@ export class CodexBot extends ChatBot {
 		let sessionId = options?.sessionId ?? "";
 		const thread = this.getThread(options?.sessionId);
 
-		const currentTurn = (this.turnCounters.get(sessionId) ?? 0) + 1;
+		const self = this;
+		const controller = new AbortController();
+
 		if (sessionId) {
-			this.turnCounters.set(sessionId, currentTurn);
+			self.abortControllers.set(sessionId, controller);
 		}
 
-		const self = this;
-
 		const stream = async function* () {
-			const { events } = await thread.runStreamed(message);
-			const seen = new Map<string, number>();
+			try {
+				const { events } = await thread.runStreamed(message, {
+					signal: controller.signal,
+				});
+				const seen = new Map<string, number>();
 
-			for await (const event of events) {
-				if (event.type === "thread.started") {
-					sessionId = event.thread_id;
-					self.threads.set(sessionId, thread);
-					self.turnCounters.set(sessionId, currentTurn);
-				}
+				for await (const event of events) {
+					if (event.type === "thread.started") {
+						sessionId = event.thread_id;
+						self.threads.set(sessionId, thread);
+						self.abortControllers.set(sessionId, controller);
+					}
 
-				if (self.turnCounters.get(sessionId) !== currentTurn) return;
-
-				if (
-					(event.type === "item.updated" || event.type === "item.completed") &&
-					event.item.type === "agent_message"
-				) {
-					const prev = seen.get(event.item.id) ?? 0;
-					const text = event.item.text;
-					if (text.length > prev) {
-						yield text.slice(prev);
-						seen.set(event.item.id, text.length);
+					if (
+						(event.type === "item.updated" ||
+							event.type === "item.completed") &&
+						event.item.type === "agent_message"
+					) {
+						const prev = seen.get(event.item.id) ?? 0;
+						const text = event.item.text;
+						if (text.length > prev) {
+							yield text.slice(prev);
+							seen.set(event.item.id, text.length);
+						}
 					}
 				}
+			} catch (e: unknown) {
+				if (e instanceof Error && e.name === "AbortError") return;
+				throw e;
+			} finally {
+				self.abortControllers.delete(sessionId);
 			}
 		};
 

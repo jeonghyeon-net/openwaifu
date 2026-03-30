@@ -35,9 +35,7 @@ platform.onMessage(async (msg) => {
 	const sessionId = sessions.get(msg.channelId);
 
 	if (sessionId && activeChannels.has(msg.channelId)) {
-		await bot.interrupt(sessionId).catch((e: unknown) => {
-			console.error("Interrupt failed:", e);
-		});
+		await bot.interrupt(sessionId).catch(() => {});
 	}
 
 	const chat = bot.chat(msg.text, sessionId ? { sessionId } : undefined);
