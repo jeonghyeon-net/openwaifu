@@ -1,9 +1,9 @@
 import "reflect-metadata";
-import { CHATBOT_TOKEN, type ChatBot, ClaudeCodeBot } from "@lib/llm";
+import { CHATBOT_TOKEN, type ChatBot, CodexBot } from "@lib/llm";
 import { discoverMcpServers } from "@lib/mcp-discovery";
 import { container } from "tsyringe";
 
-container.register(CHATBOT_TOKEN, { useClass: ClaudeCodeBot });
+container.register(CHATBOT_TOKEN, { useClass: CodexBot });
 
 const bot = container.resolve<ChatBot>(CHATBOT_TOKEN);
 const mcpServers = discoverMcpServers();

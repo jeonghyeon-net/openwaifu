@@ -77,7 +77,7 @@ export class CodexBot extends ChatBot {
 				}
 
 				if (
-					event.type === "item.updated" &&
+					(event.type === "item.updated" || event.type === "item.completed") &&
 					event.item.type === "agent_message"
 				) {
 					yield event.item.text;
