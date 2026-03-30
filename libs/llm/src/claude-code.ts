@@ -2,6 +2,7 @@ import {
 	type McpServerConfig as AgentMcpServerConfig,
 	type Query,
 	query,
+	type SDKMessage,
 	type SDKUserMessage,
 } from "@anthropic-ai/claude-agent-sdk";
 import { injectable } from "tsyringe";
@@ -11,6 +12,14 @@ import {
 	type ChatResult,
 	type McpServerConfig,
 } from "./chatbot.js";
+
+function isIdle(msg: SDKMessage): boolean {
+	return (
+		msg.type === "system" &&
+		msg.subtype === "session_state_changed" &&
+		msg.state === "idle"
+	);
+}
 
 @injectable()
 export class ClaudeCodeBot extends ChatBot {
@@ -63,7 +72,7 @@ export class ClaudeCodeBot extends ChatBot {
 						yield msg.event.delta.text;
 					}
 
-					if ("result" in msg) break;
+					if (isIdle(msg)) break;
 				}
 			} else {
 				const q = query({
@@ -90,7 +99,7 @@ export class ClaudeCodeBot extends ChatBot {
 						yield msg.event.delta.text;
 					}
 
-					if ("result" in msg) break;
+					if (isIdle(msg)) break;
 				}
 			}
 		};
