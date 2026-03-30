@@ -9,6 +9,7 @@
 		".": "./src/index.ts"
 	},
 	"dependencies": {
+		"@lib/env": "workspace:*",
 		"@lib/llm": "workspace:*"
 	}
 }

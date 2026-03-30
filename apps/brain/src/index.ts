@@ -17,8 +17,9 @@ container.register(PLATFORM_TOKEN, { useClass: DiscordPlatform });
 
 const bot = container.resolve<ChatBot>(CHATBOT_TOKEN);
 const platform = container.resolve<ChatPlatform>(PLATFORM_TOKEN);
-const sessions = new SessionStore("sessions.db", bot.name);
-const scheduler = new Scheduler(join("..", "..", "scheduler.db"));
+const dataDir = join("..", "..");
+const sessions = new SessionStore(join(dataDir, "sessions.db"), bot.name);
+const scheduler = new Scheduler(join(dataDir, "scheduler.db"));
 
 await platform.start();
 

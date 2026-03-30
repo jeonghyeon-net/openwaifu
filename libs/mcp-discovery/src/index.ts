@@ -1,22 +1,10 @@
-import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { findWorkspaceRoot } from "@lib/env";
 import type { McpServerConfig } from "@lib/llm";
 
-function findWorkspaceRoot(from: string): string {
-	let dir = resolve(from);
-	while (dir !== dirname(dir)) {
-		const pkgPath = join(dir, "package.json");
-		if (existsSync(pkgPath)) {
-			const pkg = JSON.parse(readFileSync(pkgPath, "utf-8"));
-			if (pkg.workspaces) return dir;
-		}
-		dir = dirname(dir);
-	}
-	throw new Error("Workspace root not found");
-}
-
 export function discoverMcpServers(): Record<string, McpServerConfig> {
-	const root = findWorkspaceRoot(process.cwd());
+	const root = findWorkspaceRoot();
 	const mcpsDir = join(root, "mcps");
 	const servers: Record<string, McpServerConfig> = {};
 

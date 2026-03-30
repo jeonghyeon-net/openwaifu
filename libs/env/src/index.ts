@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 
 let loaded = false;
 
@@ -34,6 +34,28 @@ export function loadEnv(): void {
 		}
 		dir = dirname(dir);
 	}
+}
+
+let cachedRoot: string | null = null;
+
+/**
+ * 워크스페이스 루트(package.json에 workspaces가 있는 디렉토리)를 찾는다.
+ */
+export function findWorkspaceRoot(from?: string): string {
+	if (cachedRoot) return cachedRoot;
+	let dir = resolve(from ?? process.cwd());
+	while (dir !== dirname(dir)) {
+		const pkgPath = join(dir, "package.json");
+		if (existsSync(pkgPath)) {
+			const pkg = JSON.parse(readFileSync(pkgPath, "utf-8"));
+			if (pkg.workspaces) {
+				cachedRoot = dir;
+				return dir;
+			}
+		}
+		dir = dirname(dir);
+	}
+	throw new Error("Workspace root not found");
 }
 
 /**
