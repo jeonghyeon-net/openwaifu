@@ -42,16 +42,10 @@ export class CodexBot extends ChatBot {
 	private codex: Codex | null = null;
 	private mcpFactory: McpServerFactory = () => ({});
 	private threads = new Map<string, Thread>();
-	private abortControllers = new Map<string, AbortController>();
+	private locks = new Map<string, Promise<void>>();
 
-	async interrupt(sessionId: string) {
-		const controller = this.abortControllers.get(sessionId);
-		if (controller) {
-			this.abortControllers.delete(sessionId);
-			controller.abort();
-		}
-		// abort 후 Thread가 꼬이므로 새 Thread로 교체
-		this.threads.delete(sessionId);
+	async interrupt() {
+		// Codex responds in one shot — queuing handles concurrency instead
 	}
 
 	setMcpServers(factory: McpServerFactory) {
@@ -80,27 +74,32 @@ export class CodexBot extends ChatBot {
 
 	chat(message: string, options?: ChatOptions): ChatResult {
 		let sessionId = options?.sessionId ?? "";
-		const thread = this.getThread(options?.sessionId);
+		const lockKey = sessionId || "new";
 
 		const self = this;
-		const controller = new AbortController();
-
-		if (sessionId) {
-			self.abortControllers.set(sessionId, controller);
-		}
 
 		const stream = async function* () {
+			// 이전 요청이 끝날 때까지 대기
+			const prev = self.locks.get(lockKey);
+			if (prev) await prev.catch(() => {});
+
+			const thread = self.getThread(sessionId || undefined);
+			let resolve: (() => void) | undefined;
+			const lock = new Promise<void>((r) => {
+				resolve = r;
+			});
+			self.locks.set(lockKey, lock);
+
 			try {
-				const { events } = await thread.runStreamed(message, {
-					signal: controller.signal,
-				});
+				const { events } = await thread.runStreamed(message);
 				const seen = new Map<string, number>();
 
 				for await (const event of events) {
 					if (event.type === "thread.started") {
 						sessionId = event.thread_id;
 						self.threads.set(sessionId, thread);
-						self.abortControllers.set(sessionId, controller);
+						self.locks.delete(lockKey);
+						self.locks.set(sessionId, lock);
 					}
 
 					if (
@@ -116,11 +115,9 @@ export class CodexBot extends ChatBot {
 						}
 					}
 				}
-			} catch (e: unknown) {
-				if (e instanceof Error && e.name === "AbortError") return;
-				throw e;
 			} finally {
-				self.abortControllers.delete(sessionId);
+				resolve?.();
+				self.locks.delete(sessionId || lockKey);
 			}
 		};
 
