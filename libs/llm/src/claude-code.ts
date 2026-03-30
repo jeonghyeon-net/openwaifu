@@ -56,6 +56,7 @@ type Session = {
 	query: Query;
 	iterator: AsyncIterator<SDKMessage>;
 	sessionId: string | null;
+	turnId: number;
 };
 
 @injectable()
@@ -66,6 +67,7 @@ export class ClaudeCodeBot extends ChatBot {
 	async interrupt(sessionId: string) {
 		const session = this.sessions.get(sessionId);
 		if (!session) throw new Error(`Session not found: ${sessionId}`);
+		session.turnId++;
 		await session.query.interrupt();
 	}
 
@@ -100,6 +102,7 @@ export class ClaudeCodeBot extends ChatBot {
 			query: q,
 			iterator: q[Symbol.asyncIterator](),
 			sessionId: null,
+			turnId: 0,
 		};
 	}
 
@@ -109,10 +112,12 @@ export class ClaudeCodeBot extends ChatBot {
 			: undefined;
 
 		const session = existing ?? this.createSession();
+		session.turnId++;
+		const myTurn = session.turnId;
+
 		const self = this;
 		let sessionId = options?.sessionId ?? "";
 
-		// 메시지를 stream에 push
 		session.stream.push({
 			type: "user",
 			message: { role: "user", content: message },
@@ -123,6 +128,9 @@ export class ClaudeCodeBot extends ChatBot {
 			for (;;) {
 				const { value: msg, done } = await session.iterator.next();
 				if (done) return;
+
+				// 다른 턴이 시작됐으면 즉시 종료
+				if (session.turnId !== myTurn) return;
 
 				if (msg.type === "system" && msg.subtype === "init") {
 					session.sessionId = msg.session_id;
