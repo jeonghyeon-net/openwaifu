@@ -71,22 +71,28 @@ export class DiscordPlatform extends ChatPlatform {
 
 		const textChannel = channel as TextChannel;
 
-		// 첫 메시지 전까지만 typing 표시. 이후는 메시지 edit이 실시간으로 보임.
-		await textChannel.sendTyping();
-		const typingInterval = setInterval(() => {
-			textChannel.sendTyping();
-		}, 5000);
-
 		const MESSAGE_LIMIT = 2000;
 		const CHUNK_THRESHOLD = 1800;
 		const EDIT_INTERVAL_MS = 1000;
+		const TYPING_IDLE_MS = 2000;
 
 		let buffer = "";
 		let msg: Awaited<ReturnType<TextChannel["send"]>> | null = null;
 		let lastEditTime = 0;
+		let lastChunkTime = 0;
+
+		// chunk가 안 올 때(tool 호출 등)만 typing 표시.
+		// chunk가 오면 메시지 edit이 실시간으로 보이니까 typing 불필요.
+		await textChannel.sendTyping();
+		const typingInterval = setInterval(() => {
+			if (Date.now() - lastChunkTime > TYPING_IDLE_MS) {
+				textChannel.sendTyping();
+			}
+		}, 5000);
 
 		try {
 			for await (const chunk of stream) {
+				lastChunkTime = Date.now();
 				buffer += chunk;
 
 				if (buffer.length > CHUNK_THRESHOLD && msg) {
@@ -96,7 +102,6 @@ export class DiscordPlatform extends ChatPlatform {
 				}
 
 				if (!msg) {
-					clearInterval(typingInterval);
 					msg = await textChannel.send(buffer);
 					lastEditTime = Date.now();
 				} else if (Date.now() - lastEditTime >= EDIT_INTERVAL_MS) {

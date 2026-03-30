@@ -112,15 +112,19 @@ export class TelegramPlatform extends ChatPlatform {
 		const MESSAGE_LIMIT = 4096;
 		const CHUNK_THRESHOLD = 3800;
 		const EDIT_INTERVAL_MS = 1000;
-
-		await bot.api.sendChatAction(chatId, "typing");
-		const typingInterval = setInterval(() => {
-			bot.api.sendChatAction(chatId, "typing");
-		}, 4000);
+		const TYPING_IDLE_MS = 2000;
 
 		let buffer = "";
 		let msgId: number | null = null;
 		let lastEditTime = 0;
+		let lastChunkTime = 0;
+
+		await bot.api.sendChatAction(chatId, "typing");
+		const typingInterval = setInterval(() => {
+			if (Date.now() - lastChunkTime > TYPING_IDLE_MS) {
+				bot.api.sendChatAction(chatId, "typing");
+			}
+		}, 4000);
 
 		const editSafe = async (id: number, text: string) => {
 			try {
@@ -133,6 +137,7 @@ export class TelegramPlatform extends ChatPlatform {
 
 		try {
 			for await (const chunk of stream) {
+				lastChunkTime = Date.now();
 				buffer += chunk;
 
 				if (buffer.length > CHUNK_THRESHOLD && msgId) {
@@ -142,7 +147,6 @@ export class TelegramPlatform extends ChatPlatform {
 				}
 
 				if (!msgId) {
-					clearInterval(typingInterval);
 					const sent = await bot.api.sendMessage(chatId, buffer);
 					msgId = sent.message_id;
 					lastEditTime = Date.now();
