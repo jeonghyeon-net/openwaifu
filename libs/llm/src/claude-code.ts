@@ -25,11 +25,10 @@ export class ClaudeCodeBot extends ChatBot {
 
 		if (sessionId) {
 			const target = this.sessions.get(sessionId);
-			if (target) {
-				await target.setMcpServers(
-					servers as Record<string, AgentMcpServerConfig>,
-				);
-			}
+			if (!target) throw new Error(`Session not found: ${sessionId}`);
+			await target.setMcpServers(
+				servers as Record<string, AgentMcpServerConfig>,
+			);
 		}
 	}
 
