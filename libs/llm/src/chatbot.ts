@@ -6,8 +6,16 @@ export type McpServerConfig = AgentMcpServerConfig;
 
 export type McpServerFactory = () => Record<string, McpServerConfig>;
 
+export type ChatAttachment = {
+	url: string;
+	filename: string;
+	contentType: string;
+	size: number;
+};
+
 export type ChatOptions = {
 	sessionId?: string;
+	attachments?: ChatAttachment[];
 };
 
 export type ChatResult = {

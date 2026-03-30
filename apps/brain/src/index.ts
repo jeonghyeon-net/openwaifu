@@ -43,10 +43,10 @@ platform.onMessage(async (msg) => {
 		.map(([k, v]) => `${k}: ${v}`)
 		.join(", ");
 	const context = `[channelId: ${msg.channelId}, userId: ${msg.userId}, username: ${msg.username}${meta ? `, ${meta}` : ""}]`;
-	const chat = bot.chat(
-		`${context}\n${msg.text}`,
-		sessionId ? { sessionId } : undefined,
-	);
+	const chat = bot.chat(`${context}\n${msg.text}`, {
+		...(sessionId && { sessionId }),
+		...(msg.attachments.length > 0 && { attachments: msg.attachments }),
+	});
 
 	activeChannels.add(msg.channelId);
 	try {

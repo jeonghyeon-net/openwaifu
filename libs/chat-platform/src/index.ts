@@ -1,5 +1,6 @@
 export { DiscordPlatform } from "./discord.js";
 export {
+	type Attachment,
 	ChatPlatform,
 	type IncomingMessage,
 	type MessageHandler,

@@ -39,6 +39,12 @@ export class DiscordPlatform extends ChatPlatform {
 							channelName:
 								"name" in msg.channel ? (msg.channel.name ?? "") : "",
 						},
+						attachments: msg.attachments.map((a) => ({
+							url: a.url,
+							filename: a.name ?? "unknown",
+							contentType: a.contentType ?? "application/octet-stream",
+							size: a.size,
+						})),
 					}),
 				).catch((e: unknown) => {
 					console.error("Message handler error:", e);

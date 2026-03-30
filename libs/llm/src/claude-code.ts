@@ -7,6 +7,7 @@ import {
 } from "@anthropic-ai/claude-agent-sdk";
 import { injectable } from "tsyringe";
 import {
+	type ChatAttachment,
 	ChatBot,
 	type ChatOptions,
 	type ChatResult,
@@ -123,6 +124,35 @@ export class ClaudeCodeBot extends ChatBot {
 		return session;
 	}
 
+	private buildContent(
+		message: string,
+		attachments?: ChatAttachment[],
+	): SDKUserMessage["message"]["content"] {
+		if (!attachments || attachments.length === 0) return message;
+
+		const content: Array<
+			| { type: "image"; source: { type: "url"; url: string } }
+			| { type: "text"; text: string }
+		> = [];
+		for (const att of attachments) {
+			if (att.contentType.startsWith("image/")) {
+				content.push({
+					type: "image",
+					source: { type: "url", url: att.url },
+				});
+			} else {
+				content.push({
+					type: "text",
+					text: `[Attached file: ${att.filename} (${att.contentType})]`,
+				});
+			}
+		}
+		if (message) {
+			content.push({ type: "text", text: message });
+		}
+		return content;
+	}
+
 	chat(message: string, options?: ChatOptions): ChatResult {
 		let existing = options?.sessionId
 			? this.sessions.get(options.sessionId)
@@ -142,7 +172,10 @@ export class ClaudeCodeBot extends ChatBot {
 
 		session.stream.push({
 			type: "user",
-			message: { role: "user", content: message },
+			message: {
+				role: "user",
+				content: this.buildContent(message, options?.attachments),
+			},
 			parent_tool_use_id: null,
 		});
 

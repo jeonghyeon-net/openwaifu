@@ -1,11 +1,19 @@
 export const PLATFORM_TOKEN = "ChatPlatform";
 
+export type Attachment = {
+	url: string;
+	filename: string;
+	contentType: string;
+	size: number;
+};
+
 export type IncomingMessage = {
 	channelId: string;
 	userId: string;
 	username: string;
 	text: string;
 	metadata: Record<string, string>;
+	attachments: Attachment[];
 };
 
 export type MessageHandler = (msg: IncomingMessage) => void | Promise<void>;

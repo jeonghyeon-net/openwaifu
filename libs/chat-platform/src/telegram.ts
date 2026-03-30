@@ -1,7 +1,12 @@
 import { env } from "@lib/env";
 import { Bot } from "grammy";
 import { injectable } from "tsyringe";
-import { ChatPlatform, type MessageHandler } from "./platform.js";
+import {
+	type Attachment,
+	ChatPlatform,
+	type IncomingMessage,
+	type MessageHandler,
+} from "./platform.js";
 
 @injectable()
 export class TelegramPlatform extends ChatPlatform {
@@ -12,29 +17,88 @@ export class TelegramPlatform extends ChatPlatform {
 		this.handlers.push(handler);
 	}
 
-	async start() {
-		this.bot = new Bot(env("TELEGRAM_TOKEN"));
+	private dispatch(msg: IncomingMessage) {
+		for (const handler of this.handlers) {
+			Promise.resolve(handler(msg)).catch((e: unknown) => {
+				console.error("Message handler error:", e);
+			});
+		}
+	}
 
-		this.bot.on("message:text", (ctx) => {
-			for (const handler of this.handlers) {
-				Promise.resolve(
-					handler({
-						channelId: String(ctx.chat.id),
-						userId: String(ctx.from.id),
-						username: ctx.from.username ?? ctx.from.first_name,
-						text: ctx.message.text,
-						metadata: {
-							chatType: ctx.chat.type,
-							chatTitle: "title" in ctx.chat ? (ctx.chat.title ?? "") : "",
-						},
-					}),
-				).catch((e: unknown) => {
-					console.error("Message handler error:", e);
-				});
-			}
+	private buildBase(ctx: {
+		chat: { id: number; type: string };
+		from: { id: number; username?: string; first_name: string };
+	}): Omit<IncomingMessage, "text" | "attachments"> {
+		return {
+			channelId: String(ctx.chat.id),
+			userId: String(ctx.from.id),
+			username: ctx.from.username ?? ctx.from.first_name,
+			metadata: {
+				chatType: ctx.chat.type,
+				chatTitle: String(
+					(ctx.chat as { title?: string | undefined }).title ?? "",
+				),
+			},
+		};
+	}
+
+	private async resolveFileUrl(
+		bot: Bot,
+		fileId: string,
+		token: string,
+	): Promise<string> {
+		const file = await bot.api.getFile(fileId);
+		return `https://api.telegram.org/file/bot${token}/${file.file_path}`;
+	}
+
+	async start() {
+		const token = env("TELEGRAM_TOKEN");
+		this.bot = new Bot(token);
+		const bot = this.bot;
+
+		bot.on("message:text", (ctx) => {
+			this.dispatch({
+				...this.buildBase(ctx),
+				text: ctx.message.text,
+				attachments: [],
+			});
 		});
 
-		this.bot.start();
+		bot.on("message:photo", async (ctx) => {
+			const photos = ctx.message.photo;
+			const largest = photos[photos.length - 1];
+			if (!largest) return;
+			const url = await this.resolveFileUrl(bot, largest.file_id, token);
+			const attachment: Attachment = {
+				url,
+				filename: "photo.jpg",
+				contentType: "image/jpeg",
+				size: largest.file_size ?? 0,
+			};
+			this.dispatch({
+				...this.buildBase(ctx),
+				text: ctx.message.caption ?? "",
+				attachments: [attachment],
+			});
+		});
+
+		bot.on("message:document", async (ctx) => {
+			const doc = ctx.message.document;
+			const url = await this.resolveFileUrl(bot, doc.file_id, token);
+			const attachment: Attachment = {
+				url,
+				filename: doc.file_name ?? "document",
+				contentType: doc.mime_type ?? "application/octet-stream",
+				size: doc.file_size ?? 0,
+			};
+			this.dispatch({
+				...this.buildBase(ctx),
+				text: ctx.message.caption ?? "",
+				attachments: [attachment],
+			});
+		});
+
+		bot.start();
 	}
 
 	async stop() {

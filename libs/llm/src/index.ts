@@ -1,5 +1,6 @@
 export {
 	CHATBOT_TOKEN,
+	type ChatAttachment,
 	ChatBot,
 	type ChatOptions,
 	type ChatResult,
