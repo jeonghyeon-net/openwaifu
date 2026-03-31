@@ -117,7 +117,7 @@ class EventPump {
 	}
 
 	get active(): boolean {
-		return this.listener !== null || this.buffer.length > 0;
+		return this.listener !== null;
 	}
 
 	reset() {
