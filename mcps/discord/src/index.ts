@@ -63,3 +63,6 @@ const token = env("DISCORD_TOKEN");
 const loginPromise = client.login(token);
 await server.connect(new StdioServerTransport());
 await loginPromise;
+
+// brain의 DiscordPlatform이 presence를 관리하므로, MCP 클라이언트는 invisible로 설정
+client.user?.setPresence({ status: "invisible" });
