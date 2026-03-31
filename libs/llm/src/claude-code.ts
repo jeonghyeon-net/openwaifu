@@ -1,18 +1,15 @@
 import {
 	type McpServerConfig as AgentMcpServerConfig,
-	type Query,
 	query,
 	type SDKMessage,
 	type SDKUserMessage,
 } from "@anthropic-ai/claude-agent-sdk";
 import { env } from "@lib/env";
-import { injectable } from "tsyringe";
-import {
-	type ChatAttachment,
+import type {
+	ChatAttachment,
 	ChatBot,
-	type ChatOptions,
-	type ChatResult,
-	type McpServerFactory,
+	ChatBotFactory,
+	ChatResult,
 } from "./chatbot.js";
 
 function isTextDelta(msg: SDKMessage): string | null {
@@ -58,10 +55,6 @@ class MessageStream {
 	}
 }
 
-/**
- * SDK iterator를 독점으로 읽고, 현재 턴의 listener에게 이벤트를 전달하는 pump.
- * reset() 호출 시 이전 턴의 listener를 즉시 종료하고, 남은 이벤트를 버린다.
- */
 class EventPump {
 	private listener: ((msg: SDKMessage | null) => void) | null = null;
 	private buffer: SDKMessage[] = [];
@@ -80,9 +73,8 @@ class EventPump {
 				if (this.skipUntilResult) {
 					if (msg.type === "result") {
 						this.skipUntilResult = false;
-						continue; // result 자체도 skip
+						continue;
 					}
-					// 새 턴의 message_start → skip 종료, 이 이벤트는 dispatch
 					if (
 						msg.type === "stream_event" &&
 						msg.event.type === "message_start"
@@ -96,7 +88,7 @@ class EventPump {
 				this.dispatch(msg);
 			}
 		} catch {
-			// iterator error (e.g. process terminated) — signal end
+			// iterator error
 		}
 		this.dispatch(null);
 	}
@@ -121,7 +113,6 @@ class EventPump {
 		});
 	}
 
-	/** 이전 턴의 listener를 즉시 종료하고, 남은 이벤트를 버린다. */
 	reset() {
 		this.buffer.length = 0;
 		this.skipUntilResult = true;
@@ -133,169 +124,118 @@ class EventPump {
 	}
 }
 
-type Session = {
-	stream: MessageStream;
-	query: Query;
-	pump: EventPump;
-	sessionId: string | null;
-	turnId: number;
-};
-
-@injectable()
-export class ClaudeCodeBot extends ChatBot {
-	readonly name = "claude-code";
-	private sessions = new Map<string, Session>();
-	private mcpFactory: McpServerFactory = () => ({});
-	private systemPrompt = "";
-
-	setSystemPrompt(prompt: string) {
-		this.systemPrompt = prompt;
-	}
-
-	setMcpServers(factory: McpServerFactory) {
-		this.mcpFactory = factory;
-	}
-
-	private createSession(resumeId?: string): Session {
-		const stream = new MessageStream();
-		const mcpServers = this.mcpFactory();
-
-		const model = env("CLAUDE_MODEL", "claude-sonnet-4-6");
-		const thinking = env("CLAUDE_THINKING", "disabled");
-		const effort = env("CLAUDE_EFFORT", "high");
-
-		const thinkingConfig =
-			thinking === "disabled"
-				? { type: "disabled" as const }
-				: thinking === "adaptive"
-					? { type: "adaptive" as const }
-					: { type: "enabled" as const, budgetTokens: Number(thinking) };
-
-		const q = query({
-			prompt: stream as AsyncIterable<never>,
-			options: {
-				model,
-				thinking: thinkingConfig,
-				effort: effort as "low" | "medium" | "high",
-				includePartialMessages: true,
-				permissionMode: "bypassPermissions",
-				allowDangerouslySkipPermissions: true,
-				mcpServers: mcpServers as Record<string, AgentMcpServerConfig>,
-				...(resumeId && { resume: resumeId }),
-				...(this.systemPrompt && {
-					systemPrompt: {
-						type: "preset" as const,
-						preset: "claude_code" as const,
-						append: this.systemPrompt,
-					},
-				}),
-			},
-		});
-
-		const session: Session = {
-			stream,
-			query: q,
-			pump: new EventPump(q[Symbol.asyncIterator]()),
-			sessionId: resumeId ?? null,
-			turnId: 0,
-		};
-
-		if (resumeId) {
-			this.sessions.set(resumeId, session);
+function buildContent(
+	message: string,
+	attachments?: ChatAttachment[],
+): SDKUserMessage["message"]["content"] {
+	if (!attachments || attachments.length === 0) return message;
+	const content: Array<
+		| { type: "image"; source: { type: "url"; url: string } }
+		| { type: "text"; text: string }
+	> = [];
+	for (const att of attachments) {
+		if (att.contentType.startsWith("image/")) {
+			content.push({ type: "image", source: { type: "url", url: att.url } });
+		} else {
+			content.push({
+				type: "text",
+				text: `[Attached file: ${att.filename} (${att.contentType})]`,
+			});
 		}
-
-		return session;
 	}
-
-	private buildContent(
-		message: string,
-		attachments?: ChatAttachment[],
-	): SDKUserMessage["message"]["content"] {
-		if (!attachments || attachments.length === 0) return message;
-
-		const content: Array<
-			| { type: "image"; source: { type: "url"; url: string } }
-			| { type: "text"; text: string }
-		> = [];
-		for (const att of attachments) {
-			if (att.contentType.startsWith("image/")) {
-				content.push({
-					type: "image",
-					source: { type: "url", url: att.url },
-				});
-			} else {
-				content.push({
-					type: "text",
-					text: `[Attached file: ${att.filename} (${att.contentType})]`,
-				});
-			}
-		}
-		if (message) {
-			content.push({ type: "text", text: message });
-		}
-		return content;
-	}
-
-	chat(message: string, options?: ChatOptions): ChatResult {
-		let existing = options?.sessionId
-			? this.sessions.get(options.sessionId)
-			: undefined;
-
-		// 저장된 sessionId가 있지만 메모리에 없으면 resume
-		if (!existing && options?.sessionId) {
-			existing = this.createSession(options.sessionId);
-		}
-
-		const session = existing ?? this.createSession();
-
-		// 이전 턴이 진행 중이면 즉시 중단:
-		// 1) pump.reset() → 이전 generator를 null로 즉시 깨움 + 남은 이벤트 skip
-		// 2) query.interrupt() → SDK에 중단 신호 (fire-and-forget)
-		session.pump.reset();
-		session.query.interrupt().catch(() => {});
-
-		session.turnId++;
-		const myTurn = session.turnId;
-
-		const self = this;
-		let sessionId = options?.sessionId ?? "";
-
-		session.stream.push({
-			type: "user",
-			message: {
-				role: "user",
-				content: this.buildContent(message, options?.attachments),
-			},
-			parent_tool_use_id: null,
-		});
-
-		const responseStream = async function* () {
-			for (;;) {
-				if (session.turnId !== myTurn) return;
-
-				const msg = await session.pump.pull();
-				if (msg === null) return;
-
-				if (msg.type === "system" && msg.subtype === "init") {
-					session.sessionId = msg.session_id;
-					sessionId = msg.session_id;
-					self.sessions.set(sessionId, session);
-				}
-
-				const text = isTextDelta(msg);
-				if (text !== null) {
-					yield { type: "text" as const, text };
-				}
-
-				if (msg.type === "result") return;
-			}
-		};
-
-		return {
-			get sessionId() {
-				return sessionId;
-			},
-			stream: responseStream(),
-		};
-	}
+	if (message) content.push({ type: "text", text: message });
+	return content;
 }
+
+export const createClaudeCodeBot: ChatBotFactory = async (config, resume) => {
+	const model = env("CLAUDE_MODEL", "claude-sonnet-4-6");
+	const thinking = env("CLAUDE_THINKING", "disabled");
+	const effort = env("CLAUDE_EFFORT", "high");
+
+	const thinkingConfig =
+		thinking === "disabled"
+			? { type: "disabled" as const }
+			: thinking === "adaptive"
+				? { type: "adaptive" as const }
+				: { type: "enabled" as const, budgetTokens: Number(thinking) };
+
+	const stream = new MessageStream();
+	const q = query({
+		prompt: stream as AsyncIterable<never>,
+		options: {
+			model,
+			thinking: thinkingConfig,
+			effort: effort as "low" | "medium" | "high",
+			includePartialMessages: true,
+			permissionMode: "bypassPermissions",
+			allowDangerouslySkipPermissions: true,
+			mcpServers: config.mcpServers as Record<string, AgentMcpServerConfig>,
+			...(resume && { resume }),
+			...(config.systemPrompt && {
+				systemPrompt: {
+					type: "preset" as const,
+					preset: "claude_code" as const,
+					append: config.systemPrompt,
+				},
+			}),
+		},
+	});
+
+	const pump = new EventPump(q[Symbol.asyncIterator]());
+
+	// init 이벤트를 기다려서 sessionId 확정
+	let sessionId = resume ?? "";
+	for (;;) {
+		const msg = await pump.pull();
+		if (msg === null) throw new Error("SDK session init failed");
+		if (msg.type === "system" && msg.subtype === "init") {
+			sessionId = msg.session_id;
+			break;
+		}
+	}
+
+	let turnId = 0;
+
+	const bot: ChatBot = {
+		get sessionId() {
+			return sessionId;
+		},
+
+		interrupt() {
+			pump.reset();
+			q.interrupt().catch(() => {});
+		},
+
+		chat(message: string, attachments?: ChatAttachment[]): ChatResult {
+			pump.reset();
+			q.interrupt().catch(() => {});
+
+			turnId++;
+			const myTurn = turnId;
+
+			stream.push({
+				type: "user",
+				message: { role: "user", content: buildContent(message, attachments) },
+				parent_tool_use_id: null,
+			});
+
+			const responseStream = async function* () {
+				for (;;) {
+					if (turnId !== myTurn) return;
+					const msg = await pump.pull();
+					if (msg === null) return;
+
+					const text = isTextDelta(msg);
+					if (text !== null) {
+						yield { type: "text" as const, text };
+					}
+					if (msg.type === "result") return;
+				}
+			};
+
+			return { stream: responseStream() };
+		},
+	};
+
+	return bot;
+};
