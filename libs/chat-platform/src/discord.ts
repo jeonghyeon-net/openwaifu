@@ -97,7 +97,7 @@ export class DiscordPlatform extends ChatPlatform {
 		};
 
 		// 200ms 간격으로 sync (tool 호출 등 chunk가 안 올 때도 버퍼 반영)
-		const editTimer = setInterval(() => sync(), 200);
+		const editTimer = setInterval(() => sync(), 300);
 
 		try {
 			for await (const chunk of stream) {
