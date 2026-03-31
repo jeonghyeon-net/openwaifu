@@ -107,7 +107,7 @@ export class DiscordPlatform extends ChatPlatform {
 			for await (const chunk of stream) {
 				buffer += chunk.text;
 
-				if (!msg) {
+				if (!msg && buffer) {
 					msg = await ch.send(buffer);
 					synced = buffer;
 				}
