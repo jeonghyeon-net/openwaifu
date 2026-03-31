@@ -14,12 +14,24 @@ fi
 if ! command -v mise &>/dev/null; then
   echo "Installing mise..."
   brew install mise
-  eval "$(mise activate bash)"
+fi
+
+# ensure mise is activated in shell rc
+SHELL_RC=""
+case "$(basename "$SHELL")" in
+  zsh)  SHELL_RC="$HOME/.zshrc" ;;
+  bash) SHELL_RC="$HOME/.bashrc" ;;
+esac
+if [ -n "$SHELL_RC" ] && ! grep -q 'mise activate' "$SHELL_RC" 2>/dev/null; then
+  echo '' >> "$SHELL_RC"
+  echo 'eval "$(mise activate '"$(basename "$SHELL")"')"' >> "$SHELL_RC"
+  echo "Added mise activate to $SHELL_RC"
 fi
 
 # runtime
 mise trust
 mise install
+eval "$(mise activate bash)"
 
 # dependencies
 bun install
