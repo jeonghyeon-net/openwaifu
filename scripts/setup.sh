@@ -3,7 +3,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
-SKILLS_DIR="$ROOT_DIR/plugins/openwaifu/skills"
+SKILLS_DIR="$ROOT_DIR/skills"
 
 # Codex: symlink skills to ~/.agents/skills/openwaifu
 mkdir -p ~/.agents/skills

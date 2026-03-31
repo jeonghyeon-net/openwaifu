@@ -13,7 +13,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 
 const root = findWorkspaceRoot();
-const skillsDir = join(root, "plugins", "openwaifu", "skills");
+const skillsDir = join(root, "skills");
 
 function skillPath(name: string): string {
 	return join(skillsDir, name, "SKILL.md");

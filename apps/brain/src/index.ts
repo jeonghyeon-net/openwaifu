@@ -16,7 +16,7 @@ import { formatStats, getSystemStats } from "@lib/system-monitor";
 // 설정
 const dataDir = findWorkspaceRoot();
 const botType = env("BOT_TYPE", "claude-code");
-const pluginDirs = [join(dataDir, "plugins", "openwaifu")];
+const pluginDirs = [dataDir];
 const botImpl: BotType = botType === "codex" ? CodexBot : ClaudeCodeBot;
 const mcpServers = discoverMcpServers();
 const persona = readFileSync(join(dataDir, "PERSONA.md"), "utf-8");
