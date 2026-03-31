@@ -66,7 +66,7 @@ server.registerTool(
 	},
 	async ({ name, description, content }) => {
 		try {
-			const dir = join(skillsDir, name);
+			const dir = join(skillsDir, safeName(name));
 			if (existsSync(dir)) {
 				return {
 					content: [{ type: "text", text: `Skill "${name}" already exists` }],

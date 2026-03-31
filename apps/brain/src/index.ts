@@ -115,6 +115,7 @@ platform.onMessage(async (msg) => {
 		);
 	} catch (err) {
 		console.error(`sendStream error [${msg.channelId}]:`, err);
+		bot.destroy();
 		bots.delete(msg.channelId);
 		return;
 	}
@@ -143,6 +144,8 @@ platform.setStatus(formatStats(getSystemStats()));
 const shutdown = async () => {
 	console.log("Shutting down...");
 	clearInterval(statusTimer);
+	schedulerBot.destroy();
+	for (const bot of bots.values()) bot.destroy();
 	scheduler.stop();
 	sessions.close();
 	await platform.stop();
