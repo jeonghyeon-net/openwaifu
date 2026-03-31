@@ -97,7 +97,10 @@ export class DiscordPlatform extends ChatPlatform {
 		await ch.sendTyping();
 
 		const flush = async () => {
-			if (!s.buffer.trim()) return;
+			if (!s.buffer.trim()) {
+				if (!s.msg) ch.sendTyping();
+				return;
+			}
 			if (s.msg) {
 				await s.msg.edit(s.buffer).catch(() => {});
 			} else {
