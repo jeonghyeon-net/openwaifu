@@ -13,23 +13,28 @@ const server = new McpServer({
 	version: "0.0.1",
 });
 
-server.tool(
+server.registerTool(
 	"add_schedule",
-	"Add a new cron schedule. The prompt is sent to the LLM at the scheduled time. The LLM can then use tools (e.g. discord send_message) to act on it.",
 	{
-		cronExpression: z
-			.string()
-			.describe("Cron expression (minute hour dayOfMonth month dayOfWeek)"),
-		prompt: z
-			.string()
-			.describe(
-				"Prompt to send to the LLM when triggered. Include instructions like which channel to send to.",
-			),
-		createdBy: z.string().describe("User ID who created this schedule"),
-		once: z
-			.boolean()
-			.optional()
-			.describe("If true, the schedule runs once and is automatically removed"),
+		description:
+			"Add a new cron schedule. The prompt is sent to the LLM at the scheduled time. The LLM can then use tools (e.g. discord send_message) to act on it.",
+		inputSchema: {
+			cronExpression: z
+				.string()
+				.describe("Cron expression (minute hour dayOfMonth month dayOfWeek)"),
+			prompt: z
+				.string()
+				.describe(
+					"Prompt to send to the LLM when triggered. Include instructions like which channel to send to.",
+				),
+			createdBy: z.string().describe("User ID who created this schedule"),
+			once: z
+				.boolean()
+				.optional()
+				.describe(
+					"If true, the schedule runs once and is automatically removed",
+				),
+		},
 	},
 	async ({ cronExpression, prompt, createdBy, once }) => {
 		try {
@@ -56,10 +61,9 @@ server.tool(
 	},
 );
 
-server.tool(
+server.registerTool(
 	"list_schedules",
-	"List all registered cron schedules",
-	{},
+	{ description: "List all registered cron schedules" },
 	async () => {
 		const schedules = scheduler.list();
 		return {
@@ -68,10 +72,12 @@ server.tool(
 	},
 );
 
-server.tool(
+server.registerTool(
 	"remove_schedule",
-	"Remove a cron schedule by ID",
-	{ id: z.string().describe("Schedule ID to remove") },
+	{
+		description: "Remove a cron schedule by ID",
+		inputSchema: { id: z.string().describe("Schedule ID to remove") },
+	},
 	async ({ id }) => {
 		const removed = scheduler.remove(id);
 		return {
@@ -85,16 +91,20 @@ server.tool(
 	},
 );
 
-server.tool(
+server.registerTool(
 	"update_schedule",
-	"Update an existing schedule's cron expression or prompt",
 	{
-		id: z.string().describe("Schedule ID to update"),
-		cronExpression: z
-			.string()
-			.optional()
-			.describe("New cron expression (minute hour dayOfMonth month dayOfWeek)"),
-		prompt: z.string().optional().describe("New prompt"),
+		description: "Update an existing schedule's cron expression or prompt",
+		inputSchema: {
+			id: z.string().describe("Schedule ID to update"),
+			cronExpression: z
+				.string()
+				.optional()
+				.describe(
+					"New cron expression (minute hour dayOfMonth month dayOfWeek)",
+				),
+			prompt: z.string().optional().describe("New prompt"),
+		},
 	},
 	async ({ id, cronExpression, prompt }) => {
 		try {
@@ -121,10 +131,12 @@ server.tool(
 	},
 );
 
-server.tool(
+server.registerTool(
 	"enable_schedule",
-	"Enable a disabled cron schedule",
-	{ id: z.string().describe("Schedule ID to enable") },
+	{
+		description: "Enable a disabled cron schedule",
+		inputSchema: { id: z.string().describe("Schedule ID to enable") },
+	},
 	async ({ id }) => {
 		const found = scheduler.enable(id);
 		return {
@@ -138,10 +150,12 @@ server.tool(
 	},
 );
 
-server.tool(
+server.registerTool(
 	"disable_schedule",
-	"Disable a cron schedule without removing it",
-	{ id: z.string().describe("Schedule ID to disable") },
+	{
+		description: "Disable a cron schedule without removing it",
+		inputSchema: { id: z.string().describe("Schedule ID to disable") },
+	},
 	async ({ id }) => {
 		const found = scheduler.disable(id);
 		return {

@@ -27,10 +27,12 @@ function getTextChannel(channelId: string): Promise<TextChannel> {
 	});
 }
 
-server.tool(
+server.registerTool(
 	"send_message",
-	"Send a message to a Discord channel",
-	{ channelId: z.string(), content: z.string() },
+	{
+		description: "Send a message to a Discord channel",
+		inputSchema: { channelId: z.string(), content: z.string() },
+	},
 	async ({ channelId, content }) => {
 		try {
 			const ch = await getTextChannel(channelId);
@@ -43,10 +45,16 @@ server.tool(
 	},
 );
 
-server.tool(
+server.registerTool(
 	"edit_message",
-	"Edit a message in a Discord channel",
-	{ channelId: z.string(), messageId: z.string(), content: z.string() },
+	{
+		description: "Edit a message in a Discord channel",
+		inputSchema: {
+			channelId: z.string(),
+			messageId: z.string(),
+			content: z.string(),
+		},
+	},
 	async ({ channelId, messageId, content }) => {
 		try {
 			const ch = await getTextChannel(channelId);
@@ -62,10 +70,12 @@ server.tool(
 	},
 );
 
-server.tool(
+server.registerTool(
 	"delete_message",
-	"Delete a message from a Discord channel",
-	{ channelId: z.string(), messageId: z.string() },
+	{
+		description: "Delete a message from a Discord channel",
+		inputSchema: { channelId: z.string(), messageId: z.string() },
+	},
 	async ({ channelId, messageId }) => {
 		try {
 			const ch = await getTextChannel(channelId);
@@ -81,10 +91,12 @@ server.tool(
 	},
 );
 
-server.tool(
+server.registerTool(
 	"fetch_messages",
-	"Fetch recent messages from a Discord channel",
-	{ channelId: z.string(), limit: z.number().optional() },
+	{
+		description: "Fetch recent messages from a Discord channel",
+		inputSchema: { channelId: z.string(), limit: z.number().optional() },
+	},
 	async ({ channelId, limit }) => {
 		try {
 			const ch = await getTextChannel(channelId);
@@ -103,10 +115,16 @@ server.tool(
 	},
 );
 
-server.tool(
+server.registerTool(
 	"search_messages",
-	"Search messages in a channel by content",
-	{ channelId: z.string(), query: z.string(), limit: z.number().optional() },
+	{
+		description: "Search messages in a channel by content",
+		inputSchema: {
+			channelId: z.string(),
+			query: z.string(),
+			limit: z.number().optional(),
+		},
+	},
 	async ({ channelId, query, limit }) => {
 		try {
 			const ch = await getTextChannel(channelId);
@@ -128,10 +146,12 @@ server.tool(
 	},
 );
 
-server.tool(
+server.registerTool(
 	"list_channels",
-	"List all channels in a guild",
-	{ guildId: z.string() },
+	{
+		description: "List all channels in a guild",
+		inputSchema: { guildId: z.string() },
+	},
 	async ({ guildId }) => {
 		try {
 			const guild = await client.guilds.fetch(guildId);
@@ -149,10 +169,16 @@ server.tool(
 	},
 );
 
-server.tool(
+server.registerTool(
 	"create_channel",
-	"Create a new text channel in a guild",
-	{ guildId: z.string(), name: z.string(), topic: z.string().optional() },
+	{
+		description: "Create a new text channel in a guild",
+		inputSchema: {
+			guildId: z.string(),
+			name: z.string(),
+			topic: z.string().optional(),
+		},
+	},
 	async ({ guildId, name, topic }) => {
 		try {
 			const guild = await client.guilds.fetch(guildId);
@@ -175,10 +201,12 @@ server.tool(
 	},
 );
 
-server.tool(
+server.registerTool(
 	"delete_channel",
-	"Delete a Discord channel",
-	{ channelId: z.string() },
+	{
+		description: "Delete a Discord channel",
+		inputSchema: { channelId: z.string() },
+	},
 	async ({ channelId }) => {
 		try {
 			const ch = await client.channels.fetch(channelId);
@@ -194,10 +222,16 @@ server.tool(
 	},
 );
 
-server.tool(
+server.registerTool(
 	"create_thread",
-	"Create a thread from a message",
-	{ channelId: z.string(), messageId: z.string(), name: z.string() },
+	{
+		description: "Create a thread from a message",
+		inputSchema: {
+			channelId: z.string(),
+			messageId: z.string(),
+			name: z.string(),
+		},
+	},
 	async ({ channelId, messageId, name }) => {
 		try {
 			const ch = await getTextChannel(channelId);
@@ -218,10 +252,16 @@ server.tool(
 	},
 );
 
-server.tool(
+server.registerTool(
 	"react",
-	"Add a reaction to a message",
-	{ channelId: z.string(), messageId: z.string(), emoji: z.string() },
+	{
+		description: "Add a reaction to a message",
+		inputSchema: {
+			channelId: z.string(),
+			messageId: z.string(),
+			emoji: z.string(),
+		},
+	},
 	async ({ channelId, messageId, emoji }) => {
 		try {
 			const ch = await getTextChannel(channelId);
@@ -237,10 +277,12 @@ server.tool(
 	},
 );
 
-server.tool(
+server.registerTool(
 	"pin_message",
-	"Pin a message in a channel",
-	{ channelId: z.string(), messageId: z.string() },
+	{
+		description: "Pin a message in a channel",
+		inputSchema: { channelId: z.string(), messageId: z.string() },
+	},
 	async ({ channelId, messageId }) => {
 		try {
 			const ch = await getTextChannel(channelId);
@@ -256,10 +298,12 @@ server.tool(
 	},
 );
 
-server.tool(
+server.registerTool(
 	"unpin_message",
-	"Unpin a message in a channel",
-	{ channelId: z.string(), messageId: z.string() },
+	{
+		description: "Unpin a message in a channel",
+		inputSchema: { channelId: z.string(), messageId: z.string() },
+	},
 	async ({ channelId, messageId }) => {
 		try {
 			const ch = await getTextChannel(channelId);
@@ -275,21 +319,27 @@ server.tool(
 	},
 );
 
-server.tool("list_guilds", "List all guilds the bot is in", {}, async () => {
-	try {
-		const guilds = await client.guilds.fetch();
-		const result = guilds.map((g) => ({ id: g.id, name: g.name }));
-		return { content: [{ type: "text", text: JSON.stringify(result) }] };
-	} catch (e: unknown) {
-		const message = e instanceof Error ? e.message : String(e);
-		return { content: [{ type: "text", text: message }], isError: true };
-	}
-});
+server.registerTool(
+	"list_guilds",
+	{ description: "List all guilds the bot is in" },
+	async () => {
+		try {
+			const guilds = await client.guilds.fetch();
+			const result = guilds.map((g) => ({ id: g.id, name: g.name }));
+			return { content: [{ type: "text", text: JSON.stringify(result) }] };
+		} catch (e: unknown) {
+			const message = e instanceof Error ? e.message : String(e);
+			return { content: [{ type: "text", text: message }], isError: true };
+		}
+	},
+);
 
-server.tool(
+server.registerTool(
 	"get_guild_members",
-	"List members in a guild",
-	{ guildId: z.string(), limit: z.number().optional() },
+	{
+		description: "List members in a guild",
+		inputSchema: { guildId: z.string(), limit: z.number().optional() },
+	},
 	async ({ guildId, limit }) => {
 		try {
 			const guild = await client.guilds.fetch(guildId);
@@ -308,10 +358,12 @@ server.tool(
 	},
 );
 
-server.tool(
+server.registerTool(
 	"set_channel_topic",
-	"Set the topic of a text channel",
-	{ channelId: z.string(), topic: z.string() },
+	{
+		description: "Set the topic of a text channel",
+		inputSchema: { channelId: z.string(), topic: z.string() },
+	},
 	async ({ channelId, topic }) => {
 		try {
 			const ch = await client.channels.fetch(channelId);
