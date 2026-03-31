@@ -99,11 +99,7 @@ export class DiscordPlatform extends ChatPlatform {
 
 		const flush = async () => {
 			if (state.msg && state.buffer) {
-				try {
-					await state.msg.edit(state.buffer);
-				} catch {
-					await textChannel.send(state.buffer);
-				}
+				await state.msg.edit(state.buffer).catch(() => {});
 			} else if (!state.msg && state.buffer) {
 				await textChannel.send(state.buffer);
 			}
