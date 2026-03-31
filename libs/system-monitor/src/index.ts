@@ -1,8 +1,14 @@
 import { execSync } from "node:child_process";
 import { cpus, freemem, totalmem } from "node:os";
 
-let prevIdle = 0;
-let prevTotal = 0;
+// 초기값을 미리 읽어서 첫 호출부터 유효한 CPU% 제공
+const initCores = cpus();
+let prevIdle = initCores.reduce((s, c) => s + c.times.idle, 0);
+let prevTotal = initCores.reduce(
+	(s, c) =>
+		s + c.times.user + c.times.nice + c.times.sys + c.times.irq + c.times.idle,
+	0,
+);
 
 export function getSystemStats(): {
 	cpu: number;
