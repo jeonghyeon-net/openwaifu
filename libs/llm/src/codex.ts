@@ -9,14 +9,12 @@ import {
 	type Thread,
 	type UserInput,
 } from "@openai/codex-sdk";
-import { injectable } from "tsyringe";
-import {
-	type ChatAttachment,
+import type {
+	ChatAttachment,
 	ChatBot,
-	type ChatOptions,
-	type ChatResult,
-	type McpServerConfig,
-	type McpServerFactory,
+	ChatBotFactory,
+	ChatResult,
+	McpServerConfig,
 } from "./chatbot.js";
 
 type CodexConfigValue =
@@ -53,44 +51,67 @@ function buildCodex(
 	return new Codex({ config });
 }
 
-@injectable()
-export class CodexBot extends ChatBot {
-	readonly name = "codex";
-	private codex: Codex | null = null;
-	private mcpFactory: McpServerFactory = () => ({});
-	private systemPrompt = "";
-	private threads = new Map<string, Thread>();
-	private locks = new Map<string, Promise<void>>();
-
-	setSystemPrompt(prompt: string) {
-		this.systemPrompt = prompt;
-		this.codex = null;
+async function buildInput(
+	message: string,
+	attachments?: ChatAttachment[],
+): Promise<{ input: Input; cleanup: () => void }> {
+	if (!attachments || attachments.length === 0) {
+		return { input: message, cleanup: () => {} };
 	}
 
-	setMcpServers(factory: McpServerFactory) {
-		this.mcpFactory = factory;
-		this.codex = null;
-	}
+	const parts: UserInput[] = [];
+	const tempFiles: string[] = [];
 
-	private getCodex(): Codex {
-		if (!this.codex) {
-			this.codex = buildCodex(this.mcpFactory(), this.systemPrompt);
-		}
-		return this.codex;
-	}
-
-	private getThread(sessionId?: string): Thread {
-		if (sessionId) {
-			let thread = this.threads.get(sessionId);
-			if (!thread) {
-				thread = this.getCodex().resumeThread(sessionId);
-				this.threads.set(sessionId, thread);
+	for (const att of attachments) {
+		if (att.contentType.startsWith("image/")) {
+			try {
+				const res = await fetch(att.url);
+				const buf = Buffer.from(await res.arrayBuffer());
+				const ext = att.filename.split(".").pop() ?? "jpg";
+				const path = join(tmpdir(), `codex-img-${randomUUID()}.${ext}`);
+				writeFileSync(path, buf);
+				tempFiles.push(path);
+				parts.push({ type: "local_image", path });
+			} catch {
+				parts.push({
+					type: "text",
+					text: `[Image unavailable: ${att.filename}]`,
+				});
 			}
-			return thread;
+		} else {
+			parts.push({
+				type: "text",
+				text: `[File: ${att.filename} (${att.url})]`,
+			});
 		}
-		const model = env("CODEX_MODEL", "");
-		const effort = env("CODEX_EFFORT", "high");
-		return this.getCodex().startThread({
+	}
+
+	if (message) parts.push({ type: "text", text: message });
+
+	return {
+		input: parts,
+		cleanup: () => {
+			for (const f of tempFiles) {
+				try {
+					unlinkSync(f);
+				} catch {
+					/* already deleted */
+				}
+			}
+		},
+	};
+}
+
+export const createCodexBot: ChatBotFactory = async (config, resume) => {
+	const codex = buildCodex(config.mcpServers, config.systemPrompt);
+	const model = env("CODEX_MODEL", "");
+	const effort = env("CODEX_EFFORT", "high");
+
+	let thread: Thread;
+	if (resume) {
+		thread = codex.resumeThread(resume);
+	} else {
+		thread = codex.startThread({
 			approvalPolicy: "never",
 			...(model && { model }),
 			modelReasoningEffort: effort as
@@ -102,118 +123,59 @@ export class CodexBot extends ChatBot {
 		});
 	}
 
-	private static async buildInput(
-		message: string,
-		attachments?: ChatAttachment[],
-	): Promise<{ input: Input; cleanup: () => void }> {
-		if (!attachments || attachments.length === 0) {
-			return { input: message, cleanup: () => {} };
-		}
+	let sessionId = resume ?? "";
+	let lock: Promise<void> | null = null;
 
-		const parts: UserInput[] = [];
-		const tempFiles: string[] = [];
+	const bot: ChatBot = {
+		get sessionId() {
+			return sessionId;
+		},
 
-		for (const att of attachments) {
-			if (att.contentType.startsWith("image/")) {
-				try {
-					const res = await fetch(att.url);
-					const buf = Buffer.from(await res.arrayBuffer());
-					const ext = att.filename.split(".").pop() ?? "jpg";
-					const path = join(tmpdir(), `codex-img-${randomUUID()}.${ext}`);
-					writeFileSync(path, buf);
-					tempFiles.push(path);
-					parts.push({ type: "local_image", path });
-				} catch {
-					parts.push({
-						type: "text",
-						text: `[Image unavailable: ${att.filename}]`,
-					});
-				}
-			} else {
-				parts.push({
-					type: "text",
-					text: `[File: ${att.filename} (${att.url})]`,
+		interrupt() {
+			// Codex는 one-shot 응답 — interrupt 불가, no-op
+		},
+
+		chat(message: string, attachments?: ChatAttachment[]): ChatResult {
+			const responseStream = async function* () {
+				if (lock) await lock.catch(() => {});
+
+				let resolve: (() => void) | undefined;
+				lock = new Promise<void>((r) => {
+					resolve = r;
 				});
-			}
-		}
 
-		if (message) {
-			parts.push({ type: "text", text: message });
-		}
-
-		const cleanup = () => {
-			for (const f of tempFiles) {
+				const { input, cleanup } = await buildInput(message, attachments);
 				try {
-					unlinkSync(f);
-				} catch {
-					// already deleted
-				}
-			}
-		};
+					const { events } = await thread.runStreamed(input);
+					const seen = new Map<string, number>();
 
-		return { input: parts, cleanup };
-	}
-
-	chat(message: string, options?: ChatOptions): ChatResult {
-		let sessionId = options?.sessionId ?? "";
-		const lockKey = sessionId || "new";
-
-		const self = this;
-
-		const stream = async function* () {
-			// 이전 요청이 끝날 때까지 대기
-			const prev = self.locks.get(lockKey);
-			if (prev) await prev.catch(() => {});
-
-			const thread = self.getThread(sessionId || undefined);
-			let resolve: (() => void) | undefined;
-			const lock = new Promise<void>((r) => {
-				resolve = r;
-			});
-			self.locks.set(lockKey, lock);
-
-			const { input, cleanup } = await CodexBot.buildInput(
-				message,
-				options?.attachments,
-			);
-
-			try {
-				const { events } = await thread.runStreamed(input);
-				const seen = new Map<string, number>();
-
-				for await (const event of events) {
-					if (event.type === "thread.started") {
-						sessionId = event.thread_id;
-						self.threads.set(sessionId, thread);
-						self.locks.delete(lockKey);
-						self.locks.set(sessionId, lock);
-					}
-
-					if (
-						(event.type === "item.updated" ||
-							event.type === "item.completed") &&
-						event.item.type === "agent_message"
-					) {
-						const prev = seen.get(event.item.id) ?? 0;
-						const text = event.item.text;
-						if (text.length > prev) {
-							yield { type: "text" as const, text: text.slice(prev) };
-							seen.set(event.item.id, text.length);
+					for await (const event of events) {
+						if (event.type === "thread.started") {
+							sessionId = event.thread_id;
+						}
+						if (
+							(event.type === "item.updated" ||
+								event.type === "item.completed") &&
+							event.item.type === "agent_message"
+						) {
+							const prev = seen.get(event.item.id) ?? 0;
+							const text = event.item.text;
+							if (text.length > prev) {
+								yield { type: "text" as const, text: text.slice(prev) };
+								seen.set(event.item.id, text.length);
+							}
 						}
 					}
+				} finally {
+					cleanup();
+					resolve?.();
+					lock = null;
 				}
-			} finally {
-				cleanup();
-				resolve?.();
-				self.locks.delete(sessionId || lockKey);
-			}
-		};
+			};
 
-		return {
-			get sessionId() {
-				return sessionId;
-			},
-			stream: stream(),
-		};
-	}
-}
+			return { stream: responseStream() };
+		},
+	};
+
+	return bot;
+};
