@@ -31,7 +31,7 @@ const client = new Client(
 await client.connect(
 	new StdioClientTransport({
 		command: "bun",
-		args: ["run", cliPath, "--headless"],
+		args: ["run", cliPath, "--browser", "chrome", "--headless"],
 	}),
 );
 
@@ -60,5 +60,10 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
 		arguments: req.params.arguments,
 	});
 });
+
+// 종료 시 서브프로세스 정리
+server.onclose = async () => {
+	await client.close();
+};
 
 await server.connect(new StdioServerTransport());
