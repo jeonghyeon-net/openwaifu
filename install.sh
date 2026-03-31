@@ -9,17 +9,23 @@ case "$(basename "$SHELL")" in
   zsh)  SHELL_RC="$HOME/.zshrc" ;;
   bash) SHELL_RC="$HOME/.bashrc" ;;
 esac
+if [ -z "$SHELL_RC" ]; then
+  echo "WARNING: Unsupported shell '$(basename "$SHELL")'. You may need to manually configure brew shellenv and mise activate."
+fi
 
 # brew
+BREW_PREFIX="/opt/homebrew"
+[ -x "/usr/local/bin/brew" ] && BREW_PREFIX="/usr/local"
+
 if ! command -v brew &>/dev/null; then
   echo "Installing Homebrew..."
   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-  eval "$(/opt/homebrew/bin/brew shellenv)"
+  eval "$("$BREW_PREFIX/bin/brew" shellenv)"
 fi
 
 if [ -n "$SHELL_RC" ] && ! grep -q 'brew shellenv' "$SHELL_RC" 2>/dev/null; then
   echo '' >> "$SHELL_RC"
-  echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> "$SHELL_RC"
+  echo 'eval "$(/opt/homebrew/bin/brew shellenv 2>/dev/null || /usr/local/bin/brew shellenv)"' >> "$SHELL_RC"
   echo "Added brew shellenv to $SHELL_RC"
 fi
 
