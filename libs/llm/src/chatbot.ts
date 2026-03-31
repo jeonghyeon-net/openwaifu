@@ -21,7 +21,10 @@ export type BotType = new (config: BotConfig) => Bot;
 
 export abstract class Bot {
 	abstract readonly sessionId: string;
-	onSessionReset?: (newSessionId: string) => void;
+	/** 컨텍스트 사용률 (0~100). 미지원 시 0. */
+	async contextUsage(): Promise<number> {
+		return 0;
+	}
 	/** 메시지 전송. 이전 응답이 진행 중이면 자동 interrupt. */
 	abstract send(
 		message: string,

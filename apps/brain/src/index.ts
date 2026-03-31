@@ -50,22 +50,30 @@ scheduler.start(async (schedule) => {
 // 채널별 봇
 const bots = new Map<string, Bot>();
 
-function getBot(channelId: string): Bot {
-	const existing = bots.get(channelId);
-	if (existing) return existing;
-
+function createBot(channelId: string): Bot {
 	const bot = Bot.create(botImpl, {
 		systemPrompt: chatPrompt,
 		mcpServers,
 		resume: sessions.get(channelId),
 		pluginDirs,
 	});
-	bot.onSessionReset = (newId) => {
-		if (newId) sessions.set(channelId, newId);
-		else sessions.delete(channelId);
-	};
 	bots.set(channelId, bot);
 	return bot;
+}
+
+async function getBot(channelId: string): Promise<Bot> {
+	const existing = bots.get(channelId);
+	if (!existing) return createBot(channelId);
+
+	const usage = await existing.contextUsage();
+	if (usage >= 80) {
+		console.log(`Context ${usage}% — resetting [${channelId}]`);
+		bots.delete(channelId);
+		sessions.delete(channelId);
+		return createBot(channelId);
+	}
+
+	return existing;
 }
 
 function buildMessage(msg: IncomingMessage, history: HistoryMessage[]): string {
@@ -86,7 +94,7 @@ function buildMessage(msg: IncomingMessage, history: HistoryMessage[]): string {
 }
 
 platform.onMessage(async (msg) => {
-	const bot = getBot(msg.channelId);
+	const bot = await getBot(msg.channelId);
 	const history = await platform.fetchHistory(msg.channelId, 30);
 
 	try {

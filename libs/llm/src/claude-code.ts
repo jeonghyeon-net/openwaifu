@@ -160,19 +160,10 @@ export class ClaudeCodeBot extends Bot {
 	private sdkStream: MessageStream;
 	private q: Query;
 	private pump: EventPump;
-	private config: BotConfig;
 
 	constructor(config: BotConfig) {
 		super();
-		this.config = config;
-		const { stream, q, pump } = ClaudeCodeBot.createQuery(config);
-		this.sdkStream = stream;
-		this.q = q;
-		this.pump = pump;
-		this._sessionId = config.resume ?? "";
-	}
 
-	private static createQuery(config: BotConfig) {
 		const model = env("CLAUDE_MODEL", "claude-sonnet-4-6");
 		const thinking = env("CLAUDE_THINKING", "disabled");
 		const effort = env("CLAUDE_EFFORT", "high");
@@ -184,9 +175,9 @@ export class ClaudeCodeBot extends Bot {
 					? { type: "adaptive" as const }
 					: { type: "enabled" as const, budgetTokens: Number(thinking) };
 
-		const stream = new MessageStream();
-		const q = query({
-			prompt: stream as AsyncIterable<never>,
+		this.sdkStream = new MessageStream();
+		this.q = query({
+			prompt: this.sdkStream as AsyncIterable<never>,
 			options: {
 				model,
 				thinking: thinkingConfig,
@@ -210,41 +201,31 @@ export class ClaudeCodeBot extends Bot {
 			},
 		});
 
-		const pump = new EventPump(q[Symbol.asyncIterator]());
+		this.pump = new EventPump(this.q[Symbol.asyncIterator]());
+		this._sessionId = config.resume ?? "";
 
 		// plugin 내 skills 디렉토리 변경 감지 → reloadPlugins
 		for (const dir of config.pluginDirs) {
 			const skillsDir = join(dir, "skills");
 			if (existsSync(skillsDir)) {
 				watch(skillsDir, { recursive: true }, () => {
-					q.reloadPlugins().catch(() => {});
+					this.q.reloadPlugins().catch(() => {});
 				});
 			}
 		}
-
-		return { stream, q, pump };
 	}
 
 	get sessionId() {
 		return this._sessionId;
 	}
 
-	private resetSession() {
-		this.sdkStream.end();
-		this.q.close();
-
-		const fresh = ClaudeCodeBot.createQuery({
-			...this.config,
-			resume: undefined,
-		});
-		this.sdkStream = fresh.stream;
-		this.q = fresh.q;
-		this.pump = fresh.pump;
-		this._sessionId = "";
-		this.turnId = 0;
-
-		console.log("Session reset (context >= 80%)");
-		this.onSessionReset?.("");
+	override async contextUsage(): Promise<number> {
+		try {
+			const usage = await this.q.getContextUsage();
+			return usage.percentage;
+		} catch {
+			return 0;
+		}
 	}
 
 	send(
@@ -298,16 +279,7 @@ export class ClaudeCodeBot extends Bot {
 					}
 					yield { type: "text" as const, text };
 				}
-				if (msg.type === "result") {
-					// 컨텍스트 80% 이상이면 세션 리셋
-					self.q
-						.getContextUsage()
-						.then((usage) => {
-							if (usage.percentage >= 80) self.resetSession();
-						})
-						.catch(() => {});
-					return;
-				}
+				if (msg.type === "result") return;
 			}
 		}
 
