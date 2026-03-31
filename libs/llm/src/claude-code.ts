@@ -262,7 +262,7 @@ export class ClaudeCodeBot extends Bot {
 				}
 
 				const text = isTextDelta(msg);
-				if (text !== null) {
+				if (text) {
 					// tool 호출 후 첫 텍스트 → 줄바꿈으로 구분
 					if (hadTool) {
 						hadTool = false;

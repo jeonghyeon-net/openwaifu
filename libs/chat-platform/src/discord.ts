@@ -114,11 +114,15 @@ export class DiscordPlatform extends ChatPlatform {
 
 				// 2000자 초과 → 현재 메시지 확정, 나머지는 새 메시지로
 				if (buffer.length > 2000 && msg) {
-					await sync();
 					await msg.edit(buffer.slice(0, 2000)).catch(() => {});
 					buffer = buffer.slice(2000);
-					msg = await ch.send(buffer);
-					synced = buffer;
+					synced = "";
+					if (buffer) {
+						msg = await ch.send(buffer);
+						synced = buffer;
+					} else {
+						msg = null;
+					}
 				}
 			}
 
