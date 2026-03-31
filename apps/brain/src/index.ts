@@ -4,6 +4,7 @@ import {
 	DiscordPlatform,
 	type HistoryMessage,
 	type IncomingMessage,
+	TelegramPlatform,
 } from "@lib/chat-platform";
 import { env, findWorkspaceRoot } from "@lib/env";
 import { Bot, type BotType, ClaudeCodeBot, CodexBot } from "@lib/llm";
@@ -11,14 +12,10 @@ import { discoverMcpServers } from "@lib/mcp-discovery";
 import { Scheduler } from "@lib/scheduler";
 import { SessionStore } from "@lib/session-store";
 
+// 설정
 const dataDir = findWorkspaceRoot();
 const botType = env("BOT_TYPE", "claude-code");
-const platform = new DiscordPlatform();
-const sessions = new SessionStore(join(dataDir, "sessions.db"), botType);
-const scheduler = new Scheduler(join(dataDir, "scheduler.db"));
-
-await platform.start();
-
+const botImpl: BotType = botType === "codex" ? CodexBot : ClaudeCodeBot;
 const mcpServers = discoverMcpServers();
 const persona = readFileSync(join(dataDir, "PERSONA.md"), "utf-8");
 const chatPrompt = `${persona}
@@ -27,13 +24,15 @@ const chatPrompt = `${persona}
 - 너의 텍스트 응답은 자동으로 현재 대화 채널에 전송된다. 절대 send_message 도구로 현재 채널에 응답하지 마라.
 - <recent_chat_history>는 참고용 맥락이다. 이미 처리된 대화이므로 여기에 응답하지 마라. 새 메시지에만 응답한다.`;
 
-const botImpl: BotType = botType === "codex" ? CodexBot : ClaudeCodeBot;
+// 인프라
+const platform =
+	env("PLATFORM", "discord") === "telegram"
+		? new TelegramPlatform()
+		: new DiscordPlatform();
+const sessions = new SessionStore(join(dataDir, "sessions.db"), botType);
+const scheduler = new Scheduler(join(dataDir, "scheduler.db"));
 
-console.log(`Bot: ${botType}`);
-console.log(`MCP: ${Object.keys(mcpServers).join(", ") || "none"}`);
-console.log(`Sessions restored: ${sessions.all().length}`);
-
-// 스케줄러: 전용 봇 (페르소나/채팅 규칙 없음)
+// 스케줄러
 const schedulerBot = Bot.create(botImpl, {
 	systemPrompt: persona,
 	mcpServers,
@@ -44,7 +43,6 @@ scheduler.start(async (schedule) => {
 		// 도구로 직접 행동
 	}
 });
-console.log(`Scheduler started with ${scheduler.list().length} schedule(s).`);
 
 // 채널별 봇
 const bots = new Map<string, Bot>();
@@ -96,6 +94,16 @@ platform.onMessage(async (msg) => {
 	}
 });
 
+// 플랫폼 시작 (핸들러 등록 후)
+await platform.start();
+
+console.log(`Bot: ${botType}`);
+console.log(`MCP: ${Object.keys(mcpServers).join(", ") || "none"}`);
+console.log(`Sessions: ${sessions.all().length}`);
+console.log(`Schedules: ${scheduler.list().length}`);
+console.log("Brain started.");
+
+// 종료
 const shutdown = async () => {
 	console.log("Shutting down...");
 	scheduler.stop();
@@ -110,5 +118,3 @@ process.on("SIGINT", () => {
 process.on("SIGTERM", () => {
 	void shutdown();
 });
-
-console.log("Brain started.");
