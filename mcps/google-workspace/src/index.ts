@@ -4,7 +4,9 @@ import { z } from "zod";
 
 const server = new McpServer({
 	name: "google-workspace",
-	version: "0.0.2",
+	version: "0.0.3",
+	description:
+		"Pre-authenticated Google Workspace tools. No OAuth setup or API keys needed — just call the tools directly.",
 });
 
 async function runGws(args: string[]): Promise<string> {
