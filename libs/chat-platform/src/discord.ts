@@ -96,7 +96,7 @@ export class DiscordPlatform extends ChatPlatform {
 			await msg.edit(buffer).catch(() => {});
 		};
 
-		const editTimer = setInterval(() => sync(), 300);
+		const editTimer = setInterval(() => sync(), 500);
 
 		try {
 			for await (const chunk of stream) {
