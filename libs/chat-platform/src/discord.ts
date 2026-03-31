@@ -93,21 +93,39 @@ export class DiscordPlatform extends ChatPlatform {
 		}, 5000);
 		await ch.sendTyping();
 
+		let dirty = false;
+		let pendingFlush: ReturnType<typeof setTimeout> | null = null;
+
 		const flush = async () => {
-			if (!msg || !buffer) return;
+			if (pendingFlush) {
+				clearTimeout(pendingFlush);
+				pendingFlush = null;
+			}
+			if (!msg || !dirty) return;
+			dirty = false;
 			await msg.edit(buffer).catch(() => {});
 			nextEdit = Date.now() + 200;
+		};
+
+		const scheduleFlush = () => {
+			if (pendingFlush) return;
+			pendingFlush = setTimeout(() => {
+				pendingFlush = null;
+				flush();
+			}, 200);
 		};
 
 		try {
 			for await (const chunk of stream) {
 				buffer += chunk.text;
+				dirty = true;
 
 				// 2000자 초과 → 현재 메시지 확정, 나머지는 새 메시지로
 				if (buffer.length > 1800 && msg) {
 					await msg.edit(buffer.slice(0, 2000));
 					msg = null;
 					buffer = buffer.slice(2000);
+					dirty = buffer.length > 0;
 				}
 
 				// 첫 메시지 또는 overflow 후 새 메시지
@@ -115,15 +133,21 @@ export class DiscordPlatform extends ChatPlatform {
 					clearInterval(typing);
 					msg = await ch.send(buffer);
 					nextEdit = Date.now() + 200;
+					dirty = false;
 					continue;
 				}
 
-				// 200ms throttle — edit 완료 후 200ms 경과했을 때만
-				if (Date.now() >= nextEdit) await flush();
+				// 200ms throttle — 즉시 또는 타이머로 예약
+				if (Date.now() >= nextEdit) {
+					await flush();
+				} else {
+					scheduleFlush();
+				}
 			}
 
 			await flush();
 		} finally {
+			if (pendingFlush) clearTimeout(pendingFlush);
 			clearInterval(typing);
 		}
 	}
