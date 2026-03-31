@@ -49,6 +49,7 @@ scheduler.start(async (schedule) => {
 
 // 채널별 봇
 const bots = new Map<string, Bot>();
+const pending = new Map<string, Promise<Bot>>();
 
 function createBot(channelId: string): Bot {
 	const bot = Bot.create(botImpl, {
@@ -61,19 +62,29 @@ function createBot(channelId: string): Bot {
 	return bot;
 }
 
-async function getBot(channelId: string): Promise<Bot> {
-	const existing = bots.get(channelId);
-	if (!existing) return createBot(channelId);
+function getBot(channelId: string): Promise<Bot> {
+	const p = pending.get(channelId);
+	if (p) return p;
 
-	const usage = await existing.contextUsage();
-	if (usage >= 80) {
-		console.log(`Context ${usage}% — resetting [${channelId}]`);
-		bots.delete(channelId);
-		sessions.delete(channelId);
-		return createBot(channelId);
-	}
+	const promise = (async () => {
+		const existing = bots.get(channelId);
+		if (!existing) return createBot(channelId);
 
-	return existing;
+		const usage = await existing.contextUsage();
+		if (usage >= 80) {
+			console.log(`Context ${usage}% — resetting [${channelId}]`);
+			existing.destroy();
+			bots.delete(channelId);
+			sessions.delete(channelId);
+			return createBot(channelId);
+		}
+
+		return existing;
+	})();
+
+	pending.set(channelId, promise);
+	promise.finally(() => pending.delete(channelId));
+	return promise;
 }
 
 function buildMessage(msg: IncomingMessage, history: HistoryMessage[]): string {

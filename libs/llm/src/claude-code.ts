@@ -160,6 +160,7 @@ export class ClaudeCodeBot extends Bot {
 	private sdkStream: MessageStream;
 	private q: Query;
 	private pump: EventPump;
+	private watchers: ReturnType<typeof watch>[] = [];
 
 	constructor(config: BotConfig) {
 		super();
@@ -208,15 +209,23 @@ export class ClaudeCodeBot extends Bot {
 		for (const dir of config.pluginDirs) {
 			const skillsDir = join(dir, "skills");
 			if (existsSync(skillsDir)) {
-				watch(skillsDir, { recursive: true }, () => {
-					this.q.reloadPlugins().catch(() => {});
-				});
+				this.watchers.push(
+					watch(skillsDir, { recursive: true }, () => {
+						this.q.reloadPlugins().catch(() => {});
+					}),
+				);
 			}
 		}
 	}
 
 	get sessionId() {
 		return this._sessionId;
+	}
+
+	override destroy() {
+		for (const w of this.watchers) w.close();
+		this.sdkStream.end();
+		this.q.close();
 	}
 
 	override async contextUsage(): Promise<number> {

@@ -6,7 +6,7 @@ import {
 	rmSync,
 	writeFileSync,
 } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { findWorkspaceRoot } from "@lib/env";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
@@ -15,8 +15,16 @@ import { z } from "zod";
 const root = findWorkspaceRoot();
 const skillsDir = join(root, "skills");
 
+function safeName(name: string): string {
+	const resolved = resolve(skillsDir, name);
+	if (!resolved.startsWith(skillsDir + "/")) {
+		throw new Error("Invalid skill name");
+	}
+	return name;
+}
+
 function skillPath(name: string): string {
-	return join(skillsDir, name, "SKILL.md");
+	return join(skillsDir, safeName(name), "SKILL.md");
 }
 
 function buildSkillMd(
@@ -125,7 +133,7 @@ server.registerTool(
 	},
 	async ({ name }) => {
 		try {
-			const dir = join(skillsDir, name);
+			const dir = join(skillsDir, safeName(name));
 			if (!existsSync(dir)) {
 				return {
 					content: [{ type: "text", text: `Skill "${name}" not found` }],

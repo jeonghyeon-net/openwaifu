@@ -25,6 +25,8 @@ export abstract class Bot {
 	async contextUsage(): Promise<number> {
 		return 0;
 	}
+	/** 리소스 정리. */
+	destroy(): void {}
 	/** 메시지 전송. 이전 응답이 진행 중이면 자동 interrupt. */
 	abstract send(
 		message: string,
