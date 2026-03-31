@@ -93,20 +93,23 @@ export class DiscordPlatform extends ChatPlatform {
 			buffer: "",
 			msg: null as Awaited<ReturnType<TextChannel["send"]>> | null,
 			synced: "",
+			pending: false,
 		};
 
 		await ch.sendTyping();
 
 		const flush = async () => {
-			if (!s.buffer.trim()) return;
+			if (s.pending || !s.buffer.trim()) return;
 			if (s.msg) {
 				if (s.buffer !== s.synced) {
 					s.synced = s.buffer;
 					await s.msg.edit(s.buffer).catch(() => {});
 				}
 			} else {
+				s.pending = true;
 				s.msg = await ch.send(s.buffer);
 				s.synced = s.buffer;
+				s.pending = false;
 			}
 		};
 
