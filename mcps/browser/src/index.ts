@@ -1,30 +1,29 @@
-// Playwright는 Bun에서 동작하지 않으므로 npx로 직접 실행
-import { execSync } from "node:child_process";
+// Playwright는 Bun 런타임과 호환되지 않으므로 Node.js로 직접 실행
+import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 
-function findNpx(): string {
-	// 1. PATH에서 찾기
-	try {
-		return execSync("which npx", { encoding: "utf-8" }).trim();
-	} catch {
-		// which 실패 시 일반적인 경로 확인
-	}
+const home = process.env["HOME"] ?? "";
 
-	const home = process.env["HOME"] ?? "";
-	const candidates = [
-		join(home, ".local/share/mise/shims/npx"),
-		"/opt/homebrew/bin/npx",
-		"/usr/local/bin/npx",
-	];
-	for (const p of candidates) {
+function find(name: string, extras: string[]): string {
+	for (const dir of (process.env["PATH"] ?? "").split(":")) {
+		const p = join(dir, name);
 		if (existsSync(p)) return p;
 	}
-
-	throw new Error(
-		"npx를 찾을 수 없습니다. Node.js를 설치하세요 (mise install node)",
-	);
+	for (const p of extras) {
+		if (existsSync(p)) return p;
+	}
+	throw new Error(`${name}를 찾을 수 없습니다`);
 }
 
-// stdin/stdout을 그대로 패스스루 — MCP stdio 프로토콜 유지
-execSync(`${findNpx()} -y @playwright/mcp`, { stdio: "inherit" });
+const node = find("node", [
+	join(home, ".local/share/mise/shims/node"),
+	"/opt/homebrew/bin/node",
+	"/usr/local/bin/node",
+]);
+
+const cliPath = new URL("cli.js", import.meta.resolve("@playwright/mcp"))
+	.pathname;
+
+// stdin/stdout 패스스루로 MCP stdio 프로토콜 유지
+execFileSync(node, [cliPath], { stdio: "inherit" });
