@@ -1,6 +1,4 @@
-import { execSync } from "node:child_process";
 import { readFileSync } from "node:fs";
-import { cpus, freemem, totalmem } from "node:os";
 import { join } from "node:path";
 import {
 	DiscordPlatform,
@@ -13,6 +11,7 @@ import { Bot, type BotType, ClaudeCodeBot, CodexBot } from "@lib/llm";
 import { discoverMcpServers } from "@lib/mcp-discovery";
 import { Scheduler } from "@lib/scheduler";
 import { SessionStore } from "@lib/session-store";
+import { formatStats, getSystemStats } from "@lib/system-monitor";
 
 // 설정
 const dataDir = findWorkspaceRoot();
@@ -107,46 +106,11 @@ console.log(`Sessions: ${sessions.all().length}`);
 console.log(`Schedules: ${scheduler.list().length}`);
 console.log("Brain started.");
 
-// 시스템 상태 → 봇 프로필 상태
-let prevCpuIdle = 0;
-let prevCpuTotal = 0;
-
-function updateStatus() {
-	const cores = cpus();
-	let idle = 0;
-	let total = 0;
-	for (const core of cores) {
-		idle += core.times.idle;
-		total +=
-			core.times.user +
-			core.times.nice +
-			core.times.sys +
-			core.times.irq +
-			core.times.idle;
-	}
-	const cpuPct =
-		prevCpuTotal > 0
-			? Math.round((1 - (idle - prevCpuIdle) / (total - prevCpuTotal)) * 100)
-			: 0;
-	prevCpuIdle = idle;
-	prevCpuTotal = total;
-
-	const ramPct = Math.round((1 - freemem() / totalmem()) * 100);
-
-	let diskPct = 0;
-	try {
-		const df = execSync("df -h / | tail -1", { encoding: "utf-8" });
-		const match = df.match(/(\d+)%/);
-		if (match) diskPct = Number(match[1]);
-	} catch {
-		/* ignore */
-	}
-
-	platform.setStatus(`CPU ${cpuPct}% | RAM ${ramPct}% | DISK ${diskPct}%`);
-}
-
-const statusTimer = setInterval(updateStatus, 30_000);
-updateStatus();
+const statusTimer = setInterval(
+	() => platform.setStatus(formatStats(getSystemStats())),
+	30_000,
+);
+platform.setStatus(formatStats(getSystemStats()));
 
 // 종료
 const shutdown = async () => {
