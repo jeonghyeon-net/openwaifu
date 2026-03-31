@@ -34,7 +34,6 @@ export type ChatResult = {
 export abstract class ChatBot {
 	abstract readonly name: string;
 	abstract chat(message: string, options?: ChatOptions): ChatResult;
-	abstract interrupt(sessionId: string): Promise<void>;
 	abstract setMcpServers(factory: McpServerFactory): void;
 	abstract setSystemPrompt(prompt: string): void;
 }

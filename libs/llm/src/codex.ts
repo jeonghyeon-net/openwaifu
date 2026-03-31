@@ -66,10 +66,6 @@ export class CodexBot extends ChatBot {
 		this.codex = null;
 	}
 
-	async interrupt() {
-		// Codex responds in one shot — queuing handles concurrency instead
-	}
-
 	setMcpServers(factory: McpServerFactory) {
 		this.mcpFactory = factory;
 		this.codex = null;

@@ -57,10 +57,85 @@ class MessageStream {
 	}
 }
 
+/**
+ * SDK iterator를 독점으로 읽고, 현재 턴의 listener에게 이벤트를 전달하는 pump.
+ * reset() 호출 시 이전 턴의 listener를 즉시 종료하고, 남은 이벤트를 버린다.
+ */
+class EventPump {
+	private listener: ((msg: SDKMessage | null) => void) | null = null;
+	private buffer: SDKMessage[] = [];
+	private skipUntilResult = false;
+
+	constructor(iterator: AsyncIterator<SDKMessage>) {
+		this.run(iterator);
+	}
+
+	private async run(iterator: AsyncIterator<SDKMessage>) {
+		try {
+			for (;;) {
+				const { value: msg, done } = await iterator.next();
+				if (done) break;
+
+				if (this.skipUntilResult) {
+					if (msg.type === "result") {
+						this.skipUntilResult = false;
+						continue; // result 자체도 skip
+					}
+					// 새 턴의 message_start → skip 종료, 이 이벤트는 dispatch
+					if (
+						msg.type === "stream_event" &&
+						msg.event.type === "message_start"
+					) {
+						this.skipUntilResult = false;
+					} else {
+						continue;
+					}
+				}
+
+				this.dispatch(msg);
+			}
+		} catch {
+			// iterator error (e.g. process terminated) — signal end
+		}
+		this.dispatch(null);
+	}
+
+	private dispatch(msg: SDKMessage | null) {
+		if (this.listener) {
+			const cb = this.listener;
+			this.listener = null;
+			cb(msg);
+		} else if (msg !== null) {
+			this.buffer.push(msg);
+		}
+	}
+
+	pull(): Promise<SDKMessage | null> {
+		if (this.buffer.length > 0) {
+			const msg = this.buffer.shift();
+			if (msg !== undefined) return Promise.resolve(msg);
+		}
+		return new Promise((resolve) => {
+			this.listener = resolve;
+		});
+	}
+
+	/** 이전 턴의 listener를 즉시 종료하고, 남은 이벤트를 버린다. */
+	reset() {
+		this.buffer.length = 0;
+		this.skipUntilResult = true;
+		if (this.listener) {
+			const cb = this.listener;
+			this.listener = null;
+			cb(null);
+		}
+	}
+}
+
 type Session = {
 	stream: MessageStream;
 	query: Query;
-	iterator: AsyncIterator<SDKMessage>;
+	pump: EventPump;
 	sessionId: string | null;
 	turnId: number;
 };
@@ -74,13 +149,6 @@ export class ClaudeCodeBot extends ChatBot {
 
 	setSystemPrompt(prompt: string) {
 		this.systemPrompt = prompt;
-	}
-
-	async interrupt(sessionId: string) {
-		const session = this.sessions.get(sessionId);
-		if (!session) throw new Error(`Session not found: ${sessionId}`);
-		session.turnId++;
-		await session.query.interrupt();
 	}
 
 	setMcpServers(factory: McpServerFactory) {
@@ -112,7 +180,7 @@ export class ClaudeCodeBot extends ChatBot {
 		const session: Session = {
 			stream,
 			query: q,
-			iterator: q[Symbol.asyncIterator](),
+			pump: new EventPump(q[Symbol.asyncIterator]()),
 			sessionId: resumeId ?? null,
 			turnId: 0,
 		};
@@ -164,6 +232,13 @@ export class ClaudeCodeBot extends ChatBot {
 		}
 
 		const session = existing ?? this.createSession();
+
+		// 이전 턴이 진행 중이면 즉시 중단:
+		// 1) pump.reset() → 이전 generator를 null로 즉시 깨움 + 남은 이벤트 skip
+		// 2) query.interrupt() → SDK에 중단 신호 (fire-and-forget)
+		session.pump.reset();
+		session.query.interrupt().catch(() => {});
+
 		session.turnId++;
 		const myTurn = session.turnId;
 
@@ -183,10 +258,10 @@ export class ClaudeCodeBot extends ChatBot {
 			let hasYielded = false;
 
 			for (;;) {
-				const { value: msg, done } = await session.iterator.next();
-				if (done) return;
-
 				if (session.turnId !== myTurn) return;
+
+				const msg = await session.pump.pull();
+				if (msg === null) return;
 
 				if (msg.type === "system" && msg.subtype === "init") {
 					session.sessionId = msg.session_id;
@@ -210,7 +285,7 @@ export class ClaudeCodeBot extends ChatBot {
 					yield { type: "text" as const, text };
 				}
 
-				if ("result" in msg) return;
+				if (msg.type === "result") return;
 			}
 		};
 

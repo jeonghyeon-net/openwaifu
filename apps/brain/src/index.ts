@@ -32,7 +32,6 @@ const systemRules = `${persona}
 
 응답 시스템 규칙 (절대 위반 금지)
 - 너의 텍스트 응답은 자동으로 현재 대화 채널에 전송된다. send_message 도구로 현재 채널에 응답하지 마라.
-- send_message는 현재 대화 채널이 아닌 다른 채널에 메시지를 보낼 때만 사용한다.
 - <recent_chat_history>는 참고용 맥락이다. 이미 처리된 대화이므로 여기에 응답하지 마라. 새 메시지에만 응답한다.`;
 bot.setSystemPrompt(systemRules);
 
@@ -49,14 +48,8 @@ scheduler.start(async (schedule) => {
 });
 console.log(`Scheduler started with ${scheduler.list().length} schedule(s).`);
 
-const activeChannels = new Set<string>();
-
 platform.onMessage(async (msg) => {
 	const sessionId = sessions.get(msg.channelId);
-
-	if (sessionId && activeChannels.has(msg.channelId)) {
-		await bot.interrupt(sessionId).catch(() => {});
-	}
 
 	const meta = Object.entries(msg.metadata)
 		.filter(([, v]) => v)
@@ -75,17 +68,13 @@ platform.onMessage(async (msg) => {
 		? `<recent_chat_history>\n${historyText}\n</recent_chat_history>\n${context}\n${msg.text}`
 		: `${context}\n${msg.text}`;
 
+	// chat()이 내부적으로 이전 턴을 interrupt하므로 별도 중단 로직 불필요
 	const chat = bot.chat(fullMessage, {
 		...(sessionId && { sessionId }),
 		...(msg.attachments.length > 0 && { attachments: msg.attachments }),
 	});
 
-	activeChannels.add(msg.channelId);
-	try {
-		await platform.sendStream(msg.channelId, chat.stream);
-	} finally {
-		activeChannels.delete(msg.channelId);
-	}
+	await platform.sendStream(msg.channelId, chat.stream);
 
 	if (chat.sessionId) {
 		sessions.set(msg.channelId, chat.sessionId);
