@@ -79,6 +79,9 @@ if [[ "$answer" =~ ^[Yy]$ ]]; then
 
   mkdir -p "$HOME/Library/LaunchAgents"
 
+  LOG_DIR="$HOME/Library/Logs/openwaifu"
+  mkdir -p "$LOG_DIR"
+
   cat > "$PLIST_PATH" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -101,15 +104,16 @@ if [[ "$answer" =~ ^[Yy]$ ]]; then
     <key>KeepAlive</key>
     <true/>
     <key>StandardOutPath</key>
-    <string>/tmp/openwaifu-brain.log</string>
+    <string>${LOG_DIR}/brain.log</string>
     <key>StandardErrorPath</key>
-    <string>/tmp/openwaifu-brain.err</string>
+    <string>${LOG_DIR}/brain.err</string>
 </dict>
 </plist>
 EOF
 
-  launchctl unload "$PLIST_PATH" 2>/dev/null || true
-  launchctl load "$PLIST_PATH"
+  GUI_DOMAIN="gui/$(id -u)"
+  launchctl bootout "$GUI_DOMAIN/com.openwaifu.brain" 2>/dev/null || true
+  launchctl bootstrap "$GUI_DOMAIN" "$PLIST_PATH"
   echo "Brain service registered and started."
 fi
 
