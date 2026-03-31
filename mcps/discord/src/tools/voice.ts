@@ -9,33 +9,7 @@ export function registerVoiceTools(
 	_client: Client,
 	utils: Utils,
 ) {
-	server.registerTool(
-		"get_voice_states",
-		{
-			description: "List voice channel occupants in a guild",
-			inputSchema: { guildId: z.string() },
-		},
-		async ({ guildId }) => {
-			try {
-				const guild = await utils.getGuild(guildId);
-				const states = guild.voiceStates.cache;
-				const result = states.map((vs) => ({
-					userId: vs.member?.user.id,
-					username: vs.member?.user.username,
-					channelId: vs.channelId,
-					channelName: vs.channel?.name,
-					selfMute: vs.selfMute,
-					selfDeaf: vs.selfDeaf,
-					serverMute: vs.serverMute,
-					serverDeaf: vs.serverDeaf,
-					streaming: vs.streaming,
-				}));
-				return ok(JSON.stringify(result));
-			} catch (e) {
-				return err(e);
-			}
-		},
-	);
+	// get_voice_states는 게이트웨이 캐시에 의존하므로 REST-only 모드에서 제거
 
 	server.registerTool(
 		"move_member_voice",
