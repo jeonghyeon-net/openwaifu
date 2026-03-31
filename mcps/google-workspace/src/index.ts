@@ -12,19 +12,15 @@ const server = new McpServer({
 const TIMEOUT_MS = 30_000;
 
 function findGws(): string {
-	const candidates = [
-		process.env["GWS_BINARY_PATH"],
-		"/opt/homebrew/bin/gws",
-		"/usr/local/bin/gws",
-	];
-	for (const p of candidates) {
-		if (p && Bun.which(p)) return p;
+	const env = process.env["GWS_BINARY_PATH"];
+	if (env) return env;
+	for (const p of ["/opt/homebrew/bin/gws", "/usr/local/bin/gws"]) {
+		try {
+			Bun.file(p).size;
+			return p;
+		} catch {}
 	}
-	const fromPath = Bun.which("gws");
-	if (fromPath) return fromPath;
-	throw new Error(
-		"gws binary not found. Install it: brew install googleworkspace-cli",
-	);
+	return Bun.which("gws") ?? "gws";
 }
 
 const gwsBinary = findGws();
