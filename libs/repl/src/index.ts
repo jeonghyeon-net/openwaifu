@@ -7,8 +7,6 @@ export async function startRepl(bot: ChatBot): Promise<void> {
 		output: process.stdout,
 	});
 
-	let sessionId: string | undefined;
-
 	console.log('Type a message to chat. "exit" to quit.\n');
 
 	for (;;) {
@@ -17,7 +15,7 @@ export async function startRepl(bot: ChatBot): Promise<void> {
 		if (input.trim() === "exit") break;
 		if (input.trim() === "") continue;
 
-		const chat = bot.chat(input, sessionId ? { sessionId } : undefined);
+		const chat = bot.chat(input);
 
 		for await (const chunk of chat.stream) {
 			if (chunk.type === "text") {
@@ -25,10 +23,6 @@ export async function startRepl(bot: ChatBot): Promise<void> {
 			}
 		}
 		console.log("\n");
-
-		if (chat.sessionId) {
-			sessionId = chat.sessionId;
-		}
 	}
 
 	rl.close();

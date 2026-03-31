@@ -1,5 +1,3 @@
-export const PLATFORM_TOKEN = "ChatPlatform";
-
 export type Attachment = {
 	url: string;
 	filename: string;

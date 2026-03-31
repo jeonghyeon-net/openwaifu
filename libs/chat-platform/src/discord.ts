@@ -5,10 +5,8 @@ import {
 	GatewayIntentBits,
 	type TextChannel,
 } from "discord.js";
-import { injectable } from "tsyringe";
 import { ChatPlatform, type MessageHandler } from "./platform.js";
 
-@injectable()
 export class DiscordPlatform extends ChatPlatform {
 	private client: Client;
 	private handlers: MessageHandler[] = [];

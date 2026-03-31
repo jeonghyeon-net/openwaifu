@@ -1,6 +1,5 @@
 import { env } from "@lib/env";
 import { Bot } from "grammy";
-import { injectable } from "tsyringe";
 import {
 	type Attachment,
 	ChatPlatform,
@@ -8,7 +7,6 @@ import {
 	type MessageHandler,
 } from "./platform.js";
 
-@injectable()
 export class TelegramPlatform extends ChatPlatform {
 	private bot: Bot | null = null;
 	private handlers: MessageHandler[] = [];
