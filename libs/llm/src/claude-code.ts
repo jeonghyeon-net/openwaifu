@@ -270,8 +270,6 @@ export class ClaudeCodeBot extends ChatBot {
 		});
 
 		const responseStream = async function* () {
-			let hasYielded = false;
-
 			for (;;) {
 				if (session.turnId !== myTurn) return;
 
@@ -284,19 +282,8 @@ export class ClaudeCodeBot extends ChatBot {
 					self.sessions.set(sessionId, session);
 				}
 
-				// 새 텍스트 블록 시작 = tool 호출 후 새 응답 → 새 메시지로 분리
-				if (
-					msg.type === "stream_event" &&
-					msg.event.type === "content_block_start" &&
-					msg.event.content_block.type === "text" &&
-					hasYielded
-				) {
-					yield { type: "message_break" as const };
-				}
-
 				const text = isTextDelta(msg);
 				if (text !== null) {
-					hasYielded = true;
 					yield { type: "text" as const, text };
 				}
 
