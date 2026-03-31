@@ -78,9 +78,7 @@ export class DiscordPlatform extends ChatPlatform {
 
 	async sendStream(
 		channelId: string,
-		stream: AsyncIterable<
-			string | { type: "text"; text: string } | { type: "message_break" }
-		>,
+		stream: AsyncIterable<{ type: "text"; text: string }>,
 	) {
 		const channel = await this.client.channels.fetch(channelId);
 		if (!channel?.isTextBased()) return;
@@ -99,19 +97,7 @@ export class DiscordPlatform extends ChatPlatform {
 			if (!state.msg) textChannel.sendTyping();
 		}, 5000);
 
-		// 중간 flush: tool 호출 사이에서 현재 메시지 마무리. edit 실패 시 무시 (메시지 삭제된 경우)
-		const flushForBreak = async () => {
-			if (state.msg && state.buffer) {
-				try {
-					await state.msg.edit(state.buffer);
-				} catch {
-					// 메시지가 삭제된 경우 무시
-				}
-			}
-		};
-
-		// 최종 flush: 스트림 끝. 미전송 버퍼가 있으면 새 메시지로 전송
-		const flushFinal = async () => {
+		const flush = async () => {
 			if (state.msg && state.buffer) {
 				try {
 					await state.msg.edit(state.buffer);
@@ -125,22 +111,7 @@ export class DiscordPlatform extends ChatPlatform {
 
 		try {
 			for await (const chunk of stream) {
-				const text =
-					typeof chunk === "string"
-						? chunk
-						: chunk.type === "text"
-							? chunk.text
-							: null;
-
-				if (text === null) {
-					// message_break: 현재 메시지 마무리, 새 메시지 시작
-					await flushForBreak();
-					state.msg = null;
-					state.buffer = "";
-					continue;
-				}
-
-				state.buffer += text;
+				state.buffer += chunk.text;
 
 				if (state.buffer.length > CHUNK_THRESHOLD && state.msg) {
 					await state.msg.edit(state.buffer.slice(0, MESSAGE_LIMIT));
@@ -160,7 +131,7 @@ export class DiscordPlatform extends ChatPlatform {
 				}
 			}
 
-			await flushFinal();
+			await flush();
 		} finally {
 			clearInterval(typingInterval);
 		}

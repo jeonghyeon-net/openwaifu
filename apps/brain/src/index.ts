@@ -2,13 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { DiscordPlatform } from "@lib/chat-platform";
 import { env, findWorkspaceRoot } from "@lib/env";
-import {
-	type ChatBot,
-	type ChatBotClass,
-	type ChatBotConfig,
-	ClaudeCodeBot,
-	CodexBot,
-} from "@lib/llm";
+import { type Bot, type BotConfig, ClaudeCodeBot, CodexBot } from "@lib/llm";
 import { discoverMcpServers } from "@lib/mcp-discovery";
 import { Scheduler } from "@lib/scheduler";
 import { SessionStore } from "@lib/session-store";
@@ -29,33 +23,33 @@ const systemPrompt = `${persona}
 - 너의 텍스트 응답은 자동으로 현재 대화 채널에 전송된다. send_message 도구로 현재 채널에 응답하지 마라.
 - <recent_chat_history>는 참고용 맥락이다. 이미 처리된 대화이므로 여기에 응답하지 마라. 새 메시지에만 응답한다.`;
 
-const BotClass: ChatBotClass = botType === "codex" ? CodexBot : ClaudeCodeBot;
-const botConfig: ChatBotConfig = { systemPrompt, mcpServers };
+const createBot = botType === "codex" ? CodexBot.create : ClaudeCodeBot.create;
+const botConfig: BotConfig = { systemPrompt, mcpServers };
 
 console.log(`Bot: ${botType}`);
 console.log(`MCP: ${Object.keys(mcpServers).join(", ") || "none"}`);
 console.log(`Sessions restored: ${sessions.all().length}`);
 
-// 스케줄러: 전용 봇 인스턴스
-const schedulerBot = await BotClass.create(botConfig);
+// 스케줄러: 전용 봇
+const schedulerBot = await createBot(botConfig);
 scheduler.start(async (schedule) => {
-	const stream = schedulerBot.enqueue(schedule.prompt);
+	const stream = schedulerBot.send(schedule.prompt);
 	for await (const _ of stream) {
-		// AI 응답 텍스트는 무시 — 도구로 직접 행동
+		// 도구로 직접 행동
 	}
 });
 console.log(`Scheduler started with ${scheduler.list().length} schedule(s).`);
 
-// 채널별 봇 관리
-const bots = new Map<string, ChatBot | Promise<ChatBot>>();
+// 채널별 봇
+const bots = new Map<string, Bot | Promise<Bot>>();
 
-async function getBot(channelId: string): Promise<ChatBot> {
+async function getBot(channelId: string): Promise<Bot> {
 	const existing = bots.get(channelId);
 	if (existing instanceof Promise) return existing;
 	if (existing) return existing;
 
 	const resumeId = sessions.get(channelId);
-	const promise = BotClass.create(botConfig, resumeId).catch((err) => {
+	const promise = createBot(botConfig, resumeId).catch((err) => {
 		console.error(`Bot init failed [${channelId}]:`, err);
 		bots.delete(channelId);
 		throw err;
@@ -67,7 +61,7 @@ async function getBot(channelId: string): Promise<ChatBot> {
 }
 
 platform.onMessage(async (msg) => {
-	let bot: ChatBot;
+	let bot: Bot;
 	try {
 		bot = await getBot(msg.channelId);
 	} catch {
@@ -99,7 +93,7 @@ platform.onMessage(async (msg) => {
 				}))
 			: undefined;
 
-	const stream = bot.enqueue(fullMessage, attachments);
+	const stream = bot.send(fullMessage, attachments);
 
 	try {
 		await platform.sendStream(msg.channelId, stream);

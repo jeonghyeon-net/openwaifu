@@ -29,9 +29,7 @@ export abstract class ChatPlatform {
 	abstract onMessage(handler: MessageHandler): void;
 	abstract sendStream(
 		channelId: string,
-		stream: AsyncIterable<
-			string | { type: "text"; text: string } | { type: "message_break" }
-		>,
+		stream: AsyncIterable<{ type: "text"; text: string }>,
 	): Promise<void>;
 	abstract fetchHistory(
 		channelId: string,

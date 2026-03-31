@@ -1,8 +1,7 @@
-import type { McpServerConfig as AgentMcpServerConfig } from "@anthropic-ai/claude-agent-sdk";
+/** MCP 서버 설정 (stdio). SDK별 타입과 구조적으로 호환. */
+export type McpServerConfig = { command: string; args?: string[] };
 
-export type McpServerConfig = AgentMcpServerConfig;
-
-export type ChatAttachment = {
+export type Attachment = {
 	url: string;
 	filename: string;
 	contentType: string;
@@ -11,21 +10,16 @@ export type ChatAttachment = {
 
 export type StreamChunk = { type: "text"; text: string };
 
-export type ChatBotConfig = {
+export type BotConfig = {
 	systemPrompt: string;
 	mcpServers: Record<string, McpServerConfig>;
 };
 
-/** ChatBot 클래스의 static side 타입. `await Provider.create(config)` 패턴에 사용. */
-export interface ChatBotClass {
-	create(config: ChatBotConfig, resume?: string): Promise<ChatBot>;
-}
-
-export abstract class ChatBot {
+export abstract class Bot {
 	abstract readonly sessionId: string;
-	/** 메시지 전송. 이전 응답이 진행 중이면 자동 interrupt 후 새 응답 스트림 리턴. */
-	abstract enqueue(
+	/** 메시지 전송. 이전 응답이 진행 중이면 자동 interrupt. */
+	abstract send(
 		message: string,
-		attachments?: ChatAttachment[],
+		attachments?: Attachment[],
 	): AsyncIterable<StreamChunk>;
 }

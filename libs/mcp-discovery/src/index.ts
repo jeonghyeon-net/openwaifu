@@ -1,12 +1,14 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { findWorkspaceRoot } from "@lib/env";
-import type { McpServerConfig } from "@lib/llm";
 
-export function discoverMcpServers(): Record<string, McpServerConfig> {
+export function discoverMcpServers(): Record<
+	string,
+	{ command: string; args: string[] }
+> {
 	const root = findWorkspaceRoot();
 	const mcpsDir = join(root, "mcps");
-	const servers: Record<string, McpServerConfig> = {};
+	const servers: Record<string, { command: string; args: string[] }> = {};
 
 	let dirs: string[];
 	try {

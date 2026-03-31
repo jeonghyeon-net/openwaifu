@@ -48,7 +48,6 @@
       "name": "@lib/mcp-discovery",
       "dependencies": {
         "@lib/env": "workspace:*",
-        "@lib/llm": "workspace:*",
       },
     },
     "libs/repl": {

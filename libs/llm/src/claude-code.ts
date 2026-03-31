@@ -7,9 +7,9 @@ import {
 } from "@anthropic-ai/claude-agent-sdk";
 import { env } from "@lib/env";
 import {
-	type ChatAttachment,
-	ChatBot,
-	type ChatBotConfig,
+	type Attachment,
+	Bot,
+	type BotConfig,
 	type StreamChunk,
 } from "./chatbot.js";
 
@@ -127,7 +127,7 @@ class EventPump {
 
 function buildContent(
 	message: string,
-	attachments?: ChatAttachment[],
+	attachments?: Attachment[],
 ): SDKUserMessage["message"]["content"] {
 	if (!attachments || attachments.length === 0) return message;
 	const content: Array<
@@ -148,7 +148,7 @@ function buildContent(
 	return content;
 }
 
-export class ClaudeCodeBot extends ChatBot {
+export class ClaudeCodeBot extends Bot {
 	private turnId = 0;
 
 	private constructor(
@@ -165,7 +165,7 @@ export class ClaudeCodeBot extends ChatBot {
 	}
 
 	static async create(
-		config: ChatBotConfig,
+		config: BotConfig,
 		resume?: string,
 	): Promise<ClaudeCodeBot> {
 		const model = env("CLAUDE_MODEL", "claude-sonnet-4-6");
@@ -216,9 +216,9 @@ export class ClaudeCodeBot extends ChatBot {
 		return new ClaudeCodeBot(stream, q, pump, sessionId);
 	}
 
-	enqueue(
+	send(
 		message: string,
-		attachments?: ChatAttachment[],
+		attachments?: Attachment[],
 	): AsyncIterable<StreamChunk> {
 		this.pump.reset();
 		this.q.interrupt().catch(() => {});

@@ -110,9 +110,7 @@ export class TelegramPlatform extends ChatPlatform {
 
 	async sendStream(
 		channelId: string,
-		stream: AsyncIterable<
-			string | { type: "text"; text: string } | { type: "message_break" }
-		>,
+		stream: AsyncIterable<{ type: "text"; text: string }>,
 	) {
 		if (!this.bot) throw new Error("Bot not started yet");
 		const bot = this.bot;
@@ -147,21 +145,7 @@ export class TelegramPlatform extends ChatPlatform {
 
 		try {
 			for await (const chunk of stream) {
-				const text =
-					typeof chunk === "string"
-						? chunk
-						: chunk.type === "text"
-							? chunk.text
-							: null;
-
-				if (text === null) {
-					await flush();
-					msgId = null;
-					buffer = "";
-					continue;
-				}
-
-				buffer += text;
+				buffer += chunk.text;
 
 				if (buffer.length > CHUNK_THRESHOLD && msgId) {
 					await editSafe(msgId, buffer.slice(0, MESSAGE_LIMIT));

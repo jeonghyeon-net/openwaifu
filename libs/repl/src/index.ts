@@ -1,7 +1,7 @@
 import { createInterface } from "node:readline/promises";
-import type { ChatBot } from "@lib/llm";
+import type { Bot } from "@lib/llm";
 
-export async function startRepl(bot: ChatBot): Promise<void> {
+export async function startRepl(bot: Bot): Promise<void> {
 	const rl = createInterface({
 		input: process.stdin,
 		output: process.stdout,
@@ -15,9 +15,7 @@ export async function startRepl(bot: ChatBot): Promise<void> {
 		if (input.trim() === "exit") break;
 		if (input.trim() === "") continue;
 
-		const stream = bot.enqueue(input);
-
-		for await (const chunk of stream) {
+		for await (const chunk of bot.send(input)) {
 			if (chunk.type === "text") {
 				process.stdout.write(chunk.text);
 			}

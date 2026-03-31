@@ -1,8 +1,7 @@
 export {
-	type ChatAttachment,
-	ChatBot,
-	type ChatBotClass,
-	type ChatBotConfig,
+	type Attachment,
+	Bot,
+	type BotConfig,
 	type McpServerConfig,
 	type StreamChunk,
 } from "./chatbot.js";

@@ -10,33 +10,25 @@ import {
 	type UserInput,
 } from "@openai/codex-sdk";
 import {
-	type ChatAttachment,
-	ChatBot,
-	type ChatBotConfig,
-	type McpServerConfig,
+	type Attachment,
+	Bot,
+	type BotConfig,
 	type StreamChunk,
 } from "./chatbot.js";
 
-type CodexConfigValue =
+type JsonValue =
 	| string
 	| number
 	| boolean
-	| CodexConfigValue[]
-	| { [key: string]: CodexConfigValue };
-
-function isStdio(
-	server: McpServerConfig,
-): server is { type?: "stdio"; command: string; args?: string[] } {
-	return "command" in server;
-}
+	| JsonValue[]
+	| { [k: string]: JsonValue };
 
 function buildCodex(
-	mcpServers: Record<string, McpServerConfig>,
+	mcpServers: Record<string, { command: string; args?: string[] }>,
 	systemPrompt?: string,
 ): Codex {
-	const mcpConfig: { [key: string]: CodexConfigValue } = {};
+	const mcpConfig: Record<string, JsonValue> = {};
 	for (const [name, server] of Object.entries(mcpServers)) {
-		if (!isStdio(server)) continue;
 		const entry: { command: string; args?: string[] } = {
 			command: server.command,
 		};
@@ -44,7 +36,7 @@ function buildCodex(
 		mcpConfig[name] = entry;
 	}
 
-	const config: { [key: string]: CodexConfigValue } = {};
+	const config: Record<string, JsonValue> = {};
 	if (Object.keys(mcpConfig).length > 0) config["mcp_servers"] = mcpConfig;
 	if (systemPrompt) config["instructions"] = systemPrompt;
 	if (Object.keys(config).length === 0) return new Codex();
@@ -53,7 +45,7 @@ function buildCodex(
 
 async function buildInput(
 	message: string,
-	attachments?: ChatAttachment[],
+	attachments?: Attachment[],
 ): Promise<{ input: Input; cleanup: () => void }> {
 	if (!attachments || attachments.length === 0) {
 		return { input: message, cleanup: () => {} };
@@ -102,7 +94,7 @@ async function buildInput(
 	};
 }
 
-export class CodexBot extends ChatBot {
+export class CodexBot extends Bot {
 	private _sessionId: string;
 	private lock: Promise<void> | null = null;
 
@@ -118,10 +110,7 @@ export class CodexBot extends ChatBot {
 		return this._sessionId;
 	}
 
-	static async create(
-		config: ChatBotConfig,
-		resume?: string,
-	): Promise<CodexBot> {
+	static async create(config: BotConfig, resume?: string): Promise<CodexBot> {
 		const codex = buildCodex(config.mcpServers, config.systemPrompt);
 		const model = env("CODEX_MODEL", "");
 		const effort = env("CODEX_EFFORT", "high");
@@ -142,14 +131,13 @@ export class CodexBot extends ChatBot {
 		return new CodexBot(thread, resume ?? "");
 	}
 
-	enqueue(
+	send(
 		message: string,
-		attachments?: ChatAttachment[],
+		attachments?: Attachment[],
 	): AsyncIterable<StreamChunk> {
 		const self = this;
 
 		async function* responseStream() {
-			// Codex는 one-shot — interrupt 대신 직렬화
 			if (self.lock) await self.lock.catch(() => {});
 
 			let resolve: (() => void) | undefined;
