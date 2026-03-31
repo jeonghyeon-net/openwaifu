@@ -5,6 +5,7 @@ import {
 	ChatPlatform,
 	type IncomingMessage,
 	type MessageHandler,
+	type PresenceStatus,
 } from "./platform.js";
 
 export class TelegramPlatform extends ChatPlatform {
@@ -105,6 +106,10 @@ export class TelegramPlatform extends ChatPlatform {
 
 	setStatus(_text: string) {
 		// Telegram Bot API does not support bot status
+	}
+
+	setPresence(_status: PresenceStatus) {
+		// Telegram Bot API does not support bot presence
 	}
 
 	async fetchHistory() {

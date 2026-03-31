@@ -6,7 +6,11 @@ import {
 	GatewayIntentBits,
 	type TextChannel,
 } from "discord.js";
-import { ChatPlatform, type MessageHandler } from "./platform.js";
+import {
+	ChatPlatform,
+	type MessageHandler,
+	type PresenceStatus,
+} from "./platform.js";
 
 export class DiscordPlatform extends ChatPlatform {
 	private client: Client;
@@ -66,6 +70,10 @@ export class DiscordPlatform extends ChatPlatform {
 
 	setStatus(text: string) {
 		this.client.user?.setActivity(text, { type: ActivityType.Custom });
+	}
+
+	setPresence(status: PresenceStatus) {
+		this.client.user?.setPresence({ status });
 	}
 
 	async fetchHistory(channelId: string, limit: number) {

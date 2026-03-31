@@ -23,11 +23,14 @@ export type IncomingMessage = {
 
 export type MessageHandler = (msg: IncomingMessage) => void | Promise<void>;
 
+export type PresenceStatus = "online" | "dnd";
+
 export abstract class ChatPlatform {
 	abstract start(): Promise<void>;
 	abstract stop(): Promise<void>;
 	abstract onMessage(handler: MessageHandler): void;
 	abstract setStatus(text: string): void;
+	abstract setPresence(status: PresenceStatus): void;
 	abstract sendStream(
 		channelId: string,
 		stream: AsyncIterable<{ type: "text"; text: string }>,

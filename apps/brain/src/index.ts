@@ -51,6 +51,18 @@ scheduler.start(async (schedule) => {
 const bots = new Map<string, Bot>();
 const pending = new Map<string, Promise<Bot>>();
 
+// 응답 중 DND, 유휴 시 online
+let activeResponses = 0;
+function beginResponse() {
+	if (activeResponses++ === 0) platform.setPresence("dnd");
+}
+function endResponse() {
+	if (--activeResponses <= 0) {
+		activeResponses = 0;
+		platform.setPresence("online");
+	}
+}
+
 function createBot(channelId: string): Bot {
 	const bot = Bot.create(botImpl, {
 		systemPrompt: chatPrompt,
@@ -108,6 +120,7 @@ platform.onMessage(async (msg) => {
 	const bot = await getBot(msg.channelId);
 	const history = await platform.fetchHistory(msg.channelId, 30);
 
+	beginResponse();
 	try {
 		await platform.sendStream(
 			msg.channelId,
@@ -119,6 +132,8 @@ platform.onMessage(async (msg) => {
 		bots.delete(msg.channelId);
 		sessions.delete(msg.channelId);
 		return;
+	} finally {
+		endResponse();
 	}
 
 	if (bot.sessionId) {
@@ -128,6 +143,7 @@ platform.onMessage(async (msg) => {
 
 // 플랫폼 시작 (핸들러 등록 후)
 await platform.start();
+platform.setPresence("online");
 
 console.log(`Bot: ${botType}`);
 console.log(`MCP: ${Object.keys(mcpServers).join(", ") || "none"}`);
@@ -144,6 +160,7 @@ platform.setStatus(formatStats(getSystemStats()));
 // 종료
 const shutdown = async () => {
 	console.log("Shutting down...");
+	platform.setPresence("online");
 	clearInterval(statusTimer);
 	schedulerBot.destroy();
 	for (const bot of bots.values()) bot.destroy();
