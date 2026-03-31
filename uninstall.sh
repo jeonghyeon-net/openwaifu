@@ -16,4 +16,11 @@ fi
 git config --unset core.hooksPath 2>/dev/null || true
 echo "Git hooks unregistered."
 
+# codex skill symlink
+SKILL_LINK="$HOME/.agents/skills/openwaifu"
+if [ -L "$SKILL_LINK" ]; then
+  rm "$SKILL_LINK"
+  echo "Skill symlink removed."
+fi
+
 echo "Uninstall complete."

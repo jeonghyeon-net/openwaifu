@@ -29,7 +29,15 @@ git config core.hooksPath .githooks
 
 # codex skill symlink
 mkdir -p ~/.agents/skills
-ln -sf "$REPO_DIR/skills" ~/.agents/skills/openwaifu
+SKILL_LINK="$HOME/.agents/skills/openwaifu"
+if [ -L "$SKILL_LINK" ] && [ "$(readlink "$SKILL_LINK")" = "$REPO_DIR/skills" ]; then
+  echo "Skill symlink already configured."
+elif [ -e "$SKILL_LINK" ]; then
+  echo "WARNING: $SKILL_LINK already exists ($(readlink "$SKILL_LINK" 2>/dev/null || echo 'not a symlink')). Skipping."
+else
+  ln -s "$REPO_DIR/skills" "$SKILL_LINK"
+  echo "Linked skills → $SKILL_LINK"
+fi
 
 # launchd
 read -rp "Register brain as launchd service? [y/N] " answer
