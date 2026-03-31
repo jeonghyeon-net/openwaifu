@@ -166,7 +166,7 @@ export class ClaudeCodeBot extends Bot {
 
 		const model = env("CLAUDE_MODEL", "claude-opus-4-6");
 		const thinking = env("CLAUDE_THINKING", "adaptive");
-		const effort = env("CLAUDE_EFFORT", "medium");
+		const effort = env("CLAUDE_EFFORT", "high");
 
 		const thinkingConfig =
 			thinking === "disabled"
