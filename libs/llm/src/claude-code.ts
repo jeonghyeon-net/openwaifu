@@ -114,6 +114,10 @@ class EventPump {
 		});
 	}
 
+	get active(): boolean {
+		return this.listener !== null || this.buffer.length > 0;
+	}
+
 	reset() {
 		this.buffer.length = 0;
 		this.skipUntilResult = true;
@@ -203,8 +207,10 @@ export class ClaudeCodeBot extends Bot {
 		message: string,
 		attachments?: Attachment[],
 	): AsyncIterable<StreamChunk> {
-		this.pump.reset();
-		this.q.interrupt().catch(() => {});
+		if (this.pump.active) {
+			this.pump.reset();
+			this.q.interrupt().catch(() => {});
+		}
 
 		this.turnId++;
 		const myTurn = this.turnId;
