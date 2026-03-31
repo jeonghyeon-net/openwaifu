@@ -123,11 +123,7 @@ export class DiscordPlatform extends ChatPlatform {
 					clearInterval(typingInterval);
 					state.msg = await textChannel.send(state.buffer);
 				} else {
-					try {
-						await state.msg.edit(state.buffer);
-					} catch {
-						state.msg = await textChannel.send(state.buffer);
-					}
+					await state.msg.edit(state.buffer).catch(() => {});
 				}
 			}
 

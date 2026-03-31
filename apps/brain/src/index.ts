@@ -85,10 +85,7 @@ platform.onMessage(async (msg) => {
 	try {
 		await platform.sendStream(
 			msg.channelId,
-			bot.send(
-				buildMessage(msg, history),
-				msg.attachments.length > 0 ? msg.attachments : undefined,
-			),
+			bot.send(buildMessage(msg, history), msg.attachments),
 		);
 	} catch (err) {
 		console.error(`sendStream error [${msg.channelId}]:`, err);
