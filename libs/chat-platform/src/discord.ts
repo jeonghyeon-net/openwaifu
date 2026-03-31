@@ -92,7 +92,6 @@ export class DiscordPlatform extends ChatPlatform {
 		const s = {
 			buffer: "",
 			msg: null as Awaited<ReturnType<TextChannel["send"]>> | null,
-			lastFlush: 0,
 		};
 
 		await ch.sendTyping();
@@ -104,11 +103,26 @@ export class DiscordPlatform extends ChatPlatform {
 			} else {
 				s.msg = await ch.send(s.buffer);
 			}
-			s.lastFlush = Date.now();
 		};
 
-		for await (const chunk of stream) {
-			s.buffer += chunk.text;
+		const delay = (ms: number) =>
+			new Promise<"tick">((r) => setTimeout(() => r("tick"), ms));
+		const iter = stream[Symbol.asyncIterator]();
+		let next = iter.next();
+
+		for (;;) {
+			const winner = await Promise.race([
+				next.then((r) => ({ type: "chunk" as const, result: r })),
+				delay(500).then(() => ({ type: "tick" as const, result: null })),
+			]);
+
+			if (winner.type === "tick") {
+				await flush();
+				continue;
+			}
+
+			if (winner.result.done) break;
+			s.buffer += winner.result.value.text;
 
 			// 2000자 초과 → 현재 메시지 확정, 나머지를 새 메시지로
 			if (s.msg && s.buffer.length > 2000) {
@@ -117,7 +131,7 @@ export class DiscordPlatform extends ChatPlatform {
 				s.msg = null;
 			}
 
-			if (Date.now() - s.lastFlush >= 500) await flush();
+			next = iter.next();
 		}
 
 		await flush();
