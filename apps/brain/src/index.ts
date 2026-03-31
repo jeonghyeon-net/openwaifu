@@ -21,10 +21,10 @@ await platform.start();
 
 const mcpServers = discoverMcpServers();
 const persona = readFileSync(join(dataDir, "PERSONA.md"), "utf-8");
-const systemPrompt = `${persona}
+const chatPrompt = `${persona}
 
 응답 시스템 규칙 (절대 위반 금지)
-- 너의 텍스트 응답은 자동으로 현재 대화 채널에 전송된다. send_message 도구로 현재 채널에 응답하지 마라.
+- 너의 텍스트 응답은 자동으로 현재 대화 채널에 전송된다. 절대 send_message 도구로 현재 채널에 응답하지 마라.
 - <recent_chat_history>는 참고용 맥락이다. 이미 처리된 대화이므로 여기에 응답하지 마라. 새 메시지에만 응답한다.`;
 
 const botImpl: BotType = botType === "codex" ? CodexBot : ClaudeCodeBot;
@@ -33,9 +33,9 @@ console.log(`Bot: ${botType}`);
 console.log(`MCP: ${Object.keys(mcpServers).join(", ") || "none"}`);
 console.log(`Sessions restored: ${sessions.all().length}`);
 
-// 스케줄러: 전용 봇
+// 스케줄러: 전용 봇 (페르소나/채팅 규칙 없음)
 const schedulerBot = Bot.create(botImpl, {
-	systemPrompt,
+	systemPrompt: "스케줄에 따라 주어진 작업을 MCP 도구로 수행한다.",
 	mcpServers,
 	resume: undefined,
 });
@@ -54,7 +54,7 @@ function getBot(channelId: string): Bot {
 	if (existing) return existing;
 
 	const bot = Bot.create(botImpl, {
-		systemPrompt,
+		systemPrompt: chatPrompt,
 		mcpServers,
 		resume: sessions.get(channelId),
 	});
