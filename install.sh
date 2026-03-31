@@ -111,12 +111,8 @@ if [[ "$answer" =~ ^[Yy]$ ]]; then
 </plist>
 EOF
 
-  GUI_DOMAIN="gui/$(id -u)"
-  SERVICE_TARGET="$GUI_DOMAIN/com.openwaifu.brain"
-  launchctl bootout "$SERVICE_TARGET" 2>/dev/null || true
-  launchctl enable "$SERVICE_TARGET" 2>/dev/null || true
-  launchctl bootstrap "$GUI_DOMAIN" "$PLIST_PATH"
-  launchctl enable "$SERVICE_TARGET"
+  launchctl unload -w "$PLIST_PATH" 2>/dev/null || true
+  launchctl load -w "$PLIST_PATH"
   echo "Brain service registered and started."
 fi
 
