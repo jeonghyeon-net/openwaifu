@@ -165,7 +165,14 @@ export class ClaudeCodeBot extends Bot {
 	constructor(config: BotConfig) {
 		super();
 		this.config = config;
+		const { stream, q, pump } = ClaudeCodeBot.createQuery(config);
+		this.sdkStream = stream;
+		this.q = q;
+		this.pump = pump;
+		this._sessionId = config.resume ?? "";
+	}
 
+	private static createQuery(config: BotConfig) {
 		const model = env("CLAUDE_MODEL", "claude-sonnet-4-6");
 		const thinking = env("CLAUDE_THINKING", "disabled");
 		const effort = env("CLAUDE_EFFORT", "high");
@@ -177,9 +184,9 @@ export class ClaudeCodeBot extends Bot {
 					? { type: "adaptive" as const }
 					: { type: "enabled" as const, budgetTokens: Number(thinking) };
 
-		this.sdkStream = new MessageStream();
-		this.q = query({
-			prompt: this.sdkStream as AsyncIterable<never>,
+		const stream = new MessageStream();
+		const q = query({
+			prompt: stream as AsyncIterable<never>,
 			options: {
 				model,
 				thinking: thinkingConfig,
@@ -203,18 +210,19 @@ export class ClaudeCodeBot extends Bot {
 			},
 		});
 
-		this.pump = new EventPump(this.q[Symbol.asyncIterator]());
-		this._sessionId = config.resume ?? "";
+		const pump = new EventPump(q[Symbol.asyncIterator]());
 
 		// plugin 내 skills 디렉토리 변경 감지 → reloadPlugins
 		for (const dir of config.pluginDirs) {
 			const skillsDir = join(dir, "skills");
 			if (existsSync(skillsDir)) {
 				watch(skillsDir, { recursive: true }, () => {
-					this.q.reloadPlugins().catch(() => {});
+					q.reloadPlugins().catch(() => {});
 				});
 			}
 		}
+
+		return { stream, q, pump };
 	}
 
 	get sessionId() {
@@ -225,12 +233,13 @@ export class ClaudeCodeBot extends Bot {
 		this.sdkStream.end();
 		this.q.close();
 
-		// resume 없이 새 세션 생성
-		const freshConfig = { ...this.config, resume: undefined };
-		const bot = new ClaudeCodeBot(freshConfig);
-		this.sdkStream = bot.sdkStream;
-		this.q = bot.q;
-		this.pump = bot.pump;
+		const fresh = ClaudeCodeBot.createQuery({
+			...this.config,
+			resume: undefined,
+		});
+		this.sdkStream = fresh.stream;
+		this.q = fresh.q;
+		this.pump = fresh.pump;
 		this._sessionId = "";
 		this.turnId = 0;
 
