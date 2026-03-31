@@ -71,14 +71,38 @@ export class DiscordPlatform extends ChatPlatform {
 	async fetchHistory(channelId: string, limit: number) {
 		const channel = await this.client.channels.fetch(channelId);
 		if (!channel?.isTextBased()) return [];
-		const msgs = await (channel as TextChannel).messages.fetch({ limit });
+
 		const selfId = this.client.user?.id;
-		return [...msgs.values()].reverse().map((m) => ({
+		const toHistory = (m: {
+			author: { id: string; username: string };
+			content: string;
+		}) => ({
 			userId: m.author.id,
 			username: m.author.username,
 			text: m.content,
 			isSelf: m.author.id === selfId,
-		}));
+		});
+
+		// 스레드인 경우 부모 채널 히스토리도 포함
+		if (channel.isThread()) {
+			const parentChannel = channel.parent;
+
+			const [parentMsgs, threadMsgs] = await Promise.all([
+				parentChannel && "messages" in parentChannel
+					? parentChannel.messages.fetch({ limit }).catch(() => null)
+					: Promise.resolve(null),
+				channel.messages.fetch({ limit }),
+			]);
+
+			const parent = parentMsgs
+				? [...parentMsgs.values()].reverse().map(toHistory)
+				: [];
+			const current = [...threadMsgs.values()].reverse().map(toHistory);
+			return [...parent, ...current].slice(-limit);
+		}
+
+		const msgs = await (channel as TextChannel).messages.fetch({ limit });
+		return [...msgs.values()].reverse().map(toHistory);
 	}
 
 	async sendStream(
