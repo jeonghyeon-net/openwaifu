@@ -40,12 +40,11 @@ scheduler.start(async (schedule) => {
 });
 console.log(`Scheduler started with ${scheduler.list().length} schedule(s).`);
 
-// 채널별 봇
-const bots = new Map<string, Bot | Promise<Bot>>();
+// 채널별 봇. Promise를 저장해서 동시 생성 방지 (생성 중 다른 메시지가 와도 같은 봇 공유)
+const bots = new Map<string, Promise<Bot>>();
 
-async function getBot(channelId: string): Promise<Bot> {
+function getBot(channelId: string): Promise<Bot> {
 	const existing = bots.get(channelId);
-	if (existing instanceof Promise) return existing;
 	if (existing) return existing;
 
 	const resumeId = sessions.get(channelId);
@@ -55,9 +54,7 @@ async function getBot(channelId: string): Promise<Bot> {
 		throw err;
 	});
 	bots.set(channelId, promise);
-	const bot = await promise;
-	bots.set(channelId, bot);
-	return bot;
+	return promise;
 }
 
 platform.onMessage(async (msg) => {
