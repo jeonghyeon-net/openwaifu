@@ -86,69 +86,44 @@ export class DiscordPlatform extends ChatPlatform {
 
 		let buffer = "";
 		let msg: Awaited<ReturnType<TextChannel["send"]>> | null = null;
-		let nextEdit = 0;
+		let edited = buffer;
 
-		const typing = setInterval(() => {
-			if (!msg) ch.sendTyping();
-		}, 5000);
-		await ch.sendTyping();
-
-		let dirty = false;
-		let pendingFlush: ReturnType<typeof setTimeout> | null = null;
-
-		const flush = async () => {
-			if (pendingFlush) {
-				clearTimeout(pendingFlush);
-				pendingFlush = null;
+		// 200ms 간격으로 buffer → Discord 반영
+		const timer = setInterval(async () => {
+			if (!msg) {
+				ch.sendTyping();
+				return;
 			}
-			if (!msg || !dirty) return;
-			dirty = false;
+			if (buffer === edited) return;
+			edited = buffer;
 			await msg.edit(buffer).catch(() => {});
-			nextEdit = Date.now() + 200;
-		};
-
-		const scheduleFlush = () => {
-			if (pendingFlush) return;
-			pendingFlush = setTimeout(() => {
-				pendingFlush = null;
-				flush();
-			}, 200);
-		};
+		}, 200);
 
 		try {
 			for await (const chunk of stream) {
 				buffer += chunk.text;
-				dirty = true;
+
+				if (!msg) {
+					msg = await ch.send(buffer);
+					edited = buffer;
+				}
 
 				// 2000자 초과 → 현재 메시지 확정, 나머지는 새 메시지로
-				if (buffer.length > 1800 && msg) {
-					await msg.edit(buffer.slice(0, 2000));
-					msg = null;
+				if (buffer.length > 2000 && msg) {
+					await msg.edit(buffer.slice(0, 2000)).catch(() => {});
 					buffer = buffer.slice(2000);
-					dirty = buffer.length > 0;
-				}
-
-				// 첫 메시지 또는 overflow 후 새 메시지
-				if (!msg) {
-					clearInterval(typing);
+					edited = "";
 					msg = await ch.send(buffer);
-					nextEdit = Date.now() + 200;
-					dirty = false;
-					continue;
-				}
-
-				// 200ms throttle — 즉시 또는 타이머로 예약
-				if (Date.now() >= nextEdit) {
-					await flush();
-				} else {
-					scheduleFlush();
+					edited = buffer;
 				}
 			}
 
-			await flush();
+			// 마지막 반영
+			if (msg && buffer !== edited) {
+				await msg.edit(buffer).catch(() => {});
+			}
 		} finally {
-			if (pendingFlush) clearTimeout(pendingFlush);
-			clearInterval(typing);
+			clearInterval(timer);
 		}
 	}
 }

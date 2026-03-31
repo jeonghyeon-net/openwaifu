@@ -225,6 +225,8 @@ export class ClaudeCodeBot extends Bot {
 		const self = this;
 
 		async function* responseStream() {
+			let hadTool = false;
+
 			for (;;) {
 				if (self.turnId !== myTurn) return;
 				const msg = await pump.pull();
@@ -234,8 +236,22 @@ export class ClaudeCodeBot extends Bot {
 					self._sessionId = msg.session_id;
 				}
 
+				// tool 호출 감지
+				if (
+					msg.type === "stream_event" &&
+					msg.event.type === "content_block_start" &&
+					msg.event.content_block.type === "tool_use"
+				) {
+					hadTool = true;
+				}
+
 				const text = isTextDelta(msg);
 				if (text !== null) {
+					// tool 호출 후 첫 텍스트 → 줄바꿈으로 구분
+					if (hadTool) {
+						hadTool = false;
+						yield { type: "text" as const, text: "\n" };
+					}
 					yield { type: "text" as const, text };
 				}
 				if (msg.type === "result") return;
