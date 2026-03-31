@@ -72,6 +72,12 @@
         "@lib/env": "workspace:*",
       },
     },
+    "mcps/google-workspace": {
+      "name": "@mcp/google-workspace",
+      "dependencies": {
+        "@lib/env": "workspace:*",
+      },
+    },
     "mcps/scheduler": {
       "name": "@mcp/scheduler",
       "dependencies": {
@@ -224,6 +230,8 @@
     "@lib/system-monitor": ["@lib/system-monitor@workspace:libs/system-monitor"],
 
     "@mcp/discord": ["@mcp/discord@workspace:mcps/discord"],
+
+    "@mcp/google-workspace": ["@mcp/google-workspace@workspace:mcps/google-workspace"],
 
     "@mcp/scheduler": ["@mcp/scheduler@workspace:mcps/scheduler"],
 
