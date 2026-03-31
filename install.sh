@@ -55,6 +55,12 @@ if ! command -v claude &>/dev/null; then
   brew install claude-code
 fi
 
+# google workspace cli
+if ! command -v gws &>/dev/null; then
+  echo "Installing Google Workspace CLI..."
+  brew install googleworkspace-cli
+fi
+
 # git hooks
 git config core.hooksPath .githooks
 
