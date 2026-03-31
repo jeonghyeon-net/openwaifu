@@ -1,0 +1,14 @@
+{
+	"name": "@mcp/browser",
+	"private": true,
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"scripts": {
+		"check": "bunx tsc --noEmit"
+	},
+	"dependencies": {
+		"@playwright/mcp": "*"
+	}
+}

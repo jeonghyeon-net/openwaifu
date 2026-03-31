@@ -8,7 +8,9 @@ export type Attachment = {
 	size: number;
 };
 
-export type StreamChunk = { type: "text"; text: string };
+export type StreamChunk =
+	| { type: "text"; text: string }
+	| { type: "image"; data: Buffer; mediaType: string };
 
 export type BotConfig = {
 	systemPrompt: string;

@@ -1,5 +1,5 @@
 import { env } from "@lib/env";
-import { Bot } from "grammy";
+import { Bot, InputFile } from "grammy";
 import {
 	type Attachment,
 	ChatPlatform,
@@ -119,7 +119,10 @@ export class TelegramPlatform extends ChatPlatform {
 
 	async sendStream(
 		channelId: string,
-		stream: AsyncIterable<{ type: "text"; text: string }>,
+		stream: AsyncIterable<
+			| { type: "text"; text: string }
+			| { type: "image"; data: Buffer; mediaType: string }
+		>,
 	) {
 		if (!this.bot) throw new Error("Bot not started yet");
 		const bot = this.bot;
@@ -146,6 +149,16 @@ export class TelegramPlatform extends ChatPlatform {
 
 		try {
 			for await (const chunk of stream) {
+				// 이미지 chunk → 사진으로 전송
+				if (chunk.type === "image") {
+					if (msgId) await sync();
+					await bot.api.sendPhoto(
+						chatId,
+						new InputFile(chunk.data, "screenshot.png"),
+					);
+					continue;
+				}
+
 				buffer += chunk.text;
 
 				if (!msgId) {

@@ -279,6 +279,38 @@ export class ClaudeCodeBot extends Bot {
 					hadTool = true;
 				}
 
+				// MCP 도구 결과에서 이미지 감지
+				if (
+					msg.type === "stream_event" &&
+					msg.event.type === "content_block_start" &&
+					msg.event.content_block.type === "mcp_tool_result"
+				) {
+					hadTool = true;
+					const content = msg.event.content_block.content;
+					if (Array.isArray(content)) {
+						for (const block of content) {
+							const b = block as unknown as Record<string, unknown>;
+							if (
+								b["type"] === "image" &&
+								typeof b["source"] === "object" &&
+								b["source"] !== null &&
+								(b["source"] as Record<string, unknown>)["type"] === "base64"
+							) {
+								const src = b["source"] as Record<string, unknown>;
+								if (typeof src["data"] !== "string") continue;
+								yield {
+									type: "image" as const,
+									data: Buffer.from(src["data"], "base64"),
+									mediaType:
+										typeof src["media_type"] === "string"
+											? src["media_type"]
+											: "image/png",
+								};
+							}
+						}
+					}
+				}
+
 				const text = isTextDelta(msg);
 				if (text) {
 					// tool 호출 후 첫 텍스트 → 줄바꿈으로 구분

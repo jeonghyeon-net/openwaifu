@@ -33,7 +33,10 @@ export abstract class ChatPlatform {
 	abstract setPresence(status: PresenceStatus): void;
 	abstract sendStream(
 		channelId: string,
-		stream: AsyncIterable<{ type: "text"; text: string }>,
+		stream: AsyncIterable<
+			| { type: "text"; text: string }
+			| { type: "image"; data: Buffer; mediaType: string }
+		>,
 	): Promise<void>;
 	abstract fetchHistory(
 		channelId: string,
