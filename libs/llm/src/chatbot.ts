@@ -1,10 +1,6 @@
 import type { McpServerConfig as AgentMcpServerConfig } from "@anthropic-ai/claude-agent-sdk";
 
-export const CHATBOT_TOKEN = "ChatBot";
-
 export type McpServerConfig = AgentMcpServerConfig;
-
-export type McpServerFactory = () => Record<string, McpServerConfig>;
 
 export type ChatAttachment = {
 	url: string;
@@ -13,27 +9,25 @@ export type ChatAttachment = {
 	size: number;
 };
 
-export type ChatOptions = {
-	sessionId?: string;
-	attachments?: ChatAttachment[];
-};
-
-export type StreamChunk =
-	| { type: "text"; text: string }
-	| { type: "message_break" };
+export type StreamChunk = { type: "text"; text: string };
 
 export type ChatResult = {
-	/**
-	 * Session ID for this chat. Empty string until the stream emits
-	 * its first event. Consume the stream before reading this value.
-	 */
-	sessionId: string;
 	stream: AsyncIterable<StreamChunk>;
 };
 
-export abstract class ChatBot {
-	abstract readonly name: string;
-	abstract chat(message: string, options?: ChatOptions): ChatResult;
-	abstract setMcpServers(factory: McpServerFactory): void;
-	abstract setSystemPrompt(prompt: string): void;
+export interface ChatBot {
+	readonly sessionId: string;
+	chat(message: string, attachments?: ChatAttachment[]): ChatResult;
+	interrupt(): void;
 }
+
+export type ChatBotConfig = {
+	systemPrompt: string;
+	mcpServers: Record<string, McpServerConfig>;
+};
+
+/** 봇 팩토리. resume가 주어지면 기존 세션 복원, 없으면 새 세션 생성. */
+export type ChatBotFactory = (
+	config: ChatBotConfig,
+	resume?: string,
+) => Promise<ChatBot>;
