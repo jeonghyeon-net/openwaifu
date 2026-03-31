@@ -43,6 +43,12 @@ eval "$(mise activate bash)"
 # dependencies
 bun install
 
+# claude code
+if ! command -v claude &>/dev/null; then
+  echo "Installing Claude Code..."
+  npm install -g @anthropic-ai/claude-code
+fi
+
 # git hooks
 git config core.hooksPath .githooks
 
