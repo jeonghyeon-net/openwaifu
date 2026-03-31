@@ -5,6 +5,9 @@
 	"scripts": {
 		"check": "bunx tsc --noEmit"
 	},
+	"dependencies": {
+		"@lib/env": "workspace:*"
+	},
 	"exports": {
 		".": "./src/index.ts"
 	}

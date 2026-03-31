@@ -42,6 +42,9 @@
     },
     "libs/llm": {
       "name": "@lib/llm",
+      "dependencies": {
+        "@lib/env": "workspace:*",
+      },
     },
     "libs/mcp-discovery": {
       "name": "@lib/mcp-discovery",
@@ -67,9 +70,6 @@
       "dependencies": {
         "@lib/env": "workspace:*",
       },
-    },
-    "mcps/greeter": {
-      "name": "@mcp/greeter",
     },
     "mcps/scheduler": {
       "name": "@mcp/scheduler",
@@ -209,8 +209,6 @@
     "@lib/session-store": ["@lib/session-store@workspace:libs/session-store"],
 
     "@mcp/discord": ["@mcp/discord@workspace:mcps/discord"],
-
-    "@mcp/greeter": ["@mcp/greeter@workspace:mcps/greeter"],
 
     "@mcp/scheduler": ["@mcp/scheduler@workspace:mcps/scheduler"],
 

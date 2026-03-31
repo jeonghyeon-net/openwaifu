@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { env } from "@lib/env";
 import {
 	Codex,
 	type Input,
@@ -87,7 +88,18 @@ export class CodexBot extends ChatBot {
 			}
 			return thread;
 		}
-		return this.getCodex().startThread({ approvalPolicy: "never" });
+		const model = env("CODEX_MODEL", "");
+		const effort = env("CODEX_EFFORT", "high");
+		return this.getCodex().startThread({
+			approvalPolicy: "never",
+			...(model && { model }),
+			modelReasoningEffort: effort as
+				| "minimal"
+				| "low"
+				| "medium"
+				| "high"
+				| "xhigh",
+		});
 	}
 
 	private static async buildInput(

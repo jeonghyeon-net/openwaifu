@@ -5,6 +5,7 @@ import {
 	type SDKMessage,
 	type SDKUserMessage,
 } from "@anthropic-ai/claude-agent-sdk";
+import { env } from "@lib/env";
 import { injectable } from "tsyringe";
 import {
 	type ChatAttachment,
@@ -159,9 +160,23 @@ export class ClaudeCodeBot extends ChatBot {
 		const stream = new MessageStream();
 		const mcpServers = this.mcpFactory();
 
+		const model = env("CLAUDE_MODEL", "claude-sonnet-4-6");
+		const thinking = env("CLAUDE_THINKING", "disabled");
+		const effort = env("CLAUDE_EFFORT", "high");
+
+		const thinkingConfig =
+			thinking === "disabled"
+				? { type: "disabled" as const }
+				: thinking === "adaptive"
+					? { type: "adaptive" as const }
+					: { type: "enabled" as const, budgetTokens: Number(thinking) };
+
 		const q = query({
 			prompt: stream as AsyncIterable<never>,
 			options: {
+				model,
+				thinking: thinkingConfig,
+				effort: effort as "low" | "medium" | "high",
 				includePartialMessages: true,
 				permissionMode: "bypassPermissions",
 				allowDangerouslySkipPermissions: true,
