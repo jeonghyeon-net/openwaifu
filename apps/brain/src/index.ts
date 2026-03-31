@@ -34,7 +34,7 @@ const systemPrompt = `${persona}
 - <recent_chat_history>는 참고용 맥락이다. 이미 처리된 대화이므로 여기에 응답하지 마라. 새 메시지에만 응답한다.`;
 
 const botImpl: BotType = botType === "codex" ? CodexBot : ClaudeCodeBot;
-const baseConfig: BotConfig = { systemPrompt, mcpServers };
+const baseConfig: BotConfig = { systemPrompt, mcpServers, resume: undefined };
 
 console.log(`Bot: ${botType}`);
 console.log(`MCP: ${Object.keys(mcpServers).join(", ") || "none"}`);
@@ -56,11 +56,10 @@ function getBot(channelId: string): Bot {
 	const existing = bots.get(channelId);
 	if (existing) return existing;
 
-	const resumeId = sessions.get(channelId);
-	const bot = Bot.create(
-		botImpl,
-		resumeId ? { ...baseConfig, resume: resumeId } : baseConfig,
-	);
+	const bot = Bot.create(botImpl, {
+		...baseConfig,
+		resume: sessions.get(channelId),
+	});
 	bots.set(channelId, bot);
 	return bot;
 }
