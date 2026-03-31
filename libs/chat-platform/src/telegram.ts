@@ -154,7 +154,10 @@ export class TelegramPlatform extends ChatPlatform {
 					if (msgId) await sync();
 					await bot.api.sendPhoto(
 						chatId,
-						new InputFile(chunk.data, "screenshot.png"),
+						new InputFile(
+							chunk.data,
+							`screenshot.${chunk.mediaType.split("/")[1] ?? "png"}`,
+						),
 					);
 					continue;
 				}

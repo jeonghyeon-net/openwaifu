@@ -9,6 +9,7 @@
 		"check": "bunx tsc --noEmit"
 	},
 	"dependencies": {
-		"@playwright/mcp": "*"
+		"@modelcontextprotocol/sdk": "^1.29.0",
+		"@playwright/mcp": "^0.0.69"
 	}
 }

@@ -70,7 +70,8 @@
     "mcps/browser": {
       "name": "@mcp/browser",
       "dependencies": {
-        "@playwright/mcp": "*",
+        "@modelcontextprotocol/sdk": "^1.29.0",
+        "@playwright/mcp": "^0.0.69",
       },
     },
     "mcps/creatrip-internal": {
