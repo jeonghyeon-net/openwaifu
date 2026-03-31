@@ -15,9 +15,9 @@ export async function startRepl(bot: ChatBot): Promise<void> {
 		if (input.trim() === "exit") break;
 		if (input.trim() === "") continue;
 
-		const chat = bot.chat(input);
+		const stream = bot.enqueue(input);
 
-		for await (const chunk of chat.stream) {
+		for await (const chunk of stream) {
 			if (chunk.type === "text") {
 				process.stdout.write(chunk.text);
 			}

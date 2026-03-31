@@ -9,12 +9,12 @@ import {
 	type Thread,
 	type UserInput,
 } from "@openai/codex-sdk";
-import type {
-	ChatAttachment,
+import {
+	type ChatAttachment,
 	ChatBot,
-	ChatBotFactory,
-	ChatResult,
-	McpServerConfig,
+	type ChatBotConfig,
+	type McpServerConfig,
+	type StreamChunk,
 } from "./chatbot.js";
 
 type CodexConfigValue =
@@ -102,80 +102,90 @@ async function buildInput(
 	};
 }
 
-export const createCodexBot: ChatBotFactory = async (config, resume) => {
-	const codex = buildCodex(config.mcpServers, config.systemPrompt);
-	const model = env("CODEX_MODEL", "");
-	const effort = env("CODEX_EFFORT", "high");
+export class CodexBot extends ChatBot {
+	private _sessionId: string;
+	private lock: Promise<void> | null = null;
 
-	let thread: Thread;
-	if (resume) {
-		thread = codex.resumeThread(resume);
-	} else {
-		thread = codex.startThread({
-			approvalPolicy: "never",
-			...(model && { model }),
-			modelReasoningEffort: effort as
-				| "minimal"
-				| "low"
-				| "medium"
-				| "high"
-				| "xhigh",
-		});
+	private constructor(
+		private thread: Thread,
+		sessionId: string,
+	) {
+		super();
+		this._sessionId = sessionId;
 	}
 
-	let sessionId = resume ?? "";
-	let lock: Promise<void> | null = null;
+	get sessionId() {
+		return this._sessionId;
+	}
 
-	const bot: ChatBot = {
-		get sessionId() {
-			return sessionId;
-		},
+	static async create(
+		config: ChatBotConfig,
+		resume?: string,
+	): Promise<CodexBot> {
+		const codex = buildCodex(config.mcpServers, config.systemPrompt);
+		const model = env("CODEX_MODEL", "");
+		const effort = env("CODEX_EFFORT", "high");
 
-		interrupt() {
-			// Codex는 one-shot 응답 — interrupt 불가, no-op
-		},
-
-		chat(message: string, attachments?: ChatAttachment[]): ChatResult {
-			const responseStream = async function* () {
-				if (lock) await lock.catch(() => {});
-
-				let resolve: (() => void) | undefined;
-				lock = new Promise<void>((r) => {
-					resolve = r;
+		const thread = resume
+			? codex.resumeThread(resume)
+			: codex.startThread({
+					approvalPolicy: "never",
+					...(model && { model }),
+					modelReasoningEffort: effort as
+						| "minimal"
+						| "low"
+						| "medium"
+						| "high"
+						| "xhigh",
 				});
 
-				const { input, cleanup } = await buildInput(message, attachments);
-				try {
-					const { events } = await thread.runStreamed(input);
-					const seen = new Map<string, number>();
+		return new CodexBot(thread, resume ?? "");
+	}
 
-					for await (const event of events) {
-						if (event.type === "thread.started") {
-							sessionId = event.thread_id;
-						}
-						if (
-							(event.type === "item.updated" ||
-								event.type === "item.completed") &&
-							event.item.type === "agent_message"
-						) {
-							const prev = seen.get(event.item.id) ?? 0;
-							const text = event.item.text;
-							if (text.length > prev) {
-								yield { type: "text" as const, text: text.slice(prev) };
-								seen.set(event.item.id, text.length);
-							}
+	enqueue(
+		message: string,
+		attachments?: ChatAttachment[],
+	): AsyncIterable<StreamChunk> {
+		const self = this;
+
+		async function* responseStream() {
+			// Codex는 one-shot — interrupt 대신 직렬화
+			if (self.lock) await self.lock.catch(() => {});
+
+			let resolve: (() => void) | undefined;
+			self.lock = new Promise<void>((r) => {
+				resolve = r;
+			});
+
+			const { input, cleanup } = await buildInput(message, attachments);
+			try {
+				const { events } = await self.thread.runStreamed(input);
+				const seen = new Map<string, number>();
+
+				for await (const event of events) {
+					if (event.type === "thread.started") {
+						self._sessionId = event.thread_id;
+					}
+					if (
+						(event.type === "item.updated" ||
+							event.type === "item.completed") &&
+						event.item.type === "agent_message"
+					) {
+						const prev = seen.get(event.item.id) ?? 0;
+						const text = event.item.text;
+						if (text.length > prev) {
+							yield { type: "text" as const, text: text.slice(prev) };
+							seen.set(event.item.id, text.length);
 						}
 					}
-				} finally {
-					cleanup();
-					resolve?.();
-					lock = null;
 				}
-			};
+			} finally {
+				cleanup();
+				resolve?.();
+				self.lock = null;
+			}
+		}
 
-			return { stream: responseStream() };
-		},
-	};
-
-	return bot;
-};
+		return responseStream();
+	}
+}

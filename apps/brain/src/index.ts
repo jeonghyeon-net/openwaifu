@@ -3,15 +3,15 @@ import { join } from "node:path";
 import { DiscordPlatform } from "@lib/chat-platform";
 import { env, findWorkspaceRoot } from "@lib/env";
 import {
+	type ChatBot,
+	type ChatBotClass,
 	type ChatBotConfig,
-	type ChatBotFactory,
-	createClaudeCodeBot,
-	createCodexBot,
+	ClaudeCodeBot,
+	CodexBot,
 } from "@lib/llm";
 import { discoverMcpServers } from "@lib/mcp-discovery";
 import { Scheduler } from "@lib/scheduler";
 import { SessionStore } from "@lib/session-store";
-import { ChannelWorker } from "./channel-worker.js";
 
 const dataDir = findWorkspaceRoot();
 const botType = env("BOT_TYPE", "claude-code");
@@ -29,42 +29,85 @@ const systemPrompt = `${persona}
 - 너의 텍스트 응답은 자동으로 현재 대화 채널에 전송된다. send_message 도구로 현재 채널에 응답하지 마라.
 - <recent_chat_history>는 참고용 맥락이다. 이미 처리된 대화이므로 여기에 응답하지 마라. 새 메시지에만 응답한다.`;
 
-const factory: ChatBotFactory =
-	botType === "codex" ? createCodexBot : createClaudeCodeBot;
+const BotClass: ChatBotClass = botType === "codex" ? CodexBot : ClaudeCodeBot;
 const botConfig: ChatBotConfig = { systemPrompt, mcpServers };
 
 console.log(`Bot: ${botType}`);
 console.log(`MCP: ${Object.keys(mcpServers).join(", ") || "none"}`);
 console.log(`Sessions restored: ${sessions.all().length}`);
 
-// 스케줄러: 전용 봇 인스턴스 사용
-const schedulerBot = await factory(botConfig);
+// 스케줄러: 전용 봇 인스턴스
+const schedulerBot = await BotClass.create(botConfig);
 scheduler.start(async (schedule) => {
-	const chat = schedulerBot.chat(schedule.prompt);
-	for await (const _ of chat.stream) {
+	const stream = schedulerBot.enqueue(schedule.prompt);
+	for await (const _ of stream) {
 		// AI 응답 텍스트는 무시 — 도구로 직접 행동
 	}
 });
 console.log(`Scheduler started with ${scheduler.list().length} schedule(s).`);
 
-// 채널별 워커
-const workers = new Map<string, ChannelWorker>();
+// 채널별 봇 관리
+const bots = new Map<string, ChatBot | Promise<ChatBot>>();
 
-platform.onMessage((msg) => {
-	let worker = workers.get(msg.channelId);
-	if (!worker) {
-		const resumeId = sessions.get(msg.channelId);
-		worker = new ChannelWorker(
-			msg.channelId,
-			platform,
-			sessions,
-			factory,
-			botConfig,
-			resumeId,
-		);
-		workers.set(msg.channelId, worker);
+async function getBot(channelId: string): Promise<ChatBot> {
+	const existing = bots.get(channelId);
+	if (existing instanceof Promise) return existing;
+	if (existing) return existing;
+
+	const resumeId = sessions.get(channelId);
+	const promise = BotClass.create(botConfig, resumeId).catch((err) => {
+		console.error(`Bot init failed [${channelId}]:`, err);
+		bots.delete(channelId);
+		throw err;
+	});
+	bots.set(channelId, promise);
+	const bot = await promise;
+	bots.set(channelId, bot);
+	return bot;
+}
+
+platform.onMessage(async (msg) => {
+	let bot: ChatBot;
+	try {
+		bot = await getBot(msg.channelId);
+	} catch {
+		return;
 	}
-	worker.enqueue(msg);
+
+	const history = await platform.fetchHistory(msg.channelId, 30);
+	const historyText = history
+		.map(
+			(h) => `${h.username}(${h.userId})${h.isSelf ? "[너]" : ""}: ${h.text}`,
+		)
+		.join("\n");
+	const meta = Object.entries(msg.metadata)
+		.filter(([, v]) => v)
+		.map(([k, v]) => `${k}: ${v}`)
+		.join(", ");
+	const context = `[channelId: ${msg.channelId}, userId: ${msg.userId}, username: ${msg.username}${meta ? `, ${meta}` : ""}]`;
+	const fullMessage = historyText
+		? `<recent_chat_history>\n${historyText}\n</recent_chat_history>\n${context}\n${msg.text}`
+		: `${context}\n${msg.text}`;
+
+	const attachments =
+		msg.attachments.length > 0
+			? msg.attachments.map((a) => ({
+					url: a.url,
+					filename: a.filename,
+					contentType: a.contentType,
+					size: a.size,
+				}))
+			: undefined;
+
+	const stream = bot.enqueue(fullMessage, attachments);
+
+	try {
+		await platform.sendStream(msg.channelId, stream);
+	} catch (err) {
+		console.error(`sendStream error [${msg.channelId}]:`, err);
+	}
+
+	sessions.set(msg.channelId, bot.sessionId);
 });
 
 const shutdown = async () => {
