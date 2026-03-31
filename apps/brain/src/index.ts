@@ -35,7 +35,7 @@ console.log(`Sessions restored: ${sessions.all().length}`);
 
 // 스케줄러: 전용 봇 (페르소나/채팅 규칙 없음)
 const schedulerBot = Bot.create(botImpl, {
-	systemPrompt: "스케줄에 따라 주어진 작업을 MCP 도구로 수행한다.",
+	systemPrompt: persona,
 	mcpServers,
 	resume: undefined,
 });
