@@ -48,11 +48,16 @@ function getBot(channelId: string): Promise<Bot> {
 	if (existing) return existing;
 
 	const resumeId = sessions.get(channelId);
-	const promise = createBot(botConfig, resumeId).catch((err) => {
-		console.error(`Bot init failed [${channelId}]:`, err);
-		bots.delete(channelId);
-		throw err;
-	});
+	const promise = createBot(botConfig, resumeId)
+		.then((bot) => {
+			sessions.set(channelId, bot.sessionId);
+			return bot;
+		})
+		.catch((err) => {
+			console.error(`Bot init failed [${channelId}]:`, err);
+			bots.delete(channelId);
+			throw err;
+		});
 	bots.set(channelId, promise);
 	return promise;
 }
@@ -97,8 +102,6 @@ platform.onMessage(async (msg) => {
 	} catch (err) {
 		console.error(`sendStream error [${msg.channelId}]:`, err);
 	}
-
-	sessions.set(msg.channelId, bot.sessionId);
 });
 
 const shutdown = async () => {
