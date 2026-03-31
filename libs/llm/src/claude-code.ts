@@ -164,7 +164,7 @@ export class ClaudeCodeBot extends Bot {
 	constructor(config: BotConfig) {
 		super();
 
-		const model = env("CLAUDE_MODEL", "claude-opus-4-6");
+		const model = env("CLAUDE_MODEL", "claude-sonnet-4-6");
 		const thinking = env("CLAUDE_THINKING", "disabled");
 		const effort = env("CLAUDE_EFFORT", "high");
 
