@@ -115,56 +115,52 @@ export class TelegramPlatform extends ChatPlatform {
 		if (!this.bot) throw new Error("Bot not started yet");
 		const bot = this.bot;
 		const chatId = Number(channelId);
-		const MESSAGE_LIMIT = 4096;
-		const CHUNK_THRESHOLD = 3800;
 
 		let buffer = "";
 		let msgId: number | null = null;
+		let synced = "";
 
-		const editSafe = async (id: number, text: string) => {
+		await bot.api.sendChatAction(chatId, "typing");
+
+		const sync = async () => {
+			if (!msgId || buffer === synced) return;
+			synced = buffer;
 			try {
-				await bot.api.editMessageText(chatId, id, text);
+				await bot.api.editMessageText(chatId, msgId, buffer);
 			} catch (e: unknown) {
 				const m = e instanceof Error ? e.message : String(e);
 				if (!m.includes("message is not modified")) throw e;
 			}
 		};
 
-		const flush = async () => {
-			if (msgId && buffer) {
-				await editSafe(msgId, buffer);
-			} else if (!msgId && buffer) {
-				await bot.api.sendMessage(chatId, buffer);
-			}
-		};
-
-		await bot.api.sendChatAction(chatId, "typing");
-		const typingInterval = setInterval(() => {
-			if (!msgId) bot.api.sendChatAction(chatId, "typing");
-		}, 4000);
+		const editTimer = setInterval(() => sync(), 500);
 
 		try {
 			for await (const chunk of stream) {
 				buffer += chunk.text;
 
-				if (buffer.length > CHUNK_THRESHOLD && msgId) {
-					await editSafe(msgId, buffer.slice(0, MESSAGE_LIMIT));
-					msgId = null;
-					buffer = buffer.slice(MESSAGE_LIMIT);
-				}
-
 				if (!msgId) {
-					clearInterval(typingInterval);
 					const sent = await bot.api.sendMessage(chatId, buffer);
 					msgId = sent.message_id;
-				} else {
-					await editSafe(msgId, buffer);
+					synced = buffer;
+				}
+
+				// 4096자 초과 → 현재 메시지 확정, 나머지는 새 메시지로
+				if (buffer.length > 4096 && msgId) {
+					await sync();
+					await bot.api
+						.editMessageText(chatId, msgId, buffer.slice(0, 4096))
+						.catch(() => {});
+					buffer = buffer.slice(4096);
+					const sent = await bot.api.sendMessage(chatId, buffer);
+					msgId = sent.message_id;
+					synced = buffer;
 				}
 			}
 
-			await flush();
+			await sync();
 		} finally {
-			clearInterval(typingInterval);
+			clearInterval(editTimer);
 		}
 	}
 }
