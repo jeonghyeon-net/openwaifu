@@ -160,9 +160,11 @@ export class ClaudeCodeBot extends Bot {
 	private sdkStream: MessageStream;
 	private q: Query;
 	private pump: EventPump;
+	private config: BotConfig;
 
 	constructor(config: BotConfig) {
 		super();
+		this.config = config;
 
 		const model = env("CLAUDE_MODEL", "claude-sonnet-4-6");
 		const thinking = env("CLAUDE_THINKING", "disabled");
@@ -219,6 +221,23 @@ export class ClaudeCodeBot extends Bot {
 		return this._sessionId;
 	}
 
+	private resetSession() {
+		this.sdkStream.end();
+		this.q.close();
+
+		// resume 없이 새 세션 생성
+		const freshConfig = { ...this.config, resume: undefined };
+		const bot = new ClaudeCodeBot(freshConfig);
+		this.sdkStream = bot.sdkStream;
+		this.q = bot.q;
+		this.pump = bot.pump;
+		this._sessionId = "";
+		this.turnId = 0;
+
+		console.log("Session reset (context >= 80%)");
+		this.onSessionReset?.("");
+	}
+
 	send(
 		message: string,
 		attachments?: Attachment[],
@@ -270,7 +289,16 @@ export class ClaudeCodeBot extends Bot {
 					}
 					yield { type: "text" as const, text };
 				}
-				if (msg.type === "result") return;
+				if (msg.type === "result") {
+					// 컨텍스트 80% 이상이면 세션 리셋
+					self.q
+						.getContextUsage()
+						.then((usage) => {
+							if (usage.percentage >= 80) self.resetSession();
+						})
+						.catch(() => {});
+					return;
+				}
 			}
 		}
 

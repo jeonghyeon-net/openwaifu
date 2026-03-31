@@ -60,6 +60,10 @@ function getBot(channelId: string): Bot {
 		resume: sessions.get(channelId),
 		pluginDirs,
 	});
+	bot.onSessionReset = (newId) => {
+		if (newId) sessions.set(channelId, newId);
+		else sessions.delete(channelId);
+	};
 	bots.set(channelId, bot);
 	return bot;
 }

@@ -21,6 +21,7 @@ export type BotType = new (config: BotConfig) => Bot;
 
 export abstract class Bot {
 	abstract readonly sessionId: string;
+	onSessionReset?: (newSessionId: string) => void;
 	/** 메시지 전송. 이전 응답이 진행 중이면 자동 interrupt. */
 	abstract send(
 		message: string,
