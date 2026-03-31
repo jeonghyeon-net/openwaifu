@@ -6,7 +6,13 @@ import {
 	type IncomingMessage,
 } from "@lib/chat-platform";
 import { env, findWorkspaceRoot } from "@lib/env";
-import { type Bot, type BotConfig, ClaudeCodeBot, CodexBot } from "@lib/llm";
+import {
+	Bot,
+	type BotConfig,
+	type BotType,
+	ClaudeCodeBot,
+	CodexBot,
+} from "@lib/llm";
 import { discoverMcpServers } from "@lib/mcp-discovery";
 import { Scheduler } from "@lib/scheduler";
 import { SessionStore } from "@lib/session-store";
@@ -27,7 +33,7 @@ const systemPrompt = `${persona}
 - 너의 텍스트 응답은 자동으로 현재 대화 채널에 전송된다. send_message 도구로 현재 채널에 응답하지 마라.
 - <recent_chat_history>는 참고용 맥락이다. 이미 처리된 대화이므로 여기에 응답하지 마라. 새 메시지에만 응답한다.`;
 
-const BotImpl = botType === "codex" ? CodexBot : ClaudeCodeBot;
+const botImpl: BotType = botType === "codex" ? CodexBot : ClaudeCodeBot;
 const baseConfig: BotConfig = { systemPrompt, mcpServers };
 
 console.log(`Bot: ${botType}`);
@@ -35,7 +41,7 @@ console.log(`MCP: ${Object.keys(mcpServers).join(", ") || "none"}`);
 console.log(`Sessions restored: ${sessions.all().length}`);
 
 // 스케줄러: 전용 봇
-const schedulerBot = new BotImpl(baseConfig);
+const schedulerBot = Bot.create(botImpl, baseConfig);
 scheduler.start(async (schedule) => {
 	for await (const _ of schedulerBot.send(schedule.prompt)) {
 		// 도구로 직접 행동
@@ -51,7 +57,8 @@ function getBot(channelId: string): Bot {
 	if (existing) return existing;
 
 	const resumeId = sessions.get(channelId);
-	const bot = new BotImpl(
+	const bot = Bot.create(
+		botImpl,
 		resumeId ? { ...baseConfig, resume: resumeId } : baseConfig,
 	);
 	bots.set(channelId, bot);
