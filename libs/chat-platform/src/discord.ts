@@ -89,46 +89,44 @@ export class DiscordPlatform extends ChatPlatform {
 		if (!channel?.isTextBased()) return;
 		const ch = channel as TextChannel;
 
-		let buffer = "";
-		let msg: Awaited<ReturnType<TextChannel["send"]>> | null = null;
-		let synced = "";
+		const s = {
+			buffer: "",
+			msg: null as Awaited<ReturnType<TextChannel["send"]>> | null,
+			synced: "",
+		};
 
 		await ch.sendTyping();
 
-		const sync = async () => {
-			if (!msg || buffer === synced) return;
-			synced = buffer;
-			await msg.edit(buffer).catch(() => {});
+		const flush = async () => {
+			if (!s.buffer.trim()) return;
+			if (s.msg) {
+				if (s.buffer !== s.synced) {
+					s.synced = s.buffer;
+					await s.msg.edit(s.buffer).catch(() => {});
+				}
+			} else {
+				s.msg = await ch.send(s.buffer);
+				s.synced = s.buffer;
+			}
 		};
 
-		const editTimer = setInterval(() => sync(), 500);
+		const timer = setInterval(() => flush(), 500);
 
 		try {
 			for await (const chunk of stream) {
-				buffer += chunk.text;
+				s.buffer += chunk.text;
 
-				if (!msg && buffer) {
-					msg = await ch.send(buffer);
-					synced = buffer;
-				}
-
-				// 2000자 초과 → 현재 메시지 확정, 나머지는 새 메시지로
-				if (buffer.length > 2000 && msg) {
-					await msg.edit(buffer.slice(0, 2000)).catch(() => {});
-					buffer = buffer.slice(2000);
-					synced = "";
-					if (buffer) {
-						msg = await ch.send(buffer);
-						synced = buffer;
-					} else {
-						msg = null;
-					}
+				// 2000자 초과 → 현재 메시지 확정, 나머지를 새 메시지로
+				if (s.msg && s.buffer.length > 2000) {
+					await s.msg.edit(s.buffer.slice(0, 2000)).catch(() => {});
+					s.buffer = s.buffer.slice(2000);
+					s.msg = null;
+					s.synced = "";
 				}
 			}
-
-			await sync();
+			await flush();
 		} finally {
-			clearInterval(editTimer);
+			clearInterval(timer);
 		}
 	}
 }
