@@ -3,11 +3,24 @@ set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "$0")" && pwd)"
 
+# detect shell rc file
+SHELL_RC=""
+case "$(basename "$SHELL")" in
+  zsh)  SHELL_RC="$HOME/.zshrc" ;;
+  bash) SHELL_RC="$HOME/.bashrc" ;;
+esac
+
 # brew
 if ! command -v brew &>/dev/null; then
   echo "Installing Homebrew..."
   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
   eval "$(/opt/homebrew/bin/brew shellenv)"
+fi
+
+if [ -n "$SHELL_RC" ] && ! grep -q 'brew shellenv' "$SHELL_RC" 2>/dev/null; then
+  echo '' >> "$SHELL_RC"
+  echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> "$SHELL_RC"
+  echo "Added brew shellenv to $SHELL_RC"
 fi
 
 # mise
@@ -16,12 +29,6 @@ if ! command -v mise &>/dev/null; then
   brew install mise
 fi
 
-# ensure mise is activated in shell rc
-SHELL_RC=""
-case "$(basename "$SHELL")" in
-  zsh)  SHELL_RC="$HOME/.zshrc" ;;
-  bash) SHELL_RC="$HOME/.bashrc" ;;
-esac
 if [ -n "$SHELL_RC" ] && ! grep -q 'mise activate' "$SHELL_RC" 2>/dev/null; then
   echo '' >> "$SHELL_RC"
   echo 'eval "$(mise activate '"$(basename "$SHELL")"')"' >> "$SHELL_RC"
