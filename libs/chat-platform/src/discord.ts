@@ -15,6 +15,8 @@ import {
 export class DiscordPlatform extends ChatPlatform {
 	private client: Client;
 	private handlers: MessageHandler[] = [];
+	private currentStatus: PresenceStatus = "online";
+	private currentActivity = "";
 
 	constructor() {
 		super();
@@ -69,11 +71,22 @@ export class DiscordPlatform extends ChatPlatform {
 	}
 
 	setStatus(text: string) {
-		this.client.user?.setActivity(text, { type: ActivityType.Custom });
+		this.currentActivity = text;
+		this.syncPresence();
 	}
 
 	setPresence(status: PresenceStatus) {
-		this.client.user?.setPresence({ status });
+		this.currentStatus = status;
+		this.syncPresence();
+	}
+
+	private syncPresence() {
+		this.client.user?.setPresence({
+			status: this.currentStatus,
+			activities: this.currentActivity
+				? [{ name: this.currentActivity, type: ActivityType.Custom }]
+				: [],
+		});
 	}
 
 	async fetchHistory(channelId: string, limit: number) {
