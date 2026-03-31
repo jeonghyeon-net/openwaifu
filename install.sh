@@ -114,6 +114,7 @@ EOF
   GUI_DOMAIN="gui/$(id -u)"
   launchctl bootout "$GUI_DOMAIN/com.openwaifu.brain" 2>/dev/null || true
   launchctl bootstrap "$GUI_DOMAIN" "$PLIST_PATH"
+  launchctl enable "$GUI_DOMAIN/com.openwaifu.brain"
   echo "Brain service registered and started."
 fi
 
