@@ -258,8 +258,13 @@ export class ClaudeCodeBot extends Bot {
 		const pump = this.pump;
 		const self = this;
 
+		/** 이미지 전송 대상 도구 이름 */
+		const IMAGE_TOOLS = new Set(["browser_capture_and_send_screenshot"]);
+
 		async function* responseStream() {
 			let hadTool = false;
+			/** 이미지 전송 대상 tool_use_id 추적 */
+			const imageToolIds = new Set<string>();
 
 			for (;;) {
 				if (self.turnId !== myTurn) return;
@@ -279,17 +284,40 @@ export class ClaudeCodeBot extends Bot {
 					hadTool = true;
 				}
 
-				// MCP 도구 결과에서 이미지 감지
+				// MCP 도구 호출 감지 — 이미지 전송 대상 도구면 ID 기록
+				if (
+					msg.type === "stream_event" &&
+					msg.event.type === "content_block_start" &&
+					msg.event.content_block.type === "mcp_tool_use"
+				) {
+					hadTool = true;
+					const block = msg.event.content_block as unknown as {
+						id: string;
+						name: string;
+					};
+					if (IMAGE_TOOLS.has(block.name)) {
+						imageToolIds.add(block.id);
+					}
+				}
+
+				// MCP 도구 결과에서 이미지 감지 (등록된 도구만)
 				if (
 					msg.type === "stream_event" &&
 					msg.event.type === "content_block_start" &&
 					msg.event.content_block.type === "mcp_tool_result"
 				) {
 					hadTool = true;
-					const content = msg.event.content_block.content;
-					if (Array.isArray(content)) {
-						for (const block of content) {
-							const b = block as unknown as Record<string, unknown>;
+					const result = msg.event.content_block as unknown as {
+						tool_use_id: string;
+						content: unknown;
+					};
+					if (
+						imageToolIds.has(result.tool_use_id) &&
+						Array.isArray(result.content)
+					) {
+						imageToolIds.delete(result.tool_use_id);
+						for (const block of result.content) {
+							const b = block as Record<string, unknown>;
 							if (
 								b["type"] === "image" &&
 								typeof b["source"] === "object" &&
