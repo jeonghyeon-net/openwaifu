@@ -103,6 +103,10 @@ export class TelegramPlatform extends ChatPlatform {
 		if (this.bot) await this.bot.stop();
 	}
 
+	setStatus(_text: string) {
+		// Telegram Bot API does not support bot status
+	}
+
 	async fetchHistory() {
 		// Telegram Bot API does not support fetching chat history
 		return [];

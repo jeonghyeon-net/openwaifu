@@ -1,5 +1,6 @@
 import { env } from "@lib/env";
 import {
+	ActivityType,
 	Client,
 	Events,
 	GatewayIntentBits,
@@ -61,6 +62,10 @@ export class DiscordPlatform extends ChatPlatform {
 
 	onMessage(handler: MessageHandler) {
 		this.handlers.push(handler);
+	}
+
+	setStatus(text: string) {
+		this.client.user?.setActivity(text, { type: ActivityType.Custom });
 	}
 
 	async fetchHistory(channelId: string, limit: number) {
