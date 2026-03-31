@@ -88,7 +88,6 @@ export class DiscordPlatform extends ChatPlatform {
 		let msg: Awaited<ReturnType<TextChannel["send"]>> | null = null;
 		let synced = "";
 
-		const typing = setInterval(() => ch.sendTyping(), 5000);
 		await ch.sendTyping();
 
 		const sync = async () => {
@@ -105,7 +104,6 @@ export class DiscordPlatform extends ChatPlatform {
 				buffer += chunk.text;
 
 				if (!msg) {
-					clearInterval(typing);
 					msg = await ch.send(buffer);
 					synced = buffer;
 				}
@@ -123,7 +121,6 @@ export class DiscordPlatform extends ChatPlatform {
 			await sync();
 		} finally {
 			clearInterval(editTimer);
-			clearInterval(typing);
 		}
 	}
 }
