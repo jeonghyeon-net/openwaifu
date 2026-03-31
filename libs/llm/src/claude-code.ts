@@ -234,6 +234,15 @@ export class ClaudeCodeBot extends Bot {
 					self._sessionId = msg.session_id;
 				}
 
+				// tool 호출 감지 로그
+				if (
+					msg.type === "stream_event" &&
+					msg.event.type === "content_block_start" &&
+					msg.event.content_block.type === "tool_use"
+				) {
+					console.log(`[bot] tool_use: ${msg.event.content_block.name}`);
+				}
+
 				const text = isTextDelta(msg);
 				if (text !== null) {
 					yield { type: "text" as const, text };
