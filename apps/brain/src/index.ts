@@ -79,6 +79,7 @@ function buildMessage(msg: IncomingMessage, history: HistoryMessage[]): string {
 }
 
 platform.onMessage(async (msg) => {
+	console.log(`[onMessage] ${msg.channelId} "${msg.text.slice(0, 30)}"`);
 	const bot = getBot(msg.channelId);
 	const history = await platform.fetchHistory(msg.channelId, 30);
 

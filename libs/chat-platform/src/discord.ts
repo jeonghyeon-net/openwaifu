@@ -105,6 +105,7 @@ export class DiscordPlatform extends ChatPlatform {
 			}
 		};
 
+		let sendCount = 0;
 		try {
 			for await (const chunk of stream) {
 				state.buffer += chunk.text;
@@ -117,12 +118,17 @@ export class DiscordPlatform extends ChatPlatform {
 
 				if (!state.msg) {
 					clearInterval(typingInterval);
+					sendCount++;
+					console.log(
+						`[sendStream] send #${sendCount}, buffer=${state.buffer.length} chars`,
+					);
 					state.msg = await textChannel.send(state.buffer);
 				} else {
 					await state.msg.edit(state.buffer).catch(() => {});
 				}
 			}
 
+			console.log(`[sendStream] stream ended, total sends: ${sendCount}`);
 			await flush();
 		} finally {
 			clearInterval(typingInterval);
