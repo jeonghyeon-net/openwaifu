@@ -209,6 +209,35 @@ export class Scheduler {
 		return result.changes > 0;
 	}
 
+	update(
+		id: string,
+		fields: {
+			cronExpression?: string | undefined;
+			prompt?: string | undefined;
+		},
+	): boolean {
+		if (fields.cronExpression && !isValidCron(fields.cronExpression)) {
+			throw new Error(`Invalid cron expression: ${fields.cronExpression}`);
+		}
+		const sets: string[] = [];
+		const params: string[] = [];
+		if (fields.cronExpression) {
+			sets.push("cron_expression = ?");
+			params.push(fields.cronExpression);
+		}
+		if (fields.prompt) {
+			sets.push("prompt = ?");
+			params.push(fields.prompt);
+		}
+		if (sets.length === 0) return false;
+		params.push(id);
+		const result = this.db.run(
+			`UPDATE schedules SET ${sets.join(", ")} WHERE id = ?`,
+			params,
+		);
+		return result.changes > 0;
+	}
+
 	disable(id: string): boolean {
 		const result = this.db.run(
 			"UPDATE schedules SET enabled = 0 WHERE id = ?",

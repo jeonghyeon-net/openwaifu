@@ -86,6 +86,42 @@ server.tool(
 );
 
 server.tool(
+	"update_schedule",
+	"Update an existing schedule's cron expression or prompt",
+	{
+		id: z.string().describe("Schedule ID to update"),
+		cronExpression: z
+			.string()
+			.optional()
+			.describe("New cron expression (minute hour dayOfMonth month dayOfWeek)"),
+		prompt: z.string().optional().describe("New prompt"),
+	},
+	async ({ id, cronExpression, prompt }) => {
+		try {
+			const found = scheduler.update(id, { cronExpression, prompt });
+			return {
+				content: [
+					{
+						type: "text",
+						text: found ? `Schedule ${id} updated` : `Schedule ${id} not found`,
+					},
+				],
+			};
+		} catch (e: unknown) {
+			return {
+				content: [
+					{
+						type: "text",
+						text: e instanceof Error ? e.message : String(e),
+					},
+				],
+				isError: true,
+			};
+		}
+	},
+);
+
+server.tool(
 	"enable_schedule",
 	"Enable a disabled cron schedule",
 	{ id: z.string().describe("Schedule ID to enable") },
