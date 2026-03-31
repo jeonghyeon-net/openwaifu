@@ -1,3 +1,8 @@
+// /opt/homebrew/bin이 PATH에 없으면 gh 등 homebrew 도구를 못 찾음
+if (!process.env["PATH"]?.includes("/opt/homebrew/bin")) {
+	process.env["PATH"] = `/opt/homebrew/bin:${process.env["PATH"]}`;
+}
+
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
