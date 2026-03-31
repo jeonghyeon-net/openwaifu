@@ -117,6 +117,7 @@ platform.onMessage(async (msg) => {
 		console.error(`sendStream error [${msg.channelId}]:`, err);
 		bot.destroy();
 		bots.delete(msg.channelId);
+		sessions.delete(msg.channelId);
 		return;
 	}
 
