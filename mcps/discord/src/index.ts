@@ -1,7 +1,7 @@
 import { env } from "@lib/env";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { Client, GatewayIntentBits } from "discord.js";
+import { Client } from "discord.js";
 import { registerAutomodTools } from "./tools/automod.js";
 import { registerChannelTools } from "./tools/channels.js";
 import { registerEmojiTools } from "./tools/emojis.js";
@@ -11,7 +11,6 @@ import { registerGuildTools } from "./tools/guild.js";
 import { registerInviteTools } from "./tools/invites.js";
 import { registerMemberTools } from "./tools/members.js";
 import { registerMessageTools } from "./tools/messages.js";
-import { registerPresenceTools } from "./tools/presence.js";
 import { registerReactionTools } from "./tools/reactions.js";
 import { registerRoleTools } from "./tools/roles.js";
 import { registerStickerTools } from "./tools/stickers.js";
@@ -22,23 +21,9 @@ import { createUtils } from "./utils.js";
 
 const server = new McpServer({ name: "discord", version: "0.2.0" });
 
-const client = new Client({
-	intents: [
-		GatewayIntentBits.Guilds,
-		GatewayIntentBits.GuildMessages,
-		GatewayIntentBits.GuildMembers,
-		GatewayIntentBits.MessageContent,
-		GatewayIntentBits.GuildModeration,
-		GatewayIntentBits.GuildEmojisAndStickers,
-		GatewayIntentBits.GuildWebhooks,
-		GatewayIntentBits.GuildInvites,
-		GatewayIntentBits.GuildVoiceStates,
-		GatewayIntentBits.GuildMessageReactions,
-		GatewayIntentBits.GuildScheduledEvents,
-		GatewayIntentBits.AutoModerationConfiguration,
-		GatewayIntentBits.AutoModerationExecution,
-	],
-});
+// REST-only: 게이트웨이 연결 없이 API 호출만 사용
+// presence는 brain의 DiscordPlatform이 관리하므로 게이트웨이 불필요
+const client = new Client({ intents: [] });
 
 const utils = createUtils(client);
 
@@ -54,15 +39,11 @@ registerInviteTools(server, client, utils);
 registerGuildTools(server, client, utils);
 registerEmojiTools(server, client, utils);
 registerVoiceTools(server, client, utils);
-registerPresenceTools(server, client, utils);
 registerEventTools(server, client, utils);
 registerStickerTools(server, client, utils);
 registerAutomodTools(server, client, utils);
 
 const token = env("DISCORD_TOKEN");
-const loginPromise = client.login(token);
+client.token = token;
+client.rest.setToken(token);
 await server.connect(new StdioServerTransport());
-await loginPromise;
-
-// brain의 DiscordPlatform이 presence를 관리하므로, MCP 클라이언트는 invisible로 설정
-client.user?.setPresence({ status: "invisible" });
