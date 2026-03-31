@@ -86,7 +86,7 @@ export class DiscordPlatform extends ChatPlatform {
 
 		let buffer = "";
 		let msg: Awaited<ReturnType<TextChannel["send"]>> | null = null;
-		let lastEdit = 0;
+		let nextEdit = 0;
 
 		const typing = setInterval(() => {
 			if (!msg) ch.sendTyping();
@@ -95,8 +95,8 @@ export class DiscordPlatform extends ChatPlatform {
 
 		const flush = async () => {
 			if (!msg || !buffer) return;
-			lastEdit = Date.now();
 			await msg.edit(buffer).catch(() => {});
+			nextEdit = Date.now() + 200;
 		};
 
 		try {
@@ -114,12 +114,12 @@ export class DiscordPlatform extends ChatPlatform {
 				if (!msg) {
 					clearInterval(typing);
 					msg = await ch.send(buffer);
-					lastEdit = Date.now();
+					nextEdit = Date.now() + 200;
 					continue;
 				}
 
-				// 200ms throttle
-				if (Date.now() - lastEdit >= 200) await flush();
+				// 200ms throttle — edit 완료 후 200ms 경과했을 때만
+				if (Date.now() >= nextEdit) await flush();
 			}
 
 			await flush();
