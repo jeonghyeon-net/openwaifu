@@ -17,13 +17,20 @@ async function runGws(args: string[]): Promise<string> {
 		stderr: "pipe",
 		env: { ...process.env, GOOGLE_WORKSPACE_CLI_KEYRING_BACKEND: "keyring" },
 	});
-	const timer = setTimeout(() => proc.kill(), TIMEOUT_MS);
+	let timedOut = false;
+	const timer = setTimeout(() => {
+		timedOut = true;
+		proc.kill();
+	}, TIMEOUT_MS);
 	const [stdout, stderr] = await Promise.all([
 		new Response(proc.stdout).text(),
 		new Response(proc.stderr).text(),
 	]);
 	const code = await proc.exited;
 	clearTimeout(timer);
+	if (timedOut) {
+		throw new Error(`gws command timed out after ${TIMEOUT_MS / 1000}s`);
+	}
 	if (code !== 0) {
 		throw new Error(stderr || stdout || `gws exited with code ${code}`);
 	}
@@ -354,7 +361,7 @@ const formatSchema = z
 	.describe("Output format (default: json)");
 
 for (const svc of services) {
-	const toolName = `gws_${svc.service.replace("-", "_")}`;
+	const toolName = `gws_${svc.service.replaceAll("-", "_")}`;
 	const schema: Record<string, z.ZodTypeAny> = {
 		command: z.string().describe(svc.commandHint),
 		params: paramsSchema,
@@ -410,6 +417,7 @@ server.registerTool(
 	},
 	async ({ method, resolveRefs }) => {
 		try {
+			validateCommand(method);
 			const args = ["schema", method];
 			if (resolveRefs) args.push("--resolve-refs");
 			return ok(await runGws(args));
