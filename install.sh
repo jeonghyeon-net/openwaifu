@@ -27,6 +27,10 @@ bun install
 # git hooks
 git config core.hooksPath .githooks
 
+# codex skill symlink
+mkdir -p ~/.agents/skills
+ln -sf "$REPO_DIR/skills" ~/.agents/skills/openwaifu
+
 # launchd
 read -rp "Register brain as launchd service? [y/N] " answer
 if [[ "$answer" =~ ^[Yy]$ ]]; then
