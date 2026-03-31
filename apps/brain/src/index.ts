@@ -1,6 +1,10 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { DiscordPlatform } from "@lib/chat-platform";
+import {
+	DiscordPlatform,
+	type HistoryMessage,
+	type IncomingMessage,
+} from "@lib/chat-platform";
 import { env, findWorkspaceRoot } from "@lib/env";
 import { type Bot, type BotConfig, ClaudeCodeBot, CodexBot } from "@lib/llm";
 import { discoverMcpServers } from "@lib/mcp-discovery";
@@ -62,15 +66,7 @@ function getBot(channelId: string): Promise<Bot> {
 	return promise;
 }
 
-platform.onMessage(async (msg) => {
-	let bot: Bot;
-	try {
-		bot = await getBot(msg.channelId);
-	} catch {
-		return;
-	}
-
-	const history = await platform.fetchHistory(msg.channelId, 30);
+function buildMessage(msg: IncomingMessage, history: HistoryMessage[]): string {
 	const historyText = history
 		.map(
 			(h) => `${h.username}(${h.userId})${h.isSelf ? "[너]" : ""}: ${h.text}`,
@@ -81,24 +77,29 @@ platform.onMessage(async (msg) => {
 		.map(([k, v]) => `${k}: ${v}`)
 		.join(", ");
 	const context = `[channelId: ${msg.channelId}, userId: ${msg.userId}, username: ${msg.username}${meta ? `, ${meta}` : ""}]`;
-	const fullMessage = historyText
+	return historyText
 		? `<recent_chat_history>\n${historyText}\n</recent_chat_history>\n${context}\n${msg.text}`
 		: `${context}\n${msg.text}`;
+}
 
-	const attachments =
-		msg.attachments.length > 0
-			? msg.attachments.map((a) => ({
-					url: a.url,
-					filename: a.filename,
-					contentType: a.contentType,
-					size: a.size,
-				}))
-			: undefined;
+platform.onMessage(async (msg) => {
+	let bot: Bot;
+	try {
+		bot = await getBot(msg.channelId);
+	} catch {
+		return;
+	}
 
-	const stream = bot.send(fullMessage, attachments);
+	const history = await platform.fetchHistory(msg.channelId, 30);
 
 	try {
-		await platform.sendStream(msg.channelId, stream);
+		await platform.sendStream(
+			msg.channelId,
+			bot.send(
+				buildMessage(msg, history),
+				msg.attachments.length > 0 ? msg.attachments : undefined,
+			),
+		);
 	} catch (err) {
 		console.error(`sendStream error [${msg.channelId}]:`, err);
 	}
