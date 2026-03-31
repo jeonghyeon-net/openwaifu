@@ -39,8 +39,12 @@ export function getSystemStats(): {
 
 	let disk = 0;
 	try {
-		const df = execSync("df -h / | tail -1", { encoding: "utf-8" });
-		const match = df.match(/(\d+)%/);
+		// macOS APFS: Data 볼륨이 실제 사용량, 없으면 루트 사용
+		const df = execSync("df -h /System/Volumes/Data 2>/dev/null || df -h /", {
+			encoding: "utf-8",
+		});
+		const last = df.trim().split("\n").pop() ?? "";
+		const match = last.match(/(\d+)%/);
 		if (match) disk = Number(match[1]);
 	} catch {
 		/* ignore */
