@@ -96,7 +96,6 @@ export class DiscordPlatform extends ChatPlatform {
 			await msg.edit(buffer).catch(() => {});
 		};
 
-		// 200ms 간격으로 sync (tool 호출 등 chunk가 안 올 때도 버퍼 반영)
 		const editTimer = setInterval(() => sync(), 300);
 
 		try {
