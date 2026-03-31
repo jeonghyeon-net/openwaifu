@@ -86,44 +86,44 @@ export class DiscordPlatform extends ChatPlatform {
 
 		let buffer = "";
 		let msg: Awaited<ReturnType<TextChannel["send"]>> | null = null;
-		let edited = buffer;
+		let synced = "";
 
-		// 200ms 간격으로 buffer → Discord 반영
-		const timer = setInterval(async () => {
-			if (!msg) {
-				ch.sendTyping();
-				return;
-			}
-			if (buffer === edited) return;
-			edited = buffer;
+		const typing = setInterval(() => ch.sendTyping(), 5000);
+		await ch.sendTyping();
+
+		const sync = async () => {
+			if (!msg || buffer === synced) return;
+			synced = buffer;
 			await msg.edit(buffer).catch(() => {});
-		}, 200);
+		};
+
+		// 200ms 간격으로 sync (tool 호출 등 chunk가 안 올 때도 버퍼 반영)
+		const editTimer = setInterval(() => sync(), 200);
 
 		try {
 			for await (const chunk of stream) {
 				buffer += chunk.text;
 
 				if (!msg) {
+					clearInterval(typing);
 					msg = await ch.send(buffer);
-					edited = buffer;
+					synced = buffer;
 				}
 
 				// 2000자 초과 → 현재 메시지 확정, 나머지는 새 메시지로
 				if (buffer.length > 2000 && msg) {
+					await sync();
 					await msg.edit(buffer.slice(0, 2000)).catch(() => {});
 					buffer = buffer.slice(2000);
-					edited = "";
 					msg = await ch.send(buffer);
-					edited = buffer;
+					synced = buffer;
 				}
 			}
 
-			// 마지막 반영
-			if (msg && buffer !== edited) {
-				await msg.edit(buffer).catch(() => {});
-			}
+			await sync();
 		} finally {
-			clearInterval(timer);
+			clearInterval(editTimer);
+			clearInterval(typing);
 		}
 	}
 }
