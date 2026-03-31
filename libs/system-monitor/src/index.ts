@@ -1,5 +1,7 @@
 import { execSync } from "node:child_process";
-import { cpus, freemem, totalmem } from "node:os";
+import { cpus, totalmem } from "node:os";
+
+const PAGE_SIZE = 16384; // macOS default
 
 // 초기값을 미리 읽어서 첫 호출부터 유효한 CPU% 제공
 const initCores = cpus();
@@ -10,11 +12,7 @@ let prevTotal = initCores.reduce(
 	0,
 );
 
-export function getSystemStats(): {
-	cpu: number;
-	ram: number;
-	disk: number;
-} {
+function getCpu(): number {
 	const cores = cpus();
 	let idle = 0;
 	let total = 0;
@@ -27,30 +25,68 @@ export function getSystemStats(): {
 			core.times.irq +
 			core.times.idle;
 	}
-
+	const dTotal = total - prevTotal;
 	const cpu =
-		prevTotal > 0
-			? Math.round((1 - (idle - prevIdle) / (total - prevTotal)) * 100)
-			: 0;
+		dTotal > 0 ? Math.round((1 - (idle - prevIdle) / dTotal) * 100) : 0;
 	prevIdle = idle;
 	prevTotal = total;
+	return cpu;
+}
 
-	const ram = Math.round((1 - freemem() / totalmem()) * 100);
-
-	let disk = 0;
+function getRam(): number {
 	try {
-		// macOS APFS: Data 볼륨이 실제 사용량, 없으면 루트 사용
-		const df = execSync("df -h /System/Volumes/Data 2>/dev/null || df -h /", {
+		// macOS: vm_stat으로 active + wired = 실사용 메모리
+		const vmstat = execSync("vm_stat", { encoding: "utf-8" });
+		const pages = (key: string) => {
+			const m = vmstat.match(new RegExp(`${key}:\\s+(\\d+)`));
+			return m ? Number(m[1]) : 0;
+		};
+		const used =
+			(pages("Pages active") + pages("Pages wired down")) * PAGE_SIZE;
+		return Math.round((used / totalmem()) * 100);
+	} catch {
+		// Linux fallback: /proc/meminfo
+		try {
+			const meminfo = execSync("cat /proc/meminfo", { encoding: "utf-8" });
+			const totalMatch = meminfo.match(/MemTotal:\s+(\d+)/);
+			const availMatch = meminfo.match(/MemAvailable:\s+(\d+)/);
+			if (totalMatch && availMatch) {
+				return Math.round(
+					(1 - Number(availMatch[1]) / Number(totalMatch[1])) * 100,
+				);
+			}
+		} catch {
+			/* ignore */
+		}
+		return 0;
+	}
+}
+
+function getDisk(): number {
+	try {
+		// macOS APFS: 컨테이너 전체 사용량 = Size - Avail
+		const df = execSync("df /System/Volumes/Data 2>/dev/null || df /", {
 			encoding: "utf-8",
 		});
-		const last = df.trim().split("\n").pop() ?? "";
-		const match = last.match(/(\d+)%/);
-		if (match) disk = Number(match[1]);
+		const lines = df.trim().split("\n");
+		const cols = lines[lines.length - 1]?.split(/\s+/);
+		if (cols && cols.length >= 4) {
+			const size = Number(cols[1]);
+			const avail = Number(cols[3]);
+			if (size > 0) return Math.round(((size - avail) / size) * 100);
+		}
 	} catch {
 		/* ignore */
 	}
+	return 0;
+}
 
-	return { cpu, ram, disk };
+export function getSystemStats(): {
+	cpu: number;
+	ram: number;
+	disk: number;
+} {
+	return { cpu: getCpu(), ram: getRam(), disk: getDisk() };
 }
 
 export function formatStats(stats: {
