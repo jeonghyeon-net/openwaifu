@@ -31,7 +31,7 @@ const client = new Client(
 await client.connect(
 	new StdioClientTransport({
 		command: "bun",
-		args: ["run", cliPath, "--browser", "chrome", "--headless"],
+		args: ["run", cliPath, "--browser", "chrome"],
 	}),
 );
 
