@@ -929,7 +929,7 @@ cd apps/brain && bun dev
 Expected output:
 ```
 Bot: claude-code
-MCP: discord, scheduler
+MCP: creatrip-internal, discord, scheduler
 Sessions restored: N
 Scheduler started with N schedule(s).
 Brain started.
