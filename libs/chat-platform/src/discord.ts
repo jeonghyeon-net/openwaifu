@@ -105,19 +105,21 @@ export class DiscordPlatform extends ChatPlatform {
 			}
 		};
 
-		const delay = (ms: number) =>
-			new Promise<"tick">((r) => setTimeout(() => r("tick"), ms));
+		const delay = () =>
+			new Promise<"tick">((r) => setTimeout(() => r("tick"), 500));
 		const iter = stream[Symbol.asyncIterator]();
 		let next = iter.next();
+		let tick = delay();
 
 		for (;;) {
 			const winner = await Promise.race([
 				next.then((r) => ({ type: "chunk" as const, result: r })),
-				delay(500).then(() => ({ type: "tick" as const, result: null })),
+				tick.then(() => ({ type: "tick" as const, result: null })),
 			]);
 
 			if (winner.type === "tick") {
 				await flush();
+				tick = delay();
 				continue;
 			}
 
