@@ -61,9 +61,11 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
 	});
 });
 
-// 종료 시 서브프로세스 정리
-server.onclose = async () => {
-	await client.close();
+client.onerror = (err) => {
+	console.error("[browser-mcp] client error:", err);
+};
+server.onerror = (err) => {
+	console.error("[browser-mcp] server error:", err);
 };
 
 await server.connect(new StdioServerTransport());
