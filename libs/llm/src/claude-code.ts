@@ -150,24 +150,14 @@ function buildContent(
 
 export class ClaudeCodeBot extends Bot {
 	private turnId = 0;
+	private _sessionId: string;
+	private sdkStream: MessageStream;
+	private q: Query;
+	private pump: EventPump;
 
-	private constructor(
-		private sdkStream: MessageStream,
-		private q: Query,
-		private pump: EventPump,
-		private _sessionId: string,
-	) {
+	constructor(config: BotConfig) {
 		super();
-	}
 
-	get sessionId() {
-		return this._sessionId;
-	}
-
-	static async create(
-		config: BotConfig,
-		resume?: string,
-	): Promise<ClaudeCodeBot> {
 		const model = env("CLAUDE_MODEL", "claude-sonnet-4-6");
 		const thinking = env("CLAUDE_THINKING", "disabled");
 		const effort = env("CLAUDE_EFFORT", "high");
@@ -179,9 +169,9 @@ export class ClaudeCodeBot extends Bot {
 					? { type: "adaptive" as const }
 					: { type: "enabled" as const, budgetTokens: Number(thinking) };
 
-		const stream = new MessageStream();
-		const q = query({
-			prompt: stream as AsyncIterable<never>,
+		this.sdkStream = new MessageStream();
+		this.q = query({
+			prompt: this.sdkStream as AsyncIterable<never>,
 			options: {
 				model,
 				thinking: thinkingConfig,
@@ -190,7 +180,7 @@ export class ClaudeCodeBot extends Bot {
 				permissionMode: "bypassPermissions",
 				allowDangerouslySkipPermissions: true,
 				mcpServers: config.mcpServers as Record<string, AgentMcpServerConfig>,
-				...(resume && { resume }),
+				...(config.resume && { resume: config.resume }),
 				...(config.systemPrompt && {
 					systemPrompt: {
 						type: "preset" as const,
@@ -201,19 +191,12 @@ export class ClaudeCodeBot extends Bot {
 			},
 		});
 
-		const pump = new EventPump(q[Symbol.asyncIterator]());
+		this.pump = new EventPump(this.q[Symbol.asyncIterator]());
+		this._sessionId = config.resume ?? "";
+	}
 
-		let sessionId = resume ?? "";
-		for (;;) {
-			const msg = await pump.pull();
-			if (msg === null) throw new Error("SDK session init failed");
-			if (msg.type === "system" && msg.subtype === "init") {
-				sessionId = msg.session_id;
-				break;
-			}
-		}
-
-		return new ClaudeCodeBot(stream, q, pump, sessionId);
+	get sessionId() {
+		return this._sessionId;
 	}
 
 	send(
@@ -240,6 +223,10 @@ export class ClaudeCodeBot extends Bot {
 				if (self.turnId !== myTurn) return;
 				const msg = await pump.pull();
 				if (msg === null) return;
+
+				if (msg.type === "system" && msg.subtype === "init") {
+					self._sessionId = msg.session_id;
+				}
 
 				const text = isTextDelta(msg);
 				if (text !== null) {

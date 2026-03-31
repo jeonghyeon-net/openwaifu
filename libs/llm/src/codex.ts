@@ -97,26 +97,17 @@ async function buildInput(
 export class CodexBot extends Bot {
 	private _sessionId: string;
 	private lock: Promise<void> | null = null;
+	private thread: Thread;
 
-	private constructor(
-		private thread: Thread,
-		sessionId: string,
-	) {
+	constructor(config: BotConfig) {
 		super();
-		this._sessionId = sessionId;
-	}
 
-	get sessionId() {
-		return this._sessionId;
-	}
-
-	static async create(config: BotConfig, resume?: string): Promise<CodexBot> {
 		const codex = buildCodex(config.mcpServers, config.systemPrompt);
 		const model = env("CODEX_MODEL", "");
 		const effort = env("CODEX_EFFORT", "high");
 
-		const thread = resume
-			? codex.resumeThread(resume)
+		this.thread = config.resume
+			? codex.resumeThread(config.resume)
 			: codex.startThread({
 					approvalPolicy: "never",
 					...(model && { model }),
@@ -128,7 +119,11 @@ export class CodexBot extends Bot {
 						| "xhigh",
 				});
 
-		return new CodexBot(thread, resume ?? "");
+		this._sessionId = config.resume ?? "";
+	}
+
+	get sessionId() {
+		return this._sessionId;
 	}
 
 	send(

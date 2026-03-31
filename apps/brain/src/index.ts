@@ -27,43 +27,35 @@ const systemPrompt = `${persona}
 - 너의 텍스트 응답은 자동으로 현재 대화 채널에 전송된다. send_message 도구로 현재 채널에 응답하지 마라.
 - <recent_chat_history>는 참고용 맥락이다. 이미 처리된 대화이므로 여기에 응답하지 마라. 새 메시지에만 응답한다.`;
 
-const createBot = botType === "codex" ? CodexBot.create : ClaudeCodeBot.create;
-const botConfig: BotConfig = { systemPrompt, mcpServers };
+const BotImpl = botType === "codex" ? CodexBot : ClaudeCodeBot;
+const baseConfig: BotConfig = { systemPrompt, mcpServers };
 
 console.log(`Bot: ${botType}`);
 console.log(`MCP: ${Object.keys(mcpServers).join(", ") || "none"}`);
 console.log(`Sessions restored: ${sessions.all().length}`);
 
 // 스케줄러: 전용 봇
-const schedulerBot = await createBot(botConfig);
+const schedulerBot = new BotImpl(baseConfig);
 scheduler.start(async (schedule) => {
-	const stream = schedulerBot.send(schedule.prompt);
-	for await (const _ of stream) {
+	for await (const _ of schedulerBot.send(schedule.prompt)) {
 		// 도구로 직접 행동
 	}
 });
 console.log(`Scheduler started with ${scheduler.list().length} schedule(s).`);
 
-// 채널별 봇. Promise를 저장해서 동시 생성 방지 (생성 중 다른 메시지가 와도 같은 봇 공유)
-const bots = new Map<string, Promise<Bot>>();
+// 채널별 봇
+const bots = new Map<string, Bot>();
 
-function getBot(channelId: string): Promise<Bot> {
+function getBot(channelId: string): Bot {
 	const existing = bots.get(channelId);
 	if (existing) return existing;
 
 	const resumeId = sessions.get(channelId);
-	const promise = createBot(botConfig, resumeId)
-		.then((bot) => {
-			sessions.set(channelId, bot.sessionId);
-			return bot;
-		})
-		.catch((err) => {
-			console.error(`Bot init failed [${channelId}]:`, err);
-			bots.delete(channelId);
-			throw err;
-		});
-	bots.set(channelId, promise);
-	return promise;
+	const bot = new BotImpl(
+		resumeId ? { ...baseConfig, resume: resumeId } : baseConfig,
+	);
+	bots.set(channelId, bot);
+	return bot;
 }
 
 function buildMessage(msg: IncomingMessage, history: HistoryMessage[]): string {
@@ -83,13 +75,7 @@ function buildMessage(msg: IncomingMessage, history: HistoryMessage[]): string {
 }
 
 platform.onMessage(async (msg) => {
-	let bot: Bot;
-	try {
-		bot = await getBot(msg.channelId);
-	} catch {
-		return;
-	}
-
+	const bot = getBot(msg.channelId);
 	const history = await platform.fetchHistory(msg.channelId, 30);
 
 	try {
@@ -102,6 +88,10 @@ platform.onMessage(async (msg) => {
 		);
 	} catch (err) {
 		console.error(`sendStream error [${msg.channelId}]:`, err);
+	}
+
+	if (bot.sessionId) {
+		sessions.set(msg.channelId, bot.sessionId);
 	}
 });
 

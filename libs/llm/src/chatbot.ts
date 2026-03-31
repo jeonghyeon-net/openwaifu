@@ -13,6 +13,8 @@ export type StreamChunk = { type: "text"; text: string };
 export type BotConfig = {
 	systemPrompt: string;
 	mcpServers: Record<string, McpServerConfig>;
+	/** 기존 세션 복원용 ID */
+	resume?: string;
 };
 
 export abstract class Bot {
