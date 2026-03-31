@@ -180,6 +180,7 @@ export class ClaudeCodeBot extends Bot {
 				model,
 				thinking: thinkingConfig,
 				effort: effort as "low" | "medium" | "high",
+				tools: { type: "preset" as const, preset: "claude_code" as const },
 				includePartialMessages: true,
 				permissionMode: "bypassPermissions",
 				allowDangerouslySkipPermissions: true,

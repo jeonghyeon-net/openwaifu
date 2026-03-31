@@ -87,6 +87,8 @@ platform.onMessage(async (msg) => {
 		);
 	} catch (err) {
 		console.error(`sendStream error [${msg.channelId}]:`, err);
+		bots.delete(msg.channelId);
+		return;
 	}
 
 	if (bot.sessionId) {
