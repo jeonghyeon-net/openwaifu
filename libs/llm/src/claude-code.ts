@@ -162,7 +162,7 @@ export class ClaudeCodeBot extends Bot {
 	constructor(config: BotConfig) {
 		super();
 
-		const model = env("CLAUDE_MODEL", "claude-sonnet-4-6");
+		const model = env("CLAUDE_MODEL", "claude-opus-4-6");
 		const thinking = env("CLAUDE_THINKING", "disabled");
 		const effort = env("CLAUDE_EFFORT", "high");
 
@@ -232,15 +232,6 @@ export class ClaudeCodeBot extends Bot {
 
 				if (msg.type === "system" && msg.subtype === "init") {
 					self._sessionId = msg.session_id;
-				}
-
-				// tool 호출 감지 로그
-				if (
-					msg.type === "stream_event" &&
-					msg.event.type === "content_block_start" &&
-					msg.event.content_block.type === "tool_use"
-				) {
-					console.log(`[bot] tool_use: ${msg.event.content_block.name}`);
 				}
 
 				const text = isTextDelta(msg);
