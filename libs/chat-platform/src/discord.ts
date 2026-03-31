@@ -82,73 +82,49 @@ export class DiscordPlatform extends ChatPlatform {
 	) {
 		const channel = await this.client.channels.fetch(channelId);
 		if (!channel?.isTextBased()) return;
+		const ch = channel as TextChannel;
 
-		const textChannel = channel as TextChannel;
-		const MESSAGE_LIMIT = 2000;
-		const CHUNK_THRESHOLD = 1800;
-
-		const state = {
-			buffer: "",
-			msg: null as Awaited<ReturnType<TextChannel["send"]>> | null,
-		};
-
-		await textChannel.sendTyping();
-		const typingInterval = setInterval(() => {
-			if (!state.msg) textChannel.sendTyping();
-		}, 5000);
-
-		const EDIT_INTERVAL = 300;
+		let buffer = "";
+		let msg: Awaited<ReturnType<TextChannel["send"]>> | null = null;
 		let lastEdit = 0;
-		let editTimer: ReturnType<typeof setTimeout> | null = null;
-		let dirty = false;
 
-		const edit = async () => {
-			if (!state.msg || !dirty) return;
-			dirty = false;
+		const typing = setInterval(() => {
+			if (!msg) ch.sendTyping();
+		}, 5000);
+		await ch.sendTyping();
+
+		const flush = async () => {
+			if (!msg || !buffer) return;
 			lastEdit = Date.now();
-			await state.msg.edit(state.buffer).catch(() => {});
+			await msg.edit(buffer).catch(() => {});
 		};
 
 		try {
 			for await (const chunk of stream) {
-				state.buffer += chunk.text;
+				buffer += chunk.text;
 
-				if (state.buffer.length > CHUNK_THRESHOLD && state.msg) {
-					if (editTimer) clearTimeout(editTimer);
-					await state.msg.edit(state.buffer.slice(0, MESSAGE_LIMIT));
-					state.msg = null;
-					state.buffer = state.buffer.slice(MESSAGE_LIMIT);
-					dirty = false;
+				// 2000자 초과 → 현재 메시지 확정, 나머지는 새 메시지로
+				if (buffer.length > 1800 && msg) {
+					await msg.edit(buffer.slice(0, 2000));
+					msg = null;
+					buffer = buffer.slice(2000);
 				}
 
-				if (!state.msg) {
-					clearInterval(typingInterval);
-					state.msg = await textChannel.send(state.buffer);
+				// 첫 메시지 또는 overflow 후 새 메시지
+				if (!msg) {
+					clearInterval(typing);
+					msg = await ch.send(buffer);
 					lastEdit = Date.now();
-				} else {
-					dirty = true;
-					const elapsed = Date.now() - lastEdit;
-					if (elapsed >= EDIT_INTERVAL) {
-						if (editTimer) clearTimeout(editTimer);
-						await edit();
-					} else if (!editTimer) {
-						editTimer = setTimeout(() => {
-							editTimer = null;
-							edit();
-						}, EDIT_INTERVAL - elapsed);
-					}
+					continue;
 				}
+
+				// 200ms throttle
+				if (Date.now() - lastEdit >= 200) await flush();
 			}
 
-			// 스트림 끝 — 남은 버퍼 최종 반영
-			if (editTimer) clearTimeout(editTimer);
-			if (state.msg && dirty) {
-				await edit();
-			} else if (!state.msg && state.buffer) {
-				await textChannel.send(state.buffer);
-			}
+			await flush();
 		} finally {
-			clearInterval(typingInterval);
+			clearInterval(typing);
 		}
 	}
 }
