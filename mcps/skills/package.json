@@ -1,0 +1,14 @@
+{
+	"name": "@mcp/skills",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"check": "bunx tsc --noEmit"
+	},
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"dependencies": {
+		"@lib/env": "workspace:*"
+	}
+}

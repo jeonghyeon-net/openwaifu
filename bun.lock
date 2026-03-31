@@ -79,6 +79,12 @@
         "@lib/scheduler": "workspace:*",
       },
     },
+    "mcps/skills": {
+      "name": "@mcp/skills",
+      "dependencies": {
+        "@lib/env": "workspace:*",
+      },
+    },
     "mcps/telegram": {
       "name": "@mcp/telegram",
       "dependencies": {
@@ -220,6 +226,8 @@
     "@mcp/discord": ["@mcp/discord@workspace:mcps/discord"],
 
     "@mcp/scheduler": ["@mcp/scheduler@workspace:mcps/scheduler"],
+
+    "@mcp/skills": ["@mcp/skills@workspace:mcps/skills"],
 
     "@mcp/telegram": ["@mcp/telegram@workspace:mcps/telegram"],
 

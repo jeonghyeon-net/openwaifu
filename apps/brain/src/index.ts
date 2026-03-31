@@ -16,6 +16,7 @@ import { formatStats, getSystemStats } from "@lib/system-monitor";
 // 설정
 const dataDir = findWorkspaceRoot();
 const botType = env("BOT_TYPE", "claude-code");
+const pluginDirs = [join(dataDir, "plugins", "openwaifu")];
 const botImpl: BotType = botType === "codex" ? CodexBot : ClaudeCodeBot;
 const mcpServers = discoverMcpServers();
 const persona = readFileSync(join(dataDir, "PERSONA.md"), "utf-8");
@@ -38,6 +39,7 @@ const schedulerBot = Bot.create(botImpl, {
 	systemPrompt: persona,
 	mcpServers,
 	resume: undefined,
+	pluginDirs,
 });
 scheduler.start(async (schedule) => {
 	for await (const _ of schedulerBot.send(schedule.prompt)) {
@@ -56,6 +58,7 @@ function getBot(channelId: string): Bot {
 		systemPrompt: chatPrompt,
 		mcpServers,
 		resume: sessions.get(channelId),
+		pluginDirs,
 	});
 	bots.set(channelId, bot);
 	return bot;

@@ -1,3 +1,5 @@
+import { existsSync, watch } from "node:fs";
+import { join } from "node:path";
 import {
 	type McpServerConfig as AgentMcpServerConfig,
 	type Query,
@@ -184,6 +186,9 @@ export class ClaudeCodeBot extends Bot {
 				includePartialMessages: true,
 				permissionMode: "bypassPermissions",
 				allowDangerouslySkipPermissions: true,
+				plugins: config.pluginDirs
+					.filter((d) => existsSync(d))
+					.map((path) => ({ type: "local" as const, path })),
 				mcpServers: config.mcpServers as Record<string, AgentMcpServerConfig>,
 				...(config.resume && { resume: config.resume }),
 				...(config.systemPrompt && {
@@ -198,6 +203,16 @@ export class ClaudeCodeBot extends Bot {
 
 		this.pump = new EventPump(this.q[Symbol.asyncIterator]());
 		this._sessionId = config.resume ?? "";
+
+		// plugin 내 skills 디렉토리 변경 감지 → reloadPlugins
+		for (const dir of config.pluginDirs) {
+			const skillsDir = join(dir, "skills");
+			if (existsSync(skillsDir)) {
+				watch(skillsDir, { recursive: true }, () => {
+					this.q.reloadPlugins().catch(() => {});
+				});
+			}
+		}
 	}
 
 	get sessionId() {

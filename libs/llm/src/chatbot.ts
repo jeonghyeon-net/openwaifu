@@ -14,6 +14,7 @@ export type BotConfig = {
 	systemPrompt: string;
 	mcpServers: Record<string, McpServerConfig>;
 	resume: string | undefined;
+	pluginDirs: string[];
 };
 
 export type BotType = new (config: BotConfig) => Bot;
