@@ -14,8 +14,9 @@ import { SessionStore } from "@lib/session-store";
 import { ChannelWorker } from "./channel-worker.js";
 
 const dataDir = findWorkspaceRoot();
+const botType = env("BOT_TYPE", "claude-code");
 const platform = new DiscordPlatform();
-const sessions = new SessionStore(join(dataDir, "sessions.db"), "claude-code");
+const sessions = new SessionStore(join(dataDir, "sessions.db"), botType);
 const scheduler = new Scheduler(join(dataDir, "scheduler.db"));
 
 await platform.start();
@@ -28,7 +29,6 @@ const systemPrompt = `${persona}
 - 너의 텍스트 응답은 자동으로 현재 대화 채널에 전송된다. send_message 도구로 현재 채널에 응답하지 마라.
 - <recent_chat_history>는 참고용 맥락이다. 이미 처리된 대화이므로 여기에 응답하지 마라. 새 메시지에만 응답한다.`;
 
-const botType = env("BOT_TYPE", "claude-code");
 const factory: ChatBotFactory =
 	botType === "codex" ? createCodexBot : createClaudeCodeBot;
 const botConfig: ChatBotConfig = { systemPrompt, mcpServers };

@@ -21,9 +21,13 @@ export class ChannelWorker {
 		config: ChatBotConfig,
 		resumeSessionId?: string,
 	) {
-		this.botReady = factory(config, resumeSessionId).then((b) => {
-			this.bot = b;
-		});
+		this.botReady = factory(config, resumeSessionId)
+			.then((b) => {
+				this.bot = b;
+			})
+			.catch((err) => {
+				console.error(`ChannelWorker[${channelId}] bot init failed:`, err);
+			});
 	}
 
 	enqueue(msg: IncomingMessage): void {
@@ -38,7 +42,11 @@ export class ChannelWorker {
 		while (this.pending) {
 			const msg = this.pending;
 			this.pending = null;
-			await this.process(msg);
+			try {
+				await this.process(msg);
+			} catch (err) {
+				console.error(`ChannelWorker[${this.channelId}] process error:`, err);
+			}
 		}
 		this.draining = false;
 	}
