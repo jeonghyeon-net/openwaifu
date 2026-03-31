@@ -259,7 +259,7 @@ export class ClaudeCodeBot extends Bot {
 		const self = this;
 
 		/** 이미지 전송 대상 도구 이름 */
-		const IMAGE_TOOLS = new Set(["browser_capture_and_send_screenshot"]);
+		const IMAGE_TOOLS = new Set(["browser_take_screenshot"]);
 
 		async function* responseStream() {
 			let hadTool = false;
