@@ -7,8 +7,12 @@
 	],
 	"scripts": {
 		"check": "biome check . && bun --filter '*' check",
-		"fmt": "biome check --fix ."
+		"fmt": "biome check --fix .",
+		"postinstall": "npx -y @playwright/mcp install-browser chromium"
 	},
+	"trustedDependencies": [
+		"@mcp/browser"
+	],
 	"commitlint": {
 		"extends": [
 			"@commitlint/config-conventional"
