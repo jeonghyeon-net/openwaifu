@@ -1,9 +1,19 @@
+import { readFileSync } from "node:fs";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { Client } from "discord.js";
+import type { AttachmentBuilder, Client } from "discord.js";
 import { z } from "zod";
 import { err, ok } from "../helpers.js";
 import { embedSchema } from "../schemas.js";
 import type { Utils } from "../utils.js";
+
+/** URL 또는 로컬 파일 경로를 discord.js 첨부 형식으로 변환 */
+function toAttachment(path: string): string | AttachmentBuilder {
+	if (path.startsWith("http://") || path.startsWith("https://")) return path;
+	return {
+		attachment: readFileSync(path),
+		name: path.split("/").pop() ?? "file",
+	} as unknown as AttachmentBuilder;
+}
 
 export function registerMessageTools(
 	server: McpServer,
@@ -22,7 +32,7 @@ export function registerMessageTools(
 				files: z
 					.array(z.string())
 					.optional()
-					.describe("Array of file URLs to attach"),
+					.describe("Array of file URLs or local file paths to attach"),
 				replyTo: z.string().optional().describe("Message ID to reply to"),
 			},
 		},
@@ -32,7 +42,7 @@ export function registerMessageTools(
 				const opts: Record<string, unknown> = {};
 				if (content) opts["content"] = content;
 				if (embeds) opts["embeds"] = embeds;
-				if (files) opts["files"] = files;
+				if (files) opts["files"] = files.map(toAttachment);
 				if (replyTo) opts["reply"] = { messageReference: replyTo };
 				const msg = await ch.send(opts);
 				return ok(`Sent message ${msg.id}`);
@@ -190,7 +200,7 @@ export function registerMessageTools(
 				const opts: Record<string, unknown> = {};
 				if (content) opts["content"] = content;
 				if (embeds) opts["embeds"] = embeds;
-				if (files) opts["files"] = files;
+				if (files) opts["files"] = files.map(toAttachment);
 				const msg = await target.reply(opts);
 				return ok(`Replied with message ${msg.id}`);
 			} catch (e) {

@@ -128,10 +128,7 @@ export class DiscordPlatform extends ChatPlatform {
 
 	async sendStream(
 		channelId: string,
-		stream: AsyncIterable<
-			| { type: "text"; text: string }
-			| { type: "image"; data: Buffer; mediaType: string }
-		>,
+		stream: AsyncIterable<{ type: "text"; text: string }>,
 	) {
 		const channel = await this.client.channels.fetch(channelId);
 		if (!channel?.isTextBased()) return;
@@ -172,21 +169,7 @@ export class DiscordPlatform extends ChatPlatform {
 			}
 
 			if (winner.result.done) break;
-			const chunk = winner.result.value;
-
-			// 이미지 chunk → 파일로 전송
-			if (chunk.type === "image") {
-				await flush();
-				const ext = chunk.mediaType.split("/")[1] ?? "png";
-				await ch.send({
-					files: [{ attachment: chunk.data, name: `screenshot.${ext}` }],
-				});
-				next = iter.next();
-				tick = delay();
-				continue;
-			}
-
-			s.buffer += chunk.text;
+			s.buffer += winner.result.value.text;
 
 			// 2000자 초과 → 현재 메시지 확정, 나머지를 새 메시지로
 			if (s.msg && s.buffer.length > 2000) {

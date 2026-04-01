@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, watch } from "node:fs";
+import { existsSync, watch } from "node:fs";
 import { join } from "node:path";
 import {
 	type McpServerConfig as AgentMcpServerConfig,
@@ -14,59 +14,6 @@ import {
 	type BotConfig,
 	type StreamChunk,
 } from "./chatbot.js";
-
-/** 이미지 전송 대상 MCP 도구 이름 */
-const IMAGE_FORWARD_TOOLS = new Set(["browser_take_screenshot"]);
-
-const IMAGE_EXT_RE = /\/?[\w./~-]+\.(?:png|jpe?g|webp)/i;
-
-/** MCP 도구 결과에서 이미지를 추출한다 (base64 또는 파일 경로). */
-function* extractImages(content: unknown): Generator<StreamChunk> {
-	if (Array.isArray(content)) {
-		for (const block of content) {
-			const b = block as Record<string, unknown>;
-			// base64 이미지
-			if (b["type"] === "image") {
-				const src = b["source"] as Record<string, unknown> | undefined;
-				if (src?.["type"] === "base64" && typeof src["data"] === "string") {
-					yield {
-						type: "image",
-						data: Buffer.from(src["data"], "base64"),
-						mediaType:
-							typeof src["media_type"] === "string"
-								? src["media_type"]
-								: "image/png",
-					};
-					return;
-				}
-			}
-		}
-	}
-
-	// 파일 경로 (.png/.jpg 등)
-	const text =
-		typeof content === "string"
-			? content
-			: Array.isArray(content)
-				? (content as Array<Record<string, unknown>>)
-						.filter((b) => b["type"] === "text")
-						.map((b) => b["text"])
-						.join("")
-				: "";
-	const match = IMAGE_EXT_RE.exec(text);
-	if (match?.[0] && existsSync(match[0])) {
-		try {
-			const ext = match[0].split(".").pop() ?? "png";
-			yield {
-				type: "image",
-				data: readFileSync(match[0]),
-				mediaType: `image/${ext === "jpg" ? "jpeg" : ext}`,
-			};
-		} catch {
-			// 파일 읽기 실패
-		}
-	}
-}
 
 function isTextDelta(msg: SDKMessage): string | null {
 	if (
@@ -313,7 +260,6 @@ export class ClaudeCodeBot extends Bot {
 
 		async function* responseStream() {
 			let hadTool = false;
-			const imageToolIds = new Set<string>();
 
 			for (;;) {
 				if (self.turnId !== myTurn) return;
@@ -324,48 +270,26 @@ export class ClaudeCodeBot extends Bot {
 					self._sessionId = msg.session_id;
 				}
 
-				if (msg.type !== "stream_event") {
-					if (msg.type === "result") return;
-					continue;
-				}
-
-				const ev = msg.event;
-				if (ev.type !== "content_block_start") {
-					const text = isTextDelta(msg);
-					if (text) {
-						if (hadTool) {
-							hadTool = false;
-							yield { type: "text" as const, text: "\n" };
-						}
-						yield { type: "text" as const, text };
-					}
-					continue;
-				}
-
-				const block = ev.content_block;
-
-				if (block.type === "tool_use") {
+				// tool 호출 감지
+				if (
+					msg.type === "stream_event" &&
+					msg.event.type === "content_block_start" &&
+					(msg.event.content_block.type === "tool_use" ||
+						msg.event.content_block.type === "mcp_tool_use" ||
+						msg.event.content_block.type === "mcp_tool_result")
+				) {
 					hadTool = true;
 				}
 
-				if (block.type === "mcp_tool_use") {
-					hadTool = true;
-					const b = block as unknown as { id: string; name: string };
-					if (IMAGE_FORWARD_TOOLS.has(b.name)) {
-						imageToolIds.add(b.id);
+				const text = isTextDelta(msg);
+				if (text) {
+					if (hadTool) {
+						hadTool = false;
+						yield { type: "text" as const, text: "\n" };
 					}
+					yield { type: "text" as const, text };
 				}
-
-				if (block.type === "mcp_tool_result") {
-					hadTool = true;
-					const b = block as unknown as {
-						tool_use_id: string;
-						content: unknown;
-					};
-					if (imageToolIds.delete(b.tool_use_id)) {
-						yield* extractImages(b.content);
-					}
-				}
+				if (msg.type === "result") return;
 			}
 		}
 

@@ -1,7 +1,8 @@
+import { existsSync, readFileSync } from "node:fs";
 import { env } from "@lib/env";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { Bot } from "grammy";
+import { Bot, InputFile } from "grammy";
 import { z } from "zod";
 
 const server = new McpServer({ name: "telegram", version: "0.0.1" });
@@ -81,9 +82,12 @@ server.registerTool(
 	},
 	async ({ chatId, url, caption }) => {
 		try {
+			const source = existsSync(url)
+				? new InputFile(readFileSync(url), url.split("/").pop())
+				: url;
 			const msg = await bot.api.sendPhoto(
 				Number(chatId),
-				url,
+				source,
 				caption ? { caption } : {},
 			);
 			return {
