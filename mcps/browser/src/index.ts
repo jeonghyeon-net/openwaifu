@@ -25,5 +25,14 @@ const node = find("node", [
 const cliPath = new URL("cli.js", import.meta.resolve("@playwright/mcp"))
 	.pathname;
 
+// Chromium이 없으면 자동 설치
+try {
+	execFileSync(node, [cliPath, "install-browser", "chromium"], {
+		stdio: "pipe",
+	});
+} catch {
+	// 이미 설치된 경우 무시
+}
+
 // stdin/stdout 패스스루로 MCP stdio 프로토콜 유지
 execFileSync(node, [cliPath], { stdio: "inherit" });
