@@ -76,18 +76,18 @@ server.registerTool(
 		description: "Send a photo to a Telegram chat",
 		inputSchema: {
 			chatId: z.string(),
-			url: z.string(),
+			source: z.string().describe("URL or local file path"),
 			caption: z.string().optional(),
 		},
 	},
-	async ({ chatId, url, caption }) => {
+	async ({ chatId, source, caption }) => {
 		try {
-			const source = existsSync(url)
-				? new InputFile(readFileSync(url), url.split("/").pop())
-				: url;
+			const photo = existsSync(source)
+				? new InputFile(readFileSync(source), source.split("/").pop())
+				: source;
 			const msg = await bot.api.sendPhoto(
 				Number(chatId),
-				source,
+				photo,
 				caption ? { caption } : {},
 			);
 			return {

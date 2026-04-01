@@ -2,7 +2,7 @@ import type { Client, Guild, GuildMember, TextChannel } from "discord.js";
 
 export function createUtils(client: Client) {
 	async function getTextChannel(channelId: string): Promise<TextChannel> {
-		const ch = await client.channels.fetch(channelId);
+		const ch = await client.channels.fetch(channelId, { force: true });
 		if (!ch?.isTextBased()) throw new Error("Not a text channel");
 		return ch as TextChannel;
 	}

@@ -1,18 +1,18 @@
 import { readFileSync } from "node:fs";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { AttachmentBuilder, Client } from "discord.js";
+import type { AttachmentPayload, Client } from "discord.js";
 import { z } from "zod";
 import { err, ok } from "../helpers.js";
 import { embedSchema } from "../schemas.js";
 import type { Utils } from "../utils.js";
 
 /** URL 또는 로컬 파일 경로를 discord.js 첨부 형식으로 변환 */
-function toAttachment(path: string): string | AttachmentBuilder {
+function toAttachment(path: string): string | AttachmentPayload {
 	if (path.startsWith("http://") || path.startsWith("https://")) return path;
 	return {
 		attachment: readFileSync(path),
 		name: path.split("/").pop() ?? "file",
-	} as unknown as AttachmentBuilder;
+	};
 }
 
 export function registerMessageTools(
@@ -190,7 +190,10 @@ export function registerMessageTools(
 				messageId: z.string(),
 				content: z.string().optional(),
 				embeds: z.array(embedSchema).optional(),
-				files: z.array(z.string()).optional(),
+				files: z
+					.array(z.string())
+					.optional()
+					.describe("Array of file URLs or local file paths to attach"),
 			},
 		},
 		async ({ channelId, messageId, content, embeds, files }) => {

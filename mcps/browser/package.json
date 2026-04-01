@@ -6,8 +6,7 @@
 		".": "./src/index.ts"
 	},
 	"scripts": {
-		"check": "bunx tsc --noEmit",
-		"postinstall": "npx -y @playwright/mcp install-browser chromium"
+		"check": "bunx tsc --noEmit"
 	},
 	"dependencies": {
 		"@modelcontextprotocol/sdk": "^1.29.0",
