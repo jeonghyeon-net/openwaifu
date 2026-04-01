@@ -28,6 +28,6 @@ function which(name: string): string {
 const node = which("node");
 const cli = new URL("cli.js", import.meta.resolve("@playwright/mcp")).pathname;
 
-execFileSync(node, [cli, "--viewport-size", "1440x900"], {
+execFileSync(node, [cli, "--viewport-size", "1440x900", "--isolated"], {
 	stdio: "inherit",
 });
