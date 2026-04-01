@@ -3,7 +3,7 @@ import type { Client, Guild, GuildMember, TextChannel } from "discord.js";
 export function createUtils(client: Client) {
 	async function getTextChannel(channelId: string): Promise<TextChannel> {
 		const ch = await client.channels.fetch(channelId, { force: true });
-		if (!ch?.isTextBased()) throw new Error("Not a text channel");
+		if (!ch) throw new Error("Channel not found");
 		return ch as TextChannel;
 	}
 
@@ -12,7 +12,7 @@ export function createUtils(client: Client) {
 	}
 
 	async function getChannel(channelId: string) {
-		const ch = await client.channels.fetch(channelId);
+		const ch = await client.channels.fetch(channelId, { force: true });
 		if (!ch) throw new Error("Channel not found");
 		return ch;
 	}
