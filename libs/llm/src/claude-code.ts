@@ -1,4 +1,4 @@
-import { existsSync, watch } from "node:fs";
+import { existsSync, readFileSync, watch } from "node:fs";
 import { join } from "node:path";
 import {
 	type McpServerConfig as AgentMcpServerConfig,
@@ -311,29 +311,57 @@ export class ClaudeCodeBot extends Bot {
 						tool_use_id: string;
 						content: unknown;
 					};
-					if (
-						imageToolIds.has(result.tool_use_id) &&
-						Array.isArray(result.content)
-					) {
+					if (imageToolIds.has(result.tool_use_id)) {
 						imageToolIds.delete(result.tool_use_id);
-						for (const block of result.content) {
-							const b = block as Record<string, unknown>;
-							if (
-								b["type"] === "image" &&
-								typeof b["source"] === "object" &&
-								b["source"] !== null &&
-								(b["source"] as Record<string, unknown>)["type"] === "base64"
-							) {
-								const src = b["source"] as Record<string, unknown>;
-								if (typeof src["data"] !== "string") continue;
-								yield {
-									type: "image" as const,
-									data: Buffer.from(src["data"], "base64"),
-									mediaType:
-										typeof src["media_type"] === "string"
-											? src["media_type"]
-											: "image/png",
-								};
+						const content = result.content;
+
+						// 방법 1: base64 이미지 직접 포함된 경우
+						if (Array.isArray(content)) {
+							for (const block of content) {
+								const b = block as Record<string, unknown>;
+								if (
+									b["type"] === "image" &&
+									typeof b["source"] === "object" &&
+									b["source"] !== null &&
+									(b["source"] as Record<string, unknown>)["type"] === "base64"
+								) {
+									const src = b["source"] as Record<string, unknown>;
+									if (typeof src["data"] !== "string") continue;
+									yield {
+										type: "image" as const,
+										data: Buffer.from(src["data"], "base64"),
+										mediaType:
+											typeof src["media_type"] === "string"
+												? src["media_type"]
+												: "image/png",
+									};
+								}
+							}
+						}
+
+						// 방법 2: 파일 경로로 반환된 경우 (.png/.jpg)
+						const text = Array.isArray(content)
+							? (content as Array<Record<string, unknown>>)
+									.filter((b) => b["type"] === "text")
+									.map((b) => b["text"])
+									.join("")
+							: typeof content === "string"
+								? content
+								: "";
+						const match = text.match(/\/?[\w./~-]+\.(?:png|jpg|jpeg|webp)/i);
+						if (match?.[0]) {
+							const filePath = match[0];
+							try {
+								if (existsSync(filePath)) {
+									const ext = filePath.split(".").pop() ?? "png";
+									yield {
+										type: "image" as const,
+										data: readFileSync(filePath),
+										mediaType: `image/${ext === "jpg" ? "jpeg" : ext}`,
+									};
+								}
+							} catch {
+								// 파일 읽기 실패 시 무시
 							}
 						}
 					}
