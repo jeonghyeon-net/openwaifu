@@ -140,7 +140,8 @@ server.registerTool(
 server.registerTool(
 	"enable_schedule",
 	{
-		description: "Enable a disabled cron schedule",
+		description:
+			"Enable a disabled cron schedule. Cron times are in KST (Asia/Seoul, UTC+9).",
 		inputSchema: { id: z.string().describe("Schedule ID to enable") },
 	},
 	async ({ id }) => {
@@ -159,7 +160,8 @@ server.registerTool(
 server.registerTool(
 	"disable_schedule",
 	{
-		description: "Disable a cron schedule without removing it",
+		description:
+			"Disable a cron schedule without removing it. Cron times are in KST (Asia/Seoul, UTC+9).",
 		inputSchema: { id: z.string().describe("Schedule ID to disable") },
 	},
 	async ({ id }) => {
