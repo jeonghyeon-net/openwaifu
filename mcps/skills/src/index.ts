@@ -152,6 +152,41 @@ server.registerTool(
 );
 
 server.registerTool(
+	"get_skill",
+	{
+		description: "Get full details of a skill including its content",
+		inputSchema: {
+			name: z.string().describe("Skill name"),
+		},
+	},
+	async ({ name }) => {
+		try {
+			const path = skillPath(name);
+			if (!existsSync(path)) {
+				return {
+					content: [{ type: "text", text: `Skill "${name}" not found` }],
+					isError: true,
+				};
+			}
+			const { description, content } = parseFrontmatter(
+				readFileSync(path, "utf-8"),
+			);
+			return {
+				content: [
+					{
+						type: "text",
+						text: JSON.stringify({ name, description, content }, null, 2),
+					},
+				],
+			};
+		} catch (e: unknown) {
+			const message = e instanceof Error ? e.message : String(e);
+			return { content: [{ type: "text", text: message }], isError: true };
+		}
+	},
+);
+
+server.registerTool(
 	"list_skills",
 	{ description: "List all skills" },
 	async () => {

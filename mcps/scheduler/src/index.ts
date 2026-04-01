@@ -17,11 +17,13 @@ server.registerTool(
 	"add_schedule",
 	{
 		description:
-			"Add a new cron schedule. The prompt is sent to the LLM at the scheduled time. The LLM can then use tools (e.g. discord send_message) to act on it.",
+			"Add a new cron schedule. The prompt is sent to the LLM at the scheduled time. The LLM can then use tools (e.g. discord send_message) to act on it. All times are in KST (Asia/Seoul, UTC+9).",
 		inputSchema: {
 			cronExpression: z
 				.string()
-				.describe("Cron expression (minute hour dayOfMonth month dayOfWeek)"),
+				.describe(
+					"Cron expression (minute hour dayOfMonth month dayOfWeek) in KST (Asia/Seoul, UTC+9)",
+				),
 			prompt: z
 				.string()
 				.describe(
@@ -63,7 +65,10 @@ server.registerTool(
 
 server.registerTool(
 	"list_schedules",
-	{ description: "List all registered cron schedules" },
+	{
+		description:
+			"List all registered cron schedules. All cron times are in KST (Asia/Seoul, UTC+9).",
+	},
 	async () => {
 		const schedules = scheduler.list();
 		return {
@@ -94,14 +99,15 @@ server.registerTool(
 server.registerTool(
 	"update_schedule",
 	{
-		description: "Update an existing schedule's cron expression or prompt",
+		description:
+			"Update an existing schedule's cron expression or prompt. All times are in KST (Asia/Seoul, UTC+9).",
 		inputSchema: {
 			id: z.string().describe("Schedule ID to update"),
 			cronExpression: z
 				.string()
 				.optional()
 				.describe(
-					"New cron expression (minute hour dayOfMonth month dayOfWeek)",
+					"New cron expression (minute hour dayOfMonth month dayOfWeek) in KST (Asia/Seoul, UTC+9)",
 				),
 			prompt: z.string().optional().describe("New prompt"),
 		},
