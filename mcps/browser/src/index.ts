@@ -28,7 +28,6 @@ function which(name: string): string {
 const node = which("node");
 const cli = new URL("cli.js", import.meta.resolve("@playwright/mcp")).pathname;
 
-execFileSync(node, [cli], {
+execFileSync(node, [cli, "--viewport-size", "1440x900"], {
 	stdio: "inherit",
-	env: { ...process.env, CHROMIUM_FLAGS: "" },
 });
