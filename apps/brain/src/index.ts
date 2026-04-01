@@ -1,6 +1,9 @@
-// /opt/homebrew/bin이 PATH에 없으면 gh 등 homebrew 도구를 못 찾음
-if (!process.env["PATH"]?.includes("/opt/homebrew/bin")) {
-	process.env["PATH"] = `/opt/homebrew/bin:${process.env["PATH"]}`;
+// launchd 등 최소 환경에서도 도구를 찾을 수 있도록 PATH 보강
+const home = process.env["HOME"] ?? "";
+for (const dir of [`${home}/.local/share/mise/shims`, "/opt/homebrew/bin"]) {
+	if (!process.env["PATH"]?.includes(dir)) {
+		process.env["PATH"] = `${dir}:${process.env["PATH"]}`;
+	}
 }
 
 import { readFileSync } from "node:fs";
