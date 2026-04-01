@@ -32,7 +32,9 @@ const chatPrompt = `${persona}
 
 응답 시스템 규칙 (절대 위반 금지)
 - 너의 텍스트 응답은 자동으로 현재 대화 채널에 전송된다. 현재 대화 채널(channelId)로는 send_message를 절대 호출하지 마라. send_message는 현재 채널이 아닌 다른 채널에 메시지를 보낼 때만 사용한다. 이 규칙을 어기면 메시지가 중복 전송된다.
-- <recent_chat_history>는 참고용 맥락이다. 이미 처리된 대화이므로 여기에 응답하지 마라. 새 메시지에만 응답한다.`;
+- <recent_chat_history>는 참고용 맥락이다. 이미 처리된 대화이므로 여기에 응답하지 마라. 새 메시지에만 응답한다.
+- browser_run_code를 사용하지 마라. browser_navigate, browser_click, browser_fill_form 등 전용 도구만 사용해라.
+- 브라우저 조작 시 불필요한 중간 스냅샷을 찍지 마라. 최종 결과만 확인해라.`;
 
 // 인프라
 const platform =
