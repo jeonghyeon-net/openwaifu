@@ -5,11 +5,17 @@ export type Attachment = {
 	size: number;
 };
 
+export type HistoryAttachment = {
+	filename: string;
+	contentType: string;
+};
+
 export type HistoryMessage = {
 	userId: string;
 	username: string;
 	text: string;
 	isSelf: boolean;
+	attachments: HistoryAttachment[];
 };
 
 export type IncomingMessage = {

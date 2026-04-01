@@ -97,11 +97,21 @@ export class DiscordPlatform extends ChatPlatform {
 		const toHistory = (m: {
 			author: { id: string; username: string };
 			content: string;
+			attachments: {
+				values(): Iterable<{
+					name: string | null;
+					contentType: string | null;
+				}>;
+			};
 		}) => ({
 			userId: m.author.id,
 			username: m.author.username,
 			text: m.content,
 			isSelf: m.author.id === selfId,
+			attachments: [...m.attachments.values()].map((a) => ({
+				filename: a.name ?? "unknown",
+				contentType: a.contentType ?? "application/octet-stream",
+			})),
 		});
 
 		// 스레드인 경우 부모 채널 히스토리도 포함

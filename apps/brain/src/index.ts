@@ -110,9 +110,14 @@ function getBot(channelId: string): Promise<Bot> {
 
 function buildMessage(msg: IncomingMessage, history: HistoryMessage[]): string {
 	const historyText = history
-		.map(
-			(h) => `${h.username}(${h.userId})${h.isSelf ? "[너]" : ""}: ${h.text}`,
-		)
+		.map((h) => {
+			const base = `${h.username}(${h.userId})${h.isSelf ? "[너]" : ""}: ${h.text}`;
+			if (h.attachments.length === 0) return base;
+			const files = h.attachments
+				.map((a) => `${a.filename} (${a.contentType})`)
+				.join(", ");
+			return `${base} [첨부: ${files}]`;
+		})
 		.join("\n");
 	const meta = Object.entries(msg.metadata)
 		.filter(([, v]) => v)
