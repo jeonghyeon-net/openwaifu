@@ -1,29 +1,31 @@
-// Playwright는 Bun 런타임과 호환되지 않으므로 Node.js로 직접 실행
+/**
+ * Browser MCP Server
+ *
+ * Playwright는 Bun과 호환되지 않으므로 Node.js로 @playwright/mcp CLI를 실행한다.
+ * Bun 프로세스는 stdio를 패스스루하여 MCP 프로토콜을 중계만 한다.
+ */
 import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 
 const home = process.env["HOME"] ?? "";
 
-function find(name: string, extras: string[]): string {
-	for (const dir of (process.env["PATH"] ?? "").split(":")) {
+/** PATH와 잘 알려진 경로에서 실행 파일을 찾는다. */
+function which(name: string): string {
+	const dirs = [
+		...(process.env["PATH"] ?? "").split(":"),
+		join(home, ".local/share/mise/shims"),
+		"/opt/homebrew/bin",
+		"/usr/local/bin",
+	];
+	for (const dir of dirs) {
 		const p = join(dir, name);
-		if (existsSync(p)) return p;
-	}
-	for (const p of extras) {
 		if (existsSync(p)) return p;
 	}
 	throw new Error(`${name}를 찾을 수 없습니다`);
 }
 
-const node = find("node", [
-	join(home, ".local/share/mise/shims/node"),
-	"/opt/homebrew/bin/node",
-	"/usr/local/bin/node",
-]);
+const node = which("node");
+const cli = new URL("cli.js", import.meta.resolve("@playwright/mcp")).pathname;
 
-const cliPath = new URL("cli.js", import.meta.resolve("@playwright/mcp"))
-	.pathname;
-
-// stdin/stdout 패스스루로 MCP stdio 프로토콜 유지
-execFileSync(node, [cliPath], { stdio: "inherit" });
+execFileSync(node, [cli, "--sandbox"], { stdio: "inherit" });
