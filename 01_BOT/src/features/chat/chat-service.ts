@@ -1,10 +1,23 @@
-import type { PiRuntime } from "../../integrations/pi/pi-runtime.js";
+import type { PiRuntime, RuntimeTextChunk } from "../../integrations/pi/pi-runtime.js";
 import type { ChatRequest } from "./chat-message.js";
 
-type ChatRuntime = Pick<PiRuntime, "prompt">;
+type ChatRuntime = Pick<PiRuntime, "prompt" | "stream">;
+
+const discordContextOf = (request: ChatRequest) => ({
+  authorId: request.authorId,
+  channelId: request.channelId,
+  guildId: request.guildId,
+  isDirectMessage: request.isDirectMessage,
+});
+
+const promptOptionsOf = (request: ChatRequest) => ({
+  messageId: request.messageId,
+  attachments: request.attachments,
+});
 
 export type ChatService = {
   reply(request: ChatRequest): Promise<string>;
+  stream(request: ChatRequest): AsyncIterable<RuntimeTextChunk>;
 };
 
 export const createChatService = (runtime: ChatRuntime): ChatService => ({
@@ -12,12 +25,14 @@ export const createChatService = (runtime: ChatRuntime): ChatService => ({
     runtime.prompt(
       request.scopeId,
       request.prompt,
-      {
-        authorId: request.authorId,
-        channelId: request.channelId,
-        guildId: request.guildId,
-        isDirectMessage: request.isDirectMessage,
-      },
-      { messageId: request.messageId, attachments: request.attachments },
+      discordContextOf(request),
+      promptOptionsOf(request),
+    ),
+  stream: (request) =>
+    runtime.stream(
+      request.scopeId,
+      request.prompt,
+      discordContextOf(request),
+      promptOptionsOf(request),
     ),
 });
