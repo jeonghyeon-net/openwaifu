@@ -1,0 +1,29 @@
+
+         ╔════════════════════════════════════════╗
+         ║               openwaifu                ║
+         ║        discord bot + local pi          ║
+         ╚════════════════════════════════════════╝
+
+  SETUP
+    npm install
+    npm run setup
+
+  RUN
+    npm run dev
+
+  VERIFY
+    npm run check
+    npm run test:arch
+    npm run test:extensions
+
+  BOT
+    01_BOT  … discord.js app runtime
+
+  EXTENSIONS
+    noop    … no-op local extension scaffold
+
+  SKILLS
+    (none)
+
+  LINKS
+    pi-coding-agent  https://github.com/badlogic/pi-mono

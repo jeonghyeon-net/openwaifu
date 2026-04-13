@@ -1,19 +1,11 @@
-import {
-  AuthStorage,
-  createAgentSession,
-  DefaultPackageManager,
-  DefaultResourceLoader,
-  getAgentDir,
-  ModelRegistry,
-  SessionManager,
-  SettingsManager,
-  type AgentSession,
-} from "@mariozechner/pi-coding-agent";
+import { AuthStorage, DefaultPackageManager, getAgentDir, ModelRegistry, SessionManager, SettingsManager, type AgentSession, type DefaultResourceLoader } from "@mariozechner/pi-coding-agent";
 
-import { listLocalExtensionRoots, listLocalSkillRoots } from "./local-resource-paths.js";
-
-const limitText = (text: string) => (text.length > 1900 ? `${text.slice(0, 1885)}\n\n(truncated)` : text);
-const formatList = (title: string, items: string[]) => `${title}\n${items.length ? items.map((item) => `- ${item}`).join("\n") : "- none"}`;
+import { createResourceLoader } from "./create-resource-loader.js";
+import { createPiSession } from "./create-session.js";
+import { lastAssistantText } from "./last-assistant-text.js";
+import { limitText } from "./format-text.js";
+import { formatResourceReport } from "./resource-report.js";
+import { SerialQueue } from "./serial-queue.js";
 
 export type PiRuntimeOptions = {
   repoRoot: string;
@@ -29,27 +21,20 @@ export class PiRuntime {
   private readonly settingsManager: SettingsManager;
   private readonly packageManager: DefaultPackageManager;
   private readonly sessionManager = SessionManager.inMemory();
+  private readonly queue = new SerialQueue();
   private readonly model;
-  private readonly repoRoot: string;
-  private readonly extensionsRoot: string;
-  private readonly skillsRoot: string;
   private resourceLoader?: DefaultResourceLoader;
   private session?: AgentSession;
-  private queue: Promise<unknown> = Promise.resolve();
 
-  private constructor(options: PiRuntimeOptions) {
-    this.repoRoot = options.repoRoot;
-    this.extensionsRoot = options.extensionsRoot;
-    this.skillsRoot = options.skillsRoot;
-    this.settingsManager = SettingsManager.create(this.repoRoot, this.agentDir);
+  private constructor(private readonly options: PiRuntimeOptions) {
+    this.settingsManager = SettingsManager.create(this.options.repoRoot, this.agentDir);
     this.packageManager = new DefaultPackageManager({
-      cwd: this.repoRoot,
+      cwd: this.options.repoRoot,
       agentDir: this.agentDir,
       settingsManager: this.settingsManager,
     });
-
-    const model = this.modelRegistry.find("anthropic", options.modelId);
-    if (!model) throw new Error(`Model not found: anthropic/${options.modelId}`);
+    const model = this.modelRegistry.find("anthropic", this.options.modelId);
+    if (!model) throw new Error(`Model not found: anthropic/${this.options.modelId}`);
     this.model = model;
   }
 
@@ -59,139 +44,56 @@ export class PiRuntime {
     return runtime;
   }
 
-  async prompt(prompt: string) {
-    return this.runQueued(async () => {
-      const session = await this.getSession();
+  prompt(prompt: string) {
+    return this.queue.run(async () => {
+      const session = await this.requireSession();
       await session.prompt(prompt);
-      return this.lastAssistantText(session);
+      return lastAssistantText(session);
     });
   }
 
-  async listPackages() {
-    return this.runQueued(async () => {
+  listPackages() {
+    return this.queue.run(async () => {
       const packages = this.packageManager.listConfiguredPackages();
       const text = packages.length
-        ? packages
-            .map((pkg) => `[${pkg.scope}] ${pkg.source}${pkg.installedPath ? `\n  ${pkg.installedPath}` : ""}`)
-            .join("\n")
+        ? packages.map((pkg) => `[${pkg.scope}] ${pkg.source}${pkg.installedPath ? `\n  ${pkg.installedPath}` : ""}`).join("\n")
         : "No configured pi packages.";
       return limitText(text);
     });
   }
 
-  async listResources() {
-    return this.runQueued(async () => {
-      const loader = await this.getResourceLoader();
-      const text = [
-        formatList("extensions", loader.getExtensions().extensions.map((item) => item.path)),
-        formatList("skills", loader.getSkills().skills.map((item) => `${item.name} (${item.filePath})`)),
-        formatList("prompts", loader.getPrompts().prompts.map((item) => `${item.name} (${item.filePath})`)),
-        formatList("themes", loader.getThemes().themes.map((item) => item.sourcePath ?? item.name ?? "(unnamed)")),
-      ].join("\n\n");
-      return limitText(text);
-    });
-  }
+  listResources() { return this.queue.run(async () => formatResourceReport(await this.requireLoader())); }
+  installPackage(source: string) { return this.changePackage(source, () => this.packageManager.installAndPersist(source, { local: true }), "Installed"); }
+  removePackage(source: string) { return this.changePackage(source, () => this.packageManager.removeAndPersist(source, { local: true }), "Removed", "Not found"); }
+  reloadResources() { return this.queue.run(async () => { await this.refreshSession(); return "Reloaded pi resources."; }); }
 
-  async installPackage(source: string) {
-    return this.runQueued(async () => {
-      await this.packageManager.installAndPersist(source, { local: true });
+  private async changePackage(source: string, work: () => Promise<unknown>, ok: string, missing = ok) {
+    return this.queue.run(async () => {
+      const result = await work();
       await this.settingsManager.flush();
       await this.refreshSession();
-      return limitText(`Installed: ${source}`);
+      return limitText(result === false ? `${missing}: ${source}` : `${ok}: ${source}`);
     });
   }
 
-  async removePackage(source: string) {
-    return this.runQueued(async () => {
-      const removed = await this.packageManager.removeAndPersist(source, { local: true });
-      await this.settingsManager.flush();
-      await this.refreshSession();
-      return limitText(removed ? `Removed: ${source}` : `Not found: ${source}`);
-    });
-  }
-
-  async reloadResources() {
-    return this.runQueued(async () => {
-      await this.refreshSession();
-      return "Reloaded pi resources.";
-    });
-  }
-
-  private async getSession() {
-    if (!this.session) {
-      await this.refreshSession();
-    }
-    return this.session!;
-  }
-
-  private async getResourceLoader() {
-    if (!this.resourceLoader) {
-      await this.refreshSession();
-    }
-    return this.resourceLoader!;
-  }
+  private async requireLoader() { if (!this.resourceLoader) await this.refreshSession(); return this.resourceLoader!; }
+  private async requireSession() { if (!this.session) await this.refreshSession(); return this.session!; }
 
   private async refreshSession() {
-    const nextLoader = await this.createResourceLoader();
-    await nextLoader.reload();
-
-    const { session } = await createAgentSession({
-      cwd: this.repoRoot,
+    const loader = await createResourceLoader({ ...this.options, agentDir: this.agentDir, settingsManager: this.settingsManager });
+    await loader.reload();
+    const session = await createPiSession({
+      ...this.options,
       agentDir: this.agentDir,
       authStorage: this.authStorage,
       modelRegistry: this.modelRegistry,
       model: this.model,
       settingsManager: this.settingsManager,
-      resourceLoader: nextLoader,
+      resourceLoader: loader,
       sessionManager: this.sessionManager,
-      tools: [],
     });
-
-    session.agent.state.systemPrompt = [
-      "You are concise Discord chat bot.",
-      "Reply in user's language.",
-      "Pi package management happens through Discord slash command /pi.",
-    ].join("\n");
-    await session.bindExtensions({});
-
-    const previous = this.session;
-    this.resourceLoader = nextLoader;
+    this.resourceLoader = loader;
+    this.session?.dispose();
     this.session = session;
-    previous?.dispose();
-  }
-
-  private async createResourceLoader() {
-    const additionalExtensionPaths = await listLocalExtensionRoots(this.extensionsRoot);
-    const additionalSkillPaths = await listLocalSkillRoots(this.skillsRoot);
-
-    return new DefaultResourceLoader({
-      cwd: this.repoRoot,
-      agentDir: this.agentDir,
-      settingsManager: this.settingsManager,
-      additionalExtensionPaths,
-      additionalSkillPaths,
-    });
-  }
-
-  private lastAssistantText(session: AgentSession) {
-    const last = [...session.messages].reverse().find((message) => message.role === "assistant");
-    if (!last || !("content" in last) || !Array.isArray(last.content)) return "응답 없음";
-
-    const text = last.content
-      .filter((part) => part.type === "text" && "text" in part)
-      .map((part) => part.text)
-      .join("\n")
-      .trim();
-
-    return text ? limitText(text) : "응답 없음";
-  }
-
-  private runQueued<T>(job: () => Promise<T>): Promise<T> {
-    const next = this.queue.then(job, job);
-    this.queue = next.then(
-      () => undefined,
-      () => undefined,
-    );
-    return next;
   }
 }

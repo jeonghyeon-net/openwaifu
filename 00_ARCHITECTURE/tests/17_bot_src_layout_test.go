@@ -15,10 +15,7 @@ var botSrcAllowed = map[string]bool{
 
 func TestBot_SrcAllowedEntriesOnly(t *testing.T) {
   entries, err := os.ReadDir(filepath.Join(repoRoot(t), "01_BOT", "src"))
-  if err != nil {
-    t.Fatalf("01_BOT/src 읽기 실패: %v", err)
-  }
-
+  if err != nil { t.Fatalf("01_BOT/src 읽기 실패: %v", err) }
   for _, entry := range entries {
     if !botSrcAllowed[entry.Name()] {
       t.Errorf("허용되지 않은 01_BOT/src 항목: %s", entry.Name())

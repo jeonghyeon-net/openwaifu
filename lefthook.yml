@@ -1,0 +1,35 @@
+pre-commit:
+  commands:
+    architecture:
+      run: cd 00_ARCHITECTURE/tests && go test -count=1 ./...
+    bot-check:
+      run: npm run check
+    biome:
+      run: |
+        set -e
+        for dir in 02_EXTENSIONS/*/; do
+          [ -d "$dir" ] || continue
+          [ -f "$dir/biome.json" ] || continue
+          (cd "$dir" && npx biome check --error-on-warnings .)
+        done
+
+pre-push:
+  commands:
+    extension-build:
+      run: |
+        set -e
+        built_any=0
+        for dir in 02_EXTENSIONS/*/; do
+          [ -d "$dir" ] || continue
+          [ -f "$dir/package.json" ] || continue
+          built_any=1
+          (cd "$dir" && npm run build)
+        done
+        if [ "$built_any" -eq 1 ]; then
+          git add 02_EXTENSIONS/*/dist/
+          if ! git diff --cached --quiet; then
+            git commit -m "dist 빌드 반영"
+          fi
+        fi
+    extension-tests:
+      run: npm run test:extensions

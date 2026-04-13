@@ -33,9 +33,10 @@
 ├── .env.example
 ├── .gitignore
 ├── .mise.toml
+├── lefthook.yml
 ├── package-lock.json
 ├── package.json
-└── README.md
+└── README
 ```
 
 각 디렉터리 역할:
@@ -44,7 +45,7 @@
 - `02_EXTENSIONS`: 앱이 로컬에서 직접 읽는 pi extensions
 - `03_SKILLS`: 앱이 로컬에서 직접 읽는 pi skills
 
-루트에는 앱 소스코드를 두지 않는다. TypeScript 실행 코드는 `01_BOT` 밖에 두지 않는다. 생성물(`.env`, `.pi`, `node_modules`)은 개발 편의를 위해 테스트에서 예외 허용한다.
+루트에는 앱 소스코드를 두지 않는다. TypeScript 실행 코드는 `01_BOT` 밖에 두지 않는다. 루트 README는 확장자 없이 `README` 를 사용한다. 생성물(`.env`, `.pi`, `node_modules`, `coverage`)은 개발 편의를 위해 테스트에서 예외 허용한다.
 
 ## 01_BOT 내부 구조
 
@@ -98,8 +99,11 @@
 원칙:
 - extension 별 디렉터리 분리
 - 엔트리 포인트는 `src/index.ts`
-- 의존성은 각 extension 디렉터리에서 독립 관리 가능
-- 현재 단계에서는 sample extension 1개 또는 placeholder README 정도만 둘 수 있다
+- `package.json`, `tsconfig.json`, `biome.json`, `.gitignore`, `README`, `vitest.config.ts`, `src/index.ts`, `dist/index.js`, `tests/` 를 필수로 둔다
+- `package.json` 은 `pi`, `scripts`, `devDependencies` 만 허용한다
+- `pi.extensions` 는 `["dist/index.js"]` 로 고정한다
+- `vitest` coverage threshold 는 lines/branches/functions/statements 모두 100으로 강제한다
+- build 는 `esbuild --bundle` 로 단일 `dist/index.js` 생성만 허용한다
 
 ## 03_SKILLS 구조
 
@@ -179,15 +183,19 @@
     └── 06_root_package_json_test.go
 ```
 
-1차 테스트 범위:
-- 루트 허용 엔트리만 존재하는지 (`.env.example`, `package-lock.json` 포함)
-- `01_BOT` 필수 파일이 존재하는지
-- `01_BOT/src` 하위 허용 디렉터리만 존재하는지 (`config`, `features`, `integrations`)
-- `02_EXTENSIONS/<name>` 에 필수 파일이 존재하는지
+테스트 범위:
+- 루트 허용 엔트리만 존재하는지 (`README`, `lefthook.yml`, `.env.example`, `package-lock.json` 포함)
+- 상위 디렉터리의 top-level file 이 `README` 외에는 없는지 (`00_ARCHITECTURE`, `02_EXTENSIONS`, `03_SKILLS`)
+- `.md` 파일이 `docs/`, `03_SKILLS/` 밖에 없는지
+- 모든 코드/설정 파일이 99줄 이하인지
+- `00_ARCHITECTURE/tests` 파일 이름 패턴이 일관적인지
+- `01_BOT` 필수 파일과 `src` 허용 디렉터리가 맞는지
+- `02_EXTENSIONS/<name>` 에 필수 파일, package.json 제약, coverage 설정, tests 존재, build 산출물 제약이 맞는지
 - `03_SKILLS/<name>/SKILL.md` 가 존재하는지
-- 루트 `package.json` 에 필수 스크립트가 있는지
+- TypeScript에서 `as any|unknown|never` 타입 단언이 없는지
+- 루트 `package.json` 키/스크립트/workspaces 가 제약에 맞는지
 
-초기 단계에서는 line count, bundle output, theme schema 같은 고급 규칙은 넣지 않는다. 먼저 구조 규칙부터 잠근다.
+또한 `lefthook.yml` 로 pre-commit/pre-push 에서 architecture test, bot check, extension build/test 를 실행한다.
 
 ## 현재 코드 마이그레이션
 
