@@ -26,23 +26,20 @@ beforeEach(() => {
   createAgentSession.mockResolvedValue({ session: createSession(), options: { customTools: [], tools: [] } });
 });
 
-describe("createPiSession reasoning", () => {
-  it("passes thinking level and wraps payload for reasoning effort", async () => {
+describe("createPiSession thinking", () => {
+  it("passes thinking level without wrapping payload hooks", async () => {
     const onPayload = vi.fn(async () => undefined);
     createAgentSession.mockResolvedValueOnce({ session: createSession(onPayload), options: { customTools: [], tools: [] } });
     const { createPiSession } = await import("../src/integrations/pi/create-session.js");
     const session = await createPiSession({
       repoRoot: "/repo", agentDir: "/agent", authStorage: {} as AuthStorage, modelRegistry: {} as ModelRegistry,
-      model: createModel("openai-codex"), thinkingLevel: "high", reasoningEffort: "low",
+      model: createModel("openai-codex"), thinkingLevel: "high",
       settingsManager: {} as SettingsManager, resourceLoader: {} as ResourceLoader,
       sessionManager: { getSessionFile: () => undefined } as SessionManager, scopeId: "scope:1",
       discordClient, discordContext: { authorId: "u", channelId: "c", guildId: "g", isDirectMessage: false },
     });
     expect(createAgentSession).toHaveBeenCalledWith(expect.objectContaining({ thinkingLevel: "high" }));
-    await expect(session.agent.onPayload?.({ input: [] }, createModel("openai-codex"))).resolves.toEqual({
-      include: ["reasoning.encrypted_content"], input: [], reasoning: { effort: "low", summary: "auto" },
-    });
-    expect(onPayload).toHaveBeenCalled();
+    expect(session.agent.onPayload).toBe(onPayload);
     expect(registerDiscordSessionContext).not.toHaveBeenCalled();
   });
 });

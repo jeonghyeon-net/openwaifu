@@ -14,10 +14,8 @@ vi.mock("discord.js", () => ({ Events: { ClientReady: "ready" } }));
 vi.mock("../src/config/env.js", () => ({
   env: {
     discordBotToken: "token",
-    piProvider: "openai-codex",
     piModel: "model",
     piThinkingLevel: "high",
-    piReasoningEffort: "low",
   },
 }));
 vi.mock("../src/config/paths.js", () => ({ paths: { repoRoot: "/repo", sessionsRoot: "/sessions", extensionsRoot: "/ext", skillsRoot: "/skills" } }));
@@ -49,10 +47,8 @@ describe("main", () => {
       sessionsRoot: "/sessions",
       extensionsRoot: "/ext",
       skillsRoot: "/skills",
-      provider: "openai-codex",
       modelId: "model",
       thinkingLevel: "high",
-      reasoningEffort: "low",
       discordClient: client,
     });
     expect(createChatService).toHaveBeenCalledWith(runtime);

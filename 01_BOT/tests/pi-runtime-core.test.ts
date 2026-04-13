@@ -24,6 +24,6 @@ describe("PiRuntime core", () => {
     expect(createdSessions).toHaveLength(2);
     find.mockReturnValueOnce(undefined);
     const { PiRuntime } = await import("../src/integrations/pi/pi-runtime.js");
-    await expect(PiRuntime.create({ repoRoot: "/repo", sessionsRoot: "/tmp", extensionsRoot: "/ext", skillsRoot: "/skills", provider: "openai-codex", modelId: "gpt-5.4", thinkingLevel: "high", reasoningEffort: "low", discordClient })).rejects.toThrow("Model not found");
+    await expect(PiRuntime.create({ repoRoot: "/repo", sessionsRoot: "/tmp", extensionsRoot: "/ext", skillsRoot: "/skills", modelId: "gpt-5.4", thinkingLevel: "high", discordClient })).rejects.toThrow("Model not found");
   });
 });

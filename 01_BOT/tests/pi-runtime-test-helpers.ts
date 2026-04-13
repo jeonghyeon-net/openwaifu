@@ -47,5 +47,5 @@ export const discordClient = { guilds: {} as DiscordAdminClient["guilds"], chann
 export const createRuntime = async () => {
   const { PiRuntime } = await import("../src/integrations/pi/pi-runtime.js");
   const sessionsRoot = mkdtempSync(join(tmpdir(), "pi-runtime-"));
-  return PiRuntime.create({ repoRoot: "/repo", sessionsRoot, extensionsRoot: "/ext", skillsRoot: "/skills", provider: "openai-codex", modelId: "gpt-5.4", thinkingLevel: "high", reasoningEffort: "low", discordClient });
+  return PiRuntime.create({ repoRoot: "/repo", sessionsRoot, extensionsRoot: "/ext", skillsRoot: "/skills", modelId: "gpt-5.4", thinkingLevel: "high", discordClient });
 };

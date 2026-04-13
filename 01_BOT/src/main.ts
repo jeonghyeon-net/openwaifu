@@ -15,10 +15,8 @@ const runtime = await PiRuntime.create({
   sessionsRoot: paths.sessionsRoot,
   extensionsRoot: paths.extensionsRoot,
   skillsRoot: paths.skillsRoot,
-  provider: env.piProvider,
   modelId: env.piModel,
   thinkingLevel: env.piThinkingLevel,
-  reasoningEffort: env.piReasoningEffort,
   discordClient: client,
 });
 

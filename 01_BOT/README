@@ -1,6 +1,9 @@
 Discord bot 런타임.
 
 - `.env` 위치: `01_BOT/.env`
+- pi 인증: `pi` 실행 → `/login` → `OpenAI Codex` 선택
+- pi 인증 저장 위치: `~/.pi/agent/auth.json`
+- `OPENAI_API_KEY`, `PI_PROVIDER`, `PI_REASONING_EFFORT` 사용 안 함
 - 모든 비봇 메시지에 응답
 - 세션 파일 유지: `01_BOT/.data/sessions/`
 - 길드 메시지: 채널+사용자 단위 세션

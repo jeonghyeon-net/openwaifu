@@ -27,39 +27,29 @@ describe("config", () => {
     expect(paths.sessionsRoot.endsWith("/01_BOT/.data/sessions")).toBe(true);
   });
 
-  it("loads token and defaults to openai-codex", async () => {
+  it("loads token and pi defaults", async () => {
     const env = await loadEnv({
       DISCORD_BOT_TOKEN: "token",
-      OPENAI_API_KEY: undefined,
       PI_MODEL: undefined,
-      PI_PROVIDER: undefined,
-      PI_REASONING_EFFORT: undefined,
       PI_THINKING_LEVEL: undefined,
     });
     expect(env).toEqual({
       discordBotToken: "token",
-      piProvider: "openai-codex",
       piModel: "gpt-5.4",
       piThinkingLevel: undefined,
-      piReasoningEffort: undefined,
     });
   });
 
-  it("loads explicit thinking and effort", async () => {
+  it("loads explicit model and thinking level", async () => {
     const env = await loadEnv({
       DISCORD_BOT_TOKEN: "token",
-      OPENAI_API_KEY: "sk-test",
-      PI_MODEL: undefined,
-      PI_PROVIDER: undefined,
-      PI_REASONING_EFFORT: "low",
+      PI_MODEL: "gpt-5.4-mini",
       PI_THINKING_LEVEL: "high",
     });
     expect(env).toEqual({
       discordBotToken: "token",
-      piProvider: "openai",
-      piModel: "gpt-5.4",
+      piModel: "gpt-5.4-mini",
       piThinkingLevel: "high",
-      piReasoningEffort: "low",
     });
   });
 
