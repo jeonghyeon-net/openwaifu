@@ -12,13 +12,15 @@ describe("buildChatRequest", () => {
   });
 
   it("uses per-user scope for guild messages", () => {
-    expect(buildChatRequest({ messageId: "m1", authorId: "u", channelId: "c", content: "hello", guildId: "g", isBot: false, isDirectMessage: false, attachments: [] })).toEqual({
+    expect(buildChatRequest({ messageId: "m1", authorId: "u", channelId: "c", channelName: "개발", content: "hello", guildId: "g", guildName: "jeonghyeon.net", isBot: false, isDirectMessage: false, attachments: [] })).toEqual({
       prompt: "hello",
       scopeId: "channel:c:user:u",
       messageId: "m1",
       authorId: "u",
       channelId: "c",
+      channelName: "개발",
       guildId: "g",
+      guildName: "jeonghyeon.net",
       isDirectMessage: false,
       attachments: [],
     });
@@ -31,7 +33,9 @@ describe("buildChatRequest", () => {
       messageId: "m2",
       authorId: "u",
       channelId: "dm",
+      channelName: undefined,
       guildId: undefined,
+      guildName: undefined,
       isDirectMessage: true,
       attachments: [],
     });

@@ -5,7 +5,7 @@ import { inspectDiscordServer, listDiscordServers } from "../src/integrations/di
 const context = { authorId: "u", channelId: "c", guildId: "g", isDirectMessage: false };
 const channels = {
   filter: () => ({ size: 2 }),
-  values: () => [null, { id: "1", name: "alpha", rawPosition: 2, type: 0 }, { id: "2", name: "beta", rawPosition: 1, type: 0 }][Symbol.iterator](),
+  values: () => [null, { id: "1", name: "alpha", rawPosition: 2, type: 0 }, { id: "c", name: "beta", rawPosition: 1, type: 0 }][Symbol.iterator](),
 };
 const roles = {
   filter: () => ({ size: 2 }),
@@ -46,7 +46,7 @@ describe("discord admin read", () => {
 
   it("inspects summary, channels, roles, and members", async () => {
     await expect(inspectDiscordServer(client, context, { view: "summary" })).resolves.toContain("members: 2");
-    await expect(inspectDiscordServer(client, context, { view: "channels" })).resolves.toContain("beta (2)");
+    await expect(inspectDiscordServer(client, context, { view: "channels" })).resolves.toContain("beta (c) type=GuildText [current]");
     await expect(inspectDiscordServer(client, context, { view: "roles" })).resolves.toContain("role-b (2)");
     await expect(listDiscordServers(client, { ...context, guildId: "none" })).resolves.toContain("Other (x)");
     const members = await inspectDiscordServer(client, context, { view: "members" });

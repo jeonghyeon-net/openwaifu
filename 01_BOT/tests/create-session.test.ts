@@ -33,19 +33,23 @@ describe("createPiSession", () => {
       repoRoot: "/repo", agentDir: "/agent", authStorage: {} as AuthStorage, modelRegistry: {} as ModelRegistry,
       model: createModel("openai-codex"), settingsManager: {} as SettingsManager, resourceLoader: {} as ResourceLoader,
       sessionManager: { getSessionFile: () => "/sessions/scope.jsonl" } as SessionManager, scopeId: "scope:1", discordClient,
-      discordContext: { authorId: "u", channelId: "c", guildId: "g", isDirectMessage: false },
+      discordContext: { authorId: "u", channelId: "c", channelName: "개발", guildId: "g", guildName: "jeonghyeon.net", isDirectMessage: false },
     });
     const args = createAgentSession.mock.calls[0]?.[0];
     if (!args) throw new Error("createAgentSession args missing");
     expect(args.customTools).toHaveLength(9);
     expect(args.tools.map((tool) => tool.name)).toEqual(["read", "bash", "edit", "write", "grep", "find", "ls"]);
     expect(session.agent.state.systemPrompt).toContain("discord_* tools");
+    expect(session.agent.state.systemPrompt).toContain("answer from current_* context fields first");
     expect(session.agent.state.systemPrompt).toContain("current_channel_id: c");
+    expect(session.agent.state.systemPrompt).toContain("current_channel_name: 개발");
     expect(bindExtensions).toHaveBeenCalledWith({});
     expect(registerDiscordSessionContext).toHaveBeenCalledWith("/sessions/scope.jsonl", "scope:1", {
       authorId: "u",
       channelId: "c",
+      channelName: "개발",
       guildId: "g",
+      guildName: "jeonghyeon.net",
       isDirectMessage: false,
     });
   });

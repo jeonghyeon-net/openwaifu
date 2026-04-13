@@ -6,7 +6,9 @@ export type ChatRequest = {
   messageId: string;
   authorId: string;
   channelId: string;
+  channelName?: string;
   guildId?: string;
+  guildName?: string;
   isDirectMessage: boolean;
   attachments: ChatAttachment[];
 };
@@ -15,8 +17,10 @@ export type ChatMessage = {
   messageId: string;
   authorId: string;
   channelId: string;
+  channelName?: string;
   content: string;
   guildId?: string;
+  guildName?: string;
   isBot: boolean;
   isDirectMessage: boolean;
   attachments: ChatAttachment[];
@@ -41,7 +45,9 @@ export const buildChatRequest = (message: ChatMessage): ChatRequest | null => {
     messageId: message.messageId,
     authorId: message.authorId,
     channelId: message.channelId,
+    channelName: message.channelName,
     guildId: message.guildId,
+    guildName: message.guildName,
     isDirectMessage: message.isDirectMessage,
     attachments: message.attachments,
   };

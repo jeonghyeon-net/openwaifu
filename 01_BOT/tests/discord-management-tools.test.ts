@@ -20,9 +20,14 @@ const service = {
 
 describe("discord management tools", () => {
   it("builds prompt and text results", () => {
-    expect(discordContextPrompt({ authorId: "u", channelId: "c", guildId: "g", isDirectMessage: false })).toContain("current_guild_id: g");
-    expect(discordContextPrompt({ authorId: "u", channelId: "c", isDirectMessage: true })).toContain("source: dm");
-    expect(discordContextPrompt({ authorId: "u", channelId: "c", isDirectMessage: true })).toContain("current_guild_id: none");
+    const guildPrompt = discordContextPrompt({ authorId: "u", channelId: "c", channelName: "개발", guildId: "g", guildName: "jeonghyeon.net", isDirectMessage: false });
+    const dmPrompt = discordContextPrompt({ authorId: "u", channelId: "c", isDirectMessage: true });
+    expect(guildPrompt).toContain("current_guild_id: g");
+    expect(guildPrompt).toContain("current_guild_name: jeonghyeon.net");
+    expect(guildPrompt).toContain("current_channel_name: 개발");
+    expect(dmPrompt).toContain("source: dm");
+    expect(dmPrompt).toContain("current_guild_id: none");
+    expect(dmPrompt).not.toContain("current_channel_name:");
     expect(discordToolResult("ok")).toEqual({ content: [{ type: "text", text: "ok" }], details: {} });
   });
 

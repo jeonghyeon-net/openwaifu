@@ -6,7 +6,9 @@ type ChatRuntime = Pick<PiRuntime, "prompt" | "stream">;
 const discordContextOf = (request: ChatRequest) => ({
   authorId: request.authorId,
   channelId: request.channelId,
+  channelName: request.channelName,
   guildId: request.guildId,
+  guildName: request.guildName,
   isDirectMessage: request.isDirectMessage,
 });
 

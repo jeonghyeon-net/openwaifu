@@ -17,7 +17,9 @@ export type DiscordAdminClient = Pick<Client, "channels" | "guilds">;
 export type DiscordToolContext = {
   authorId: string;
   channelId: string;
+  channelName?: string;
   guildId?: string;
+  guildName?: string;
   isDirectMessage: boolean;
 };
 

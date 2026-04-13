@@ -33,7 +33,7 @@ export const inspectDiscordServer = async (
     const channels = [...(await guild.channels.fetch()).values()].flatMap((channel) => (channel ? [channel] : []));
     const lines = channels
       .sort((left, right) => left.rawPosition - right.rawPosition)
-      .map((channel) => `- ${channel.name} (${channel.id}) type=${ChannelType[channel.type]}`);
+      .map((channel) => `- ${channel.name} (${channel.id}) type=${ChannelType[channel.type]}${channel.id === context.channelId ? " [current]" : ""}`);
     return formatBlock(`Channels in ${guild.name}`, lines);
   }
   if (input.view === "roles") {

@@ -15,7 +15,9 @@ describe("createChatService", () => {
       messageId: "m1",
       authorId: "2",
       channelId: "1",
+      channelName: "개발",
       guildId: "g",
+      guildName: "jeonghyeon.net",
       isDirectMessage: false,
       attachments: [{ name: "notes.txt", url: "u", size: 1 }],
     };
@@ -30,13 +32,13 @@ describe("createChatService", () => {
     expect(prompt).toHaveBeenCalledWith(
       "channel:1:user:2",
       "hello",
-      { authorId: "2", channelId: "1", guildId: "g", isDirectMessage: false },
+      { authorId: "2", channelId: "1", channelName: "개발", guildId: "g", guildName: "jeonghyeon.net", isDirectMessage: false },
       { messageId: "m1", attachments: [{ name: "notes.txt", url: "u", size: 1 }] },
     );
     expect(stream).toHaveBeenCalledWith(
       "channel:1:user:2",
       "hello",
-      { authorId: "2", channelId: "1", guildId: "g", isDirectMessage: false },
+      { authorId: "2", channelId: "1", channelName: "개발", guildId: "g", guildName: "jeonghyeon.net", isDirectMessage: false },
       { messageId: "m1", attachments: [{ name: "notes.txt", url: "u", size: 1 }] },
     );
   });

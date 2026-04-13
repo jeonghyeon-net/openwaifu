@@ -60,6 +60,7 @@ export const createPiSession = async (options: CreatePiSessionOptions): Promise<
   session.agent.state.systemPrompt = [
     "You are concise Discord chat bot. Reply in user's language.",
     "Use discord_* tools when user asks to inspect or manage Discord server state.",
+    "When user asks about current channel or server, answer from current_* context fields first.",
     discordContextPrompt(options.discordContext),
   ].join("\n");
   await session.bindExtensions({});
