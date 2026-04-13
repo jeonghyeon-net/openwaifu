@@ -4,6 +4,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { DiscordAdminClient } from "../src/integrations/discord/tools/discord-admin-types.js";
 
+const registerDiscordSessionContext = vi.fn();
+vi.mock("../src/integrations/pi/discord-session-context.js", () => ({ registerDiscordSessionContext }));
+
 type Args = { customTools: unknown[]; tools: Array<{ name: string }>; thinkingLevel?: string };
 const bindExtensions = vi.fn(async () => undefined);
 const createSession = (onPayload?: (payload: unknown, model: Model<Api>) => unknown) => ({ agent: { onPayload, state: {} }, bindExtensions });
@@ -19,6 +22,7 @@ const discordClient = { channels: {} as DiscordAdminClient["channels"], guilds: 
 beforeEach(() => {
   bindExtensions.mockClear();
   createAgentSession.mockReset();
+  registerDiscordSessionContext.mockClear();
   createAgentSession.mockResolvedValue({ session: createSession(), options: { customTools: [], tools: [] } });
 });
 
@@ -30,7 +34,8 @@ describe("createPiSession reasoning", () => {
     const session = await createPiSession({
       repoRoot: "/repo", agentDir: "/agent", authStorage: {} as AuthStorage, modelRegistry: {} as ModelRegistry,
       model: createModel("openai-codex"), thinkingLevel: "high", reasoningEffort: "low",
-      settingsManager: {} as SettingsManager, resourceLoader: {} as ResourceLoader, sessionManager: {} as SessionManager,
+      settingsManager: {} as SettingsManager, resourceLoader: {} as ResourceLoader,
+      sessionManager: { getSessionFile: () => undefined } as SessionManager, scopeId: "scope:1",
       discordClient, discordContext: { authorId: "u", channelId: "c", guildId: "g", isDirectMessage: false },
     });
     expect(createAgentSession).toHaveBeenCalledWith(expect.objectContaining({ thinkingLevel: "high" }));
@@ -38,5 +43,6 @@ describe("createPiSession reasoning", () => {
       include: ["reasoning.encrypted_content"], input: [], reasoning: { effort: "low", summary: "auto" },
     });
     expect(onPayload).toHaveBeenCalled();
+    expect(registerDiscordSessionContext).not.toHaveBeenCalled();
   });
 });

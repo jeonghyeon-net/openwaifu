@@ -1,7 +1,7 @@
 
          ╔════════════════════════════════════════╗
-         ║               openwaifu               ║
-         ║      discord bot + local pi repo      ║
+         ║                openwaifu               ║
+         ║       discord bot + local pi repo      ║
          ╚════════════════════════════════════════╝
 
   SETUP
@@ -19,7 +19,8 @@
     01_BOT  … discord.js runtime, replies to all non-bot messages, keeps per-scope sessions, manages Discord via tools
 
   EXTENSIONS
-    persona … loads extension-local PERSONA file into pi system prompt
+    persona   … loads extension-local PERSONA file into pi system prompt
+    scheduler … schedules one-time and daily Discord reminders for current user/session
 
   SKILLS
     (none)

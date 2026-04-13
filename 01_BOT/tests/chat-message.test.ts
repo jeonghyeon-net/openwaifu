@@ -4,32 +4,37 @@ import { buildChatRequest } from "../src/features/chat/chat-message.js";
 
 describe("buildChatRequest", () => {
   it("ignores bot messages", () => {
-    expect(buildChatRequest({ authorId: "u", channelId: "c", content: "hello", isBot: true, isDirectMessage: false })).toBeNull();
+    expect(buildChatRequest({ messageId: "m", authorId: "u", channelId: "c", content: "hello", isBot: true, isDirectMessage: false, attachments: [] })).toBeNull();
   });
 
-  it("ignores empty messages", () => {
-    expect(buildChatRequest({ authorId: "u", channelId: "c", content: "   ", isBot: false, isDirectMessage: false })).toBeNull();
+  it("ignores empty messages without attachments", () => {
+    expect(buildChatRequest({ messageId: "m", authorId: "u", channelId: "c", content: "   ", isBot: false, isDirectMessage: false, attachments: [] })).toBeNull();
   });
 
   it("uses per-user scope for guild messages", () => {
-    expect(buildChatRequest({ authorId: "u", channelId: "c", content: "hello", guildId: "g", isBot: false, isDirectMessage: false })).toEqual({
+    expect(buildChatRequest({ messageId: "m1", authorId: "u", channelId: "c", content: "hello", guildId: "g", isBot: false, isDirectMessage: false, attachments: [] })).toEqual({
       prompt: "hello",
       scopeId: "channel:c:user:u",
+      messageId: "m1",
       authorId: "u",
       channelId: "c",
       guildId: "g",
       isDirectMessage: false,
+      attachments: [],
     });
   });
 
-  it("uses dm scope for direct messages", () => {
-    expect(buildChatRequest({ authorId: "u", channelId: "dm", content: "hello", isBot: false, isDirectMessage: true })).toEqual({
+  it("uses dm scope and attachment-only fallback prompt", () => {
+    expect(buildChatRequest({ messageId: "m2", authorId: "u", channelId: "dm", content: "hello", isBot: false, isDirectMessage: true, attachments: [] })).toEqual({
       prompt: "hello",
       scopeId: "dm:u",
+      messageId: "m2",
       authorId: "u",
       channelId: "dm",
       guildId: undefined,
       isDirectMessage: true,
+      attachments: [],
     });
+    expect(buildChatRequest({ messageId: "m3", authorId: "u", channelId: "c", content: "   ", isBot: false, isDirectMessage: false, attachments: [{ name: "photo.png", url: "u", size: 1, contentType: "image/png" }] })).toEqual(expect.objectContaining({ prompt: "User sent attachment files. Analyze them." }));
   });
 });

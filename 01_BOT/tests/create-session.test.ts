@@ -4,6 +4,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { DiscordAdminClient } from "../src/integrations/discord/tools/discord-admin-types.js";
 
+const registerDiscordSessionContext = vi.fn();
+vi.mock("../src/integrations/pi/discord-session-context.js", () => ({ registerDiscordSessionContext }));
+
 type Args = { customTools: unknown[]; tools: Array<{ name: string }>; thinkingLevel?: string };
 const bindExtensions = vi.fn(async () => undefined);
 const createSession = () => ({ agent: { state: {} }, bindExtensions });
@@ -19,6 +22,7 @@ const discordClient = { channels: {} as DiscordAdminClient["channels"], guilds: 
 beforeEach(() => {
   bindExtensions.mockClear();
   createAgentSession.mockReset();
+  registerDiscordSessionContext.mockClear();
   createAgentSession.mockResolvedValue({ session: createSession(), options: { customTools: [], tools: [] } });
 });
 
@@ -28,7 +32,7 @@ describe("createPiSession", () => {
     const session = await createPiSession({
       repoRoot: "/repo", agentDir: "/agent", authStorage: {} as AuthStorage, modelRegistry: {} as ModelRegistry,
       model: createModel("openai-codex"), settingsManager: {} as SettingsManager, resourceLoader: {} as ResourceLoader,
-      sessionManager: {} as SessionManager, discordClient,
+      sessionManager: { getSessionFile: () => "/sessions/scope.jsonl" } as SessionManager, scopeId: "scope:1", discordClient,
       discordContext: { authorId: "u", channelId: "c", guildId: "g", isDirectMessage: false },
     });
     const args = createAgentSession.mock.calls[0]?.[0];
@@ -38,5 +42,11 @@ describe("createPiSession", () => {
     expect(session.agent.state.systemPrompt).toContain("discord_* tools");
     expect(session.agent.state.systemPrompt).toContain("current_channel_id: c");
     expect(bindExtensions).toHaveBeenCalledWith({});
+    expect(registerDiscordSessionContext).toHaveBeenCalledWith("/sessions/scope.jsonl", "scope:1", {
+      authorId: "u",
+      channelId: "c",
+      guildId: "g",
+      isDirectMessage: false,
+    });
   });
 });

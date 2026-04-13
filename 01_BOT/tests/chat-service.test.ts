@@ -9,17 +9,19 @@ describe("createChatService", () => {
     const result = await service.reply({
       prompt: "hello",
       scopeId: "channel:1:user:2",
+      messageId: "m1",
       authorId: "2",
       channelId: "1",
       guildId: "g",
       isDirectMessage: false,
+      attachments: [{ name: "notes.txt", url: "u", size: 1 }],
     });
     expect(result).toBe("reply");
-    expect(prompt).toHaveBeenCalledWith("channel:1:user:2", "hello", {
-      authorId: "2",
-      channelId: "1",
-      guildId: "g",
-      isDirectMessage: false,
-    });
+    expect(prompt).toHaveBeenCalledWith(
+      "channel:1:user:2",
+      "hello",
+      { authorId: "2", channelId: "1", guildId: "g", isDirectMessage: false },
+      { messageId: "m1", attachments: [{ name: "notes.txt", url: "u", size: 1 }] },
+    );
   });
 });

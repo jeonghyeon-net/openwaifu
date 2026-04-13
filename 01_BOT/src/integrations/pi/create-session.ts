@@ -17,6 +17,7 @@ import type {
 } from "../discord/tools/discord-admin-types.js";
 import { discordContextPrompt } from "../discord/tools/discord-context-prompt.js";
 import { createDiscordManagementTools } from "../discord/tools/discord-management-tools.js";
+import { registerDiscordSessionContext } from "./discord-session-context.js";
 import { withReasoningEffort } from "./reasoning-effort.js";
 import { createRuntimeTools } from "./runtime-tools.js";
 
@@ -31,6 +32,7 @@ type CreatePiSessionOptions = {
   settingsManager: SettingsManager;
   resourceLoader: ResourceLoader;
   sessionManager: SessionManager;
+  scopeId: string;
   discordClient: DiscordAdminClient;
   discordContext: DiscordToolContext;
 };
@@ -51,6 +53,11 @@ export const createPiSession = async (options: CreatePiSessionOptions): Promise<
       createDiscordAdminService(options.discordClient, options.discordContext),
     ),
   });
+
+  const sessionFile = options.sessionManager.getSessionFile();
+  if (sessionFile) {
+    registerDiscordSessionContext(sessionFile, options.scopeId, options.discordContext);
+  }
 
   session.agent.onPayload = withReasoningEffort(session.agent.onPayload, options.reasoningEffort);
   session.agent.state.systemPrompt = [

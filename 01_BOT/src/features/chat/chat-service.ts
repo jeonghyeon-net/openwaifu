@@ -9,10 +9,15 @@ export type ChatService = {
 
 export const createChatService = (runtime: ChatRuntime): ChatService => ({
   reply: (request) =>
-    runtime.prompt(request.scopeId, request.prompt, {
-      authorId: request.authorId,
-      channelId: request.channelId,
-      guildId: request.guildId,
-      isDirectMessage: request.isDirectMessage,
-    }),
+    runtime.prompt(
+      request.scopeId,
+      request.prompt,
+      {
+        authorId: request.authorId,
+        channelId: request.channelId,
+        guildId: request.guildId,
+        isDirectMessage: request.isDirectMessage,
+      },
+      { messageId: request.messageId, attachments: request.attachments },
+    ),
 });

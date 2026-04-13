@@ -5,10 +5,11 @@ import type { ChatService } from "../../features/chat/chat-service.js";
 import { limitText } from "../pi/format-text.js";
 
 type DiscordEventClient = Pick<Client, "on">;
+type IncomingDiscordAttachment = { name: string | null; url: string; contentType: string | null; size: number };
 type IncomingDiscordMessage = Pick<
   Message<boolean>,
-  "author" | "channel" | "channelId" | "content" | "guildId" | "reply"
->;
+  "author" | "channel" | "channelId" | "content" | "guildId" | "id" | "reply"
+> & { attachments: { values(): IterableIterator<IncomingDiscordAttachment> } };
 
 type HandlerDeps = {
   client: DiscordEventClient;
@@ -16,12 +17,19 @@ type HandlerDeps = {
 };
 
 const toChatMessage = (message: IncomingDiscordMessage) => ({
+  messageId: message.id,
   authorId: message.author.id,
   channelId: message.channelId,
   content: message.content,
   guildId: message.guildId ?? undefined,
   isBot: message.author.bot,
   isDirectMessage: message.channel.isDMBased(),
+  attachments: Array.from(message.attachments.values()).map((attachment) => ({
+    name: attachment.name || "attachment",
+    url: attachment.url,
+    contentType: attachment.contentType || undefined,
+    size: attachment.size,
+  })),
 });
 
 export const registerDiscordHandlers = ({ client, chatService }: HandlerDeps) => {

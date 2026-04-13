@@ -1,16 +1,9 @@
 import { mkdir } from "node:fs/promises";
-
-import {
-  AuthStorage,
-  ModelRegistry,
-  SessionManager,
-  SettingsManager,
-  getAgentDir,
-  type AgentSession,
-  type DefaultResourceLoader,
-} from "@mariozechner/pi-coding-agent";
+import { AuthStorage, ModelRegistry, SessionManager, SettingsManager, getAgentDir, type AgentSession, type DefaultResourceLoader } from "@mariozechner/pi-coding-agent";
 
 import type { PiReasoningEffort, PiThinkingLevel } from "../../config/pi-config.js";
+import type { ChatAttachment } from "../../features/chat/chat-attachment.js";
+import { prepareChatPrompt } from "../../features/chat/prepare-chat-prompt.js";
 import type { DiscordAdminClient, DiscordToolContext } from "../discord/tools/discord-admin-types.js";
 import { createPiSession } from "./create-session.js";
 import { ensureProviderAuth } from "./ensure-provider-auth.js";
@@ -19,6 +12,7 @@ import { lastAssistantText } from "./last-assistant-text.js";
 import { ScopedQueue } from "./scoped-queue.js";
 import { sessionFileForScope } from "./session-path.js";
 
+export type ChatPromptOptions = { messageId: string; attachments: ChatAttachment[] };
 export type PiRuntimeOptions = {
   repoRoot: string;
   sessionsRoot: string;
@@ -52,21 +46,16 @@ export class PiRuntime {
     const runtime = new PiRuntime(options);
     await ensureProviderAuth(runtime.authStorage, runtime.options.provider);
     await mkdir(runtime.options.sessionsRoot, { recursive: true });
-    runtime.loader = await createResourceLoader({
-      repoRoot: runtime.options.repoRoot,
-      agentDir: runtime.agentDir,
-      settingsManager: runtime.settingsManager,
-      extensionsRoot: runtime.options.extensionsRoot,
-      skillsRoot: runtime.options.skillsRoot,
-    });
+    runtime.loader = await createResourceLoader({ repoRoot: runtime.options.repoRoot, agentDir: runtime.agentDir, settingsManager: runtime.settingsManager, extensionsRoot: runtime.options.extensionsRoot, skillsRoot: runtime.options.skillsRoot });
     await runtime.loader.reload();
     return runtime;
   }
 
-  prompt(scopeId: string, prompt: string, discordContext: DiscordToolContext) {
+  prompt(scopeId: string, prompt: string, discordContext: DiscordToolContext, options: ChatPromptOptions = { messageId: "", attachments: [] }) {
     return this.queue.run(scopeId, async () => {
       const session = await this.getSession(scopeId, discordContext);
-      await session.prompt(prompt);
+      const prepared = await prepareChatPrompt({ repoRoot: this.options.repoRoot, scopeId, messageId: options.messageId, prompt, attachments: options.attachments });
+      await session.prompt(prepared.prompt, prepared.images ? { images: prepared.images } : undefined);
       return lastAssistantText(session);
     });
   }
@@ -74,25 +63,8 @@ export class PiRuntime {
   private async getSession(scopeId: string, discordContext: DiscordToolContext) {
     const cached = this.sessions.get(scopeId);
     if (cached) return cached;
-    const session = await createPiSession({
-      repoRoot: this.options.repoRoot,
-      agentDir: this.agentDir,
-      authStorage: this.authStorage,
-      modelRegistry: this.modelRegistry,
-      model: this.model,
-      thinkingLevel: this.options.thinkingLevel,
-      reasoningEffort: this.options.reasoningEffort,
-      settingsManager: this.settingsManager,
-      resourceLoader: this.loader,
-      sessionManager: SessionManager.open(
-        sessionFileForScope(this.options.sessionsRoot, scopeId),
-        this.options.sessionsRoot,
-        this.options.repoRoot,
-      ),
-      discordClient: this.options.discordClient,
-      discordContext,
-    });
-
+    const sessionManager = SessionManager.open(sessionFileForScope(this.options.sessionsRoot, scopeId), this.options.sessionsRoot, this.options.repoRoot);
+    const session = await createPiSession({ repoRoot: this.options.repoRoot, agentDir: this.agentDir, authStorage: this.authStorage, modelRegistry: this.modelRegistry, model: this.model, thinkingLevel: this.options.thinkingLevel, reasoningEffort: this.options.reasoningEffort, settingsManager: this.settingsManager, resourceLoader: this.loader, sessionManager, scopeId, discordClient: this.options.discordClient, discordContext });
     this.sessions.set(scopeId, session);
     return session;
   }

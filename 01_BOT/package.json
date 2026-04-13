@@ -10,9 +10,11 @@
     "@mariozechner/pi-coding-agent": "latest",
     "@sinclair/typebox": "^0.34.49",
     "discord.js": "^14.19.3",
-    "dotenv": "^17.2.3"
+    "dotenv": "^17.2.3",
+    "luxon": "^3.7.2"
   },
   "devDependencies": {
+    "@types/luxon": "^3.6.2",
     "@types/node": "^24.6.1",
     "@vitest/coverage-v8": "^3.2.4",
     "tsx": "^4.20.6",
