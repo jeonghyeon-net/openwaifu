@@ -9,12 +9,8 @@ import (
 )
 
 func TestExtension_NoDependencies(t *testing.T) {
-  dir := filepath.Join(repoRoot(t), "02_EXTENSIONS")
-  entries, err := os.ReadDir(dir)
-  if err != nil { t.Fatalf("02_EXTENSIONS 읽기 실패: %v", err) }
-  for _, entry := range entries {
-    if !entry.IsDir() { continue }
-    raw, err := os.ReadFile(filepath.Join(dir, entry.Name(), "package.json"))
+  for _, entry := range extensionEntries(t) {
+    raw, err := os.ReadFile(filepath.Join(extensionRoot(t), entry.Name(), "package.json"))
     if err != nil { t.Fatalf("package.json 읽기 실패: %v", err) }
     var pkg map[string]json.RawMessage
     if err := json.Unmarshal(raw, &pkg); err != nil { t.Fatalf("package.json 파싱 실패: %v", err) }
@@ -23,12 +19,8 @@ func TestExtension_NoDependencies(t *testing.T) {
 }
 
 func TestExtension_EsbuildBundle(t *testing.T) {
-  dir := filepath.Join(repoRoot(t), "02_EXTENSIONS")
-  entries, err := os.ReadDir(dir)
-  if err != nil { t.Fatalf("02_EXTENSIONS 읽기 실패: %v", err) }
-  for _, entry := range entries {
-    if !entry.IsDir() { continue }
-    raw, err := os.ReadFile(filepath.Join(dir, entry.Name(), "package.json"))
+  for _, entry := range extensionEntries(t) {
+    raw, err := os.ReadFile(filepath.Join(extensionRoot(t), entry.Name(), "package.json"))
     if err != nil { t.Fatalf("package.json 읽기 실패: %v", err) }
     var pkg struct{ Scripts map[string]string `json:"scripts"` }
     if err := json.Unmarshal(raw, &pkg); err != nil { t.Fatalf("package.json 파싱 실패: %v", err) }
@@ -40,12 +32,8 @@ func TestExtension_EsbuildBundle(t *testing.T) {
 }
 
 func TestExtension_DistSingleFile(t *testing.T) {
-  dir := filepath.Join(repoRoot(t), "02_EXTENSIONS")
-  entries, err := os.ReadDir(dir)
-  if err != nil { t.Fatalf("02_EXTENSIONS 읽기 실패: %v", err) }
-  for _, entry := range entries {
-    if !entry.IsDir() { continue }
-    files, err := os.ReadDir(filepath.Join(dir, entry.Name(), "dist"))
+  for _, entry := range extensionEntries(t) {
+    files, err := os.ReadDir(filepath.Join(extensionRoot(t), entry.Name(), "dist"))
     if err != nil { t.Fatalf("dist/ 읽기 실패: %v", err) }
     for _, file := range files {
       if file.Name() != "index.js" { t.Errorf("dist/index.js 외 파일 금지: %s", file.Name()) }

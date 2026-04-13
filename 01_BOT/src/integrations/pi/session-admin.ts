@@ -4,4 +4,4 @@ export {
   sessionStatsFromEntries,
   sessionStatsFromManager,
 } from "./session-stats.js";
-export { clearScopeSessionStorage } from "./session-storage.js";
+export { clearScopeSessionStorage, clearScheduledSessionStorage } from "./session-storage.js";

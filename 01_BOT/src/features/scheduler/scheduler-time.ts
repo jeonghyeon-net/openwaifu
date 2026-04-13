@@ -1,12 +1,21 @@
-import { CronExpressionParser } from "cron-parser";
+import { createRequire } from "node:module";
 import { DateTime } from "luxon";
 
 import type { ScheduledTaskRecord } from "./scheduler-types.js";
 
+const require = createRequire(import.meta.url);
 const timePattern = /^([01]\d|2[0-3]):([0-5]\d)$/;
 const datePattern = /^\d{4}-\d{2}-\d{2}$/;
 type NextScheduledInput = { timezone: string; time?: string; date?: string; cron?: string };
 type AnyDateTime = DateTime<true> | DateTime<false>;
+type CronParserModule = typeof import("cron-parser");
+let cronParser: CronParserModule["CronExpressionParser"] | undefined;
+
+const getCronExpressionParser = () => {
+  if (cronParser) return cronParser;
+  ({ CronExpressionParser: cronParser } = require("cron-parser") as CronParserModule);
+  return cronParser;
+};
 
 const toUtcIso = (value: AnyDateTime) => {
   const iso = value.toUTC().toISO();
@@ -30,7 +39,7 @@ const scheduleClock = (value: AnyDateTime, hour: number, minute: number) =>
   value.set({ hour, minute, second: 0, millisecond: 0 });
 const assertCron = (cron?: string, timezone?: string) => {
   if (!cron) return;
-  CronExpressionParser.parse(cron, {
+  getCronExpressionParser().parse(cron, {
     currentDate: new Date(),
     tz: timezone,
   });
@@ -43,7 +52,7 @@ export const nextScheduledRunAt = (input: NextScheduledInput, now: AnyDateTime =
   const zonedNow = now.setZone(input.timezone);
 
   if (input.cron) {
-    const interval = CronExpressionParser.parse(input.cron, {
+    const interval = getCronExpressionParser().parse(input.cron, {
       currentDate: zonedNow.toJSDate(),
       tz: input.timezone,
     });

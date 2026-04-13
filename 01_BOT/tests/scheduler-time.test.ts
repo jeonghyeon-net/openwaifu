@@ -55,12 +55,14 @@ describe("scheduler time helpers", () => {
   it("rejects invalid scheduler inputs", () => {
     const now = DateTime.fromISO("2026-04-13T08:00:00", { zone: "Asia/Seoul" });
 
+    expect(() => nextScheduledRunAt({ timezone: "Asia/Seoul" }, now)).toThrow("Time required when cron is not set");
     expect(() => nextScheduledRunAt({ time: "9:00", timezone: "Asia/Seoul" }, now)).toThrow("Invalid time");
     expect(() => nextScheduledRunAt({ date: "2026/04/14", time: "09:00", timezone: "Asia/Seoul" }, now)).toThrow("Invalid date");
     expect(() => nextScheduledRunAt({ time: "09:00", timezone: "Mars/Phobos" }, now)).toThrow("Invalid timezone");
     expect(() => nextScheduledRunAt({ date: "2026-02-30", time: "09:00", timezone: "Asia/Seoul" }, now)).toThrow("Invalid date/time");
     expect(() => nextScheduledRunAt({ date: "2026-04-13", time: "07:00", timezone: "Asia/Seoul" }, now)).toThrow("Scheduled time must be in future");
     expect(() => nextScheduledRunAt({ cron: "bad cron", timezone: "Asia/Seoul" }, now)).toThrow();
+    expect(() => nextCronRunAt({ timezone: "Asia/Seoul" }, now)).toThrow("Cron expression required for recurring scheduled task");
     expect(() => retryScheduledRunAt(DateTime.invalid("bad timestamp"))).toThrow("Failed to serialize scheduled task time");
   });
 });

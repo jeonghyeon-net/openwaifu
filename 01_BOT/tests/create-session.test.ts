@@ -21,7 +21,14 @@ const createModel = (provider: string): Model<Api> => ({
   id: "m", name: "model", api: "openai-responses", baseUrl: "https://example.com", provider, reasoning: false,
   input: ["text"], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 1, maxTokens: 1,
 });
-const discordClient = { channels: {} as DiscordAdminClient["channels"], guilds: {} as DiscordAdminClient["guilds"] } as DiscordAdminClient;
+const adminDiscordClient = Object.assign({} as DiscordAdminClient, {
+  channels: {} as DiscordAdminClient["channels"],
+  guilds: { fetch: async () => ({ members: { fetch: async () => ({ permissions: { has: () => true } }) } }) },
+});
+const memberDiscordClient = Object.assign({} as DiscordAdminClient, {
+  channels: {} as DiscordAdminClient["channels"],
+  guilds: { fetch: async () => ({ members: { fetch: async () => ({ permissions: { has: () => false } }) } }) },
+});
 
 beforeEach(() => {
   bindExtensions.mockClear();
@@ -36,7 +43,7 @@ describe("createPiSession", () => {
     const session = await createPiSession({
       repoRoot: "/repo", agentDir: "/agent", authStorage: {} as AuthStorage, modelRegistry: {} as ModelRegistry,
       model: createModel("openai-codex"), settingsManager: {} as SettingsManager, resourceLoader: {} as ResourceLoader,
-      sessionManager: { getSessionFile: () => "/sessions/scope.jsonl" } as SessionManager, scopeId: "scope:1", discordClient,
+      sessionManager: { getSessionFile: () => "/sessions/scope.jsonl" } as SessionManager, scopeId: "scope:1", discordClient: adminDiscordClient,
       discordContext: { authorId: "u", channelId: "c", channelName: "개발", guildId: "g", guildName: "jeonghyeon.net", isDirectMessage: false },
     });
     const args = createAgentSession.mock.calls[0]?.[0];
@@ -60,5 +67,18 @@ describe("createPiSession", () => {
       guildName: "jeonghyeon.net",
       isDirectMessage: false,
     });
+  });
+
+  it("skips discord management tools for non-admin or dm sessions", async () => {
+    const { createPiSession } = await import("../src/integrations/pi/create-session.js");
+    const dmSession = await createPiSession({
+      repoRoot: "/repo", agentDir: "/agent", authStorage: {} as AuthStorage, modelRegistry: {} as ModelRegistry,
+      model: createModel("openai-codex"), settingsManager: {} as SettingsManager, resourceLoader: {} as ResourceLoader,
+      sessionManager: { getSessionFile: () => undefined } as SessionManager, scopeId: "scope:dm", discordClient: memberDiscordClient,
+      discordContext: { authorId: "u", channelId: "c", isDirectMessage: true },
+    });
+    const args = createAgentSession.mock.calls.at(-1)?.[0];
+    expect(args?.customTools).toHaveLength(0);
+    expect(dmSession.agent.state.systemPrompt).not.toContain("discord_* tools");
   });
 });

@@ -10,7 +10,7 @@ import {
   getDiscordSessionContext,
   registerDiscordSessionContext,
 } from "../src/integrations/pi/discord-session-context.js";
-import { clearScopeSessionStorage } from "../src/integrations/pi/session-admin.js";
+import { clearScheduledSessionStorage, clearScopeSessionStorage } from "../src/integrations/pi/session-admin.js";
 import { sessionFileForScope } from "../src/integrations/pi/session-path.js";
 
 describe("session storage", () => {
@@ -36,6 +36,15 @@ describe("session storage", () => {
     expect(result).toEqual({ sessionFile, attachmentsDir, existed: true });
     expect(existsSync(sessionFile)).toBe(false);
     expect(existsSync(attachmentsDir)).toBe(false);
+    expect(getDiscordSessionContext(sessionFile)).toBeUndefined();
+  });
+
+  it("clears scheduled session file and discord context", async () => {
+    const sessionFile = join(mkdtempSync(join(tmpdir(), "openwaifu-scheduled-")), "scheduled.jsonl");
+    writeFileSync(sessionFile, "hello");
+    registerDiscordSessionContext(sessionFile, "scope:1", { authorId: "u", channelId: "c", guildId: "g", isDirectMessage: false });
+    await expect(clearScheduledSessionStorage(sessionFile)).resolves.toEqual({ sessionFile, existed: true });
+    expect(existsSync(sessionFile)).toBe(false);
     expect(getDiscordSessionContext(sessionFile)).toBeUndefined();
   });
 });

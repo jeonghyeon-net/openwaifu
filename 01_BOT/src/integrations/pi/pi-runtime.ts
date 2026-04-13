@@ -1,30 +1,16 @@
 import { mkdir } from "node:fs/promises";
-import { AuthStorage, ModelRegistry, SessionManager, SettingsManager, getAgentDir, type AgentSession, type DefaultResourceLoader } from "@mariozechner/pi-coding-agent";
-
-import { fixedPiProvider, type PiThinkingLevel } from "../../config/pi-config.js";
-import type { ChatAttachment } from "../../features/chat/chat-attachment.js";
-import type { DiscordAdminClient, DiscordToolContext } from "../discord/tools/discord-admin-types.js";
-import { createPiSession } from "./create-session.js";
-import { ensureProviderAuth } from "./ensure-provider-auth.js";
-import { lastAssistantText } from "./last-assistant-text.js";
+import { AuthStorage, ModelRegistry, SettingsManager, getAgentDir, type AgentSession, type DefaultResourceLoader } from "@mariozechner/pi-coding-agent";
+import { fixedPiProvider } from "../../config/pi-config.js";
+import type { DiscordToolContext } from "../discord/tools/discord-admin-types.js";
 import { createResourceLoader } from "./create-resource-loader.js";
-import { startRuntimePrompt, type ActivePrompt } from "./runtime-prompt.js";
+import { ensureProviderAuth } from "./ensure-provider-auth.js";
+import { emptyChatPromptOptions, type ChatPromptOptions, type PiRuntimeOptions } from "./pi-runtime-types.js";
+import { createRuntimeStream } from "./pi-runtime-stream.js";
+import { getOrCreateScopeSession, runScheduledPromptSession } from "./pi-runtime-session.js";
+import type { ActivePrompt } from "./runtime-prompt.js";
 export type { RuntimeTextChunk } from "./runtime-stream-state.js";
 import { ScopedQueue } from "./scoped-queue.js";
 import { clearScopeSessionStorage, readScopeSessionStats, sessionStatsFromManager, type ScopeSessionStats } from "./session-admin.js";
-import { sessionFileForScope, sessionFileForScheduledRun } from "./session-path.js";
-
-export type ChatPromptOptions = { messageId: string; attachments: ChatAttachment[] };
-export type PiRuntimeOptions = {
-  repoRoot: string;
-  sessionsRoot: string;
-  extensionsRoot: string;
-  skillsRoot: string;
-  modelId: string;
-  thinkingLevel?: PiThinkingLevel;
-  discordClient: DiscordAdminClient;
-};
-
 export class PiRuntime {
   private readonly agentDir = getAgentDir();
   private readonly authStorage = AuthStorage.create();
@@ -32,15 +18,15 @@ export class PiRuntime {
   private readonly settingsManager: SettingsManager;
   private readonly streamControl = new ScopedQueue();
   private readonly sessions = new Map<string, AgentSession>();
+  private readonly sessionAccess = new Map<string, boolean>();
+  private readonly sessionContext = new Map<string, string>();
   private readonly activePrompts = new Map<string, ActivePrompt>();
   private readonly model;
   private loader!: DefaultResourceLoader;
-
   private constructor(private readonly options: PiRuntimeOptions) {
     this.settingsManager = SettingsManager.create(this.options.repoRoot, this.agentDir);
     this.model = this.requireModel();
   }
-
   static async create(options: PiRuntimeOptions) {
     const runtime = new PiRuntime(options);
     await ensureProviderAuth(runtime.authStorage);
@@ -49,17 +35,15 @@ export class PiRuntime {
     await runtime.loader.reload();
     return runtime;
   }
-
-  async prompt(scopeId: string, prompt: string, discordContext: DiscordToolContext, options: ChatPromptOptions = { messageId: "", attachments: [] }) {
+  async prompt(scopeId: string, prompt: string, discordContext: DiscordToolContext, options: ChatPromptOptions = emptyChatPromptOptions) {
     let text = "";
     for await (const chunk of this.stream(scopeId, prompt, discordContext, options)) text += chunk.text;
     return text.trim() ? text : "응답 없음";
   }
-
   getScopeStats(scopeId: string): ScopeSessionStats | undefined {
-    const cached = this.sessions.get(scopeId);
-    if (cached) return sessionStatsFromManager(cached.sessionManager);
-    return readScopeSessionStats(this.options.repoRoot, this.options.sessionsRoot, scopeId);
+    return this.sessions.get(scopeId)
+      ? sessionStatsFromManager(this.sessions.get(scopeId)!.sessionManager)
+      : readScopeSessionStats(this.options.repoRoot, this.options.sessionsRoot, scopeId);
   }
 
   async resetScope(scopeId: string) {
@@ -69,62 +53,23 @@ export class PiRuntime {
       await activePrompt.session.abort().catch(() => undefined);
       this.activePrompts.delete(scopeId);
     }
-
     const session = this.sessions.get(scopeId);
     if (session) {
       await session.abort().catch(() => undefined);
       session.dispose();
       this.sessions.delete(scopeId);
+      this.sessionAccess.delete(scopeId);
+      this.sessionContext.delete(scopeId);
     }
-
     return clearScopeSessionStorage(this.options.repoRoot, this.options.sessionsRoot, scopeId);
   }
 
-  async runScheduledPrompt(scopeId: string, taskId: string, prompt: string, discordContext: DiscordToolContext) {
-    const sessionManager = SessionManager.open(
-      sessionFileForScheduledRun(this.options.sessionsRoot, scopeId, taskId),
-      this.options.sessionsRoot,
-      this.options.repoRoot,
-    );
-    const session = await createPiSession({
-      repoRoot: this.options.repoRoot,
-      agentDir: this.agentDir,
-      authStorage: this.authStorage,
-      modelRegistry: this.modelRegistry,
-      model: this.model,
-      thinkingLevel: this.options.thinkingLevel,
-      settingsManager: this.settingsManager,
-      resourceLoader: this.loader,
-      sessionManager,
-      scopeId,
-      discordClient: this.options.discordClient,
-      discordContext,
-    });
-    await session.prompt(prompt);
-    return lastAssistantText(session);
+  runScheduledPrompt(scopeId: string, taskId: string, prompt: string, discordContext: DiscordToolContext) {
+    return runScheduledPromptSession(this.sessionDeps(), scopeId, taskId, prompt, discordContext);
   }
 
-  stream(scopeId: string, prompt: string, discordContext: DiscordToolContext, options: ChatPromptOptions = { messageId: "", attachments: [] }) {
-    return { [Symbol.asyncIterator]: async function* (this: PiRuntime) {
-      const started = await this.streamControl.run(scopeId, () => startRuntimePrompt({ repoRoot: this.options.repoRoot, scopeId, prompt, options, discordContext, activePrompts: this.activePrompts, getSession: this.getSession.bind(this) }));
-      try {
-        while (!started.state.isDone() || started.state.chunks.length > 0) {
-          if (started.state.chunks.length === 0) await started.state.wait();
-          else {
-            const chunk = started.state.chunks.shift();
-            if (chunk) yield chunk;
-          }
-        }
-        const failure = started.getFailure();
-        if (failure && !started.activePrompt.interrupted) throw failure;
-      } finally {
-        if (!started.state.isDone() && this.activePrompts.get(scopeId)?.token === started.activePrompt.token) {
-          started.activePrompt.interrupted = true;
-          await started.activePrompt.session.abort().catch(() => undefined);
-        }
-        await started.run;
-      }
-    }.bind(this) };
+  stream(scopeId: string, prompt: string, discordContext: DiscordToolContext, options: ChatPromptOptions = emptyChatPromptOptions) {
+    return createRuntimeStream({ repoRoot: this.options.repoRoot, scopeId, prompt, options, discordContext, activePrompts: this.activePrompts, streamControl: this.streamControl, getSession: this.getSession.bind(this) });
   }
 
   private requireModel() {
@@ -133,12 +78,22 @@ export class PiRuntime {
     return model;
   }
 
-  private async getSession(scopeId: string, discordContext: DiscordToolContext) {
-    const cached = this.sessions.get(scopeId);
-    if (cached) return cached;
-    const sessionManager = SessionManager.open(sessionFileForScope(this.options.sessionsRoot, scopeId), this.options.sessionsRoot, this.options.repoRoot);
-    const session = await createPiSession({ repoRoot: this.options.repoRoot, agentDir: this.agentDir, authStorage: this.authStorage, modelRegistry: this.modelRegistry, model: this.model, thinkingLevel: this.options.thinkingLevel, settingsManager: this.settingsManager, resourceLoader: this.loader, sessionManager, scopeId, discordClient: this.options.discordClient, discordContext });
-    this.sessions.set(scopeId, session);
-    return session;
+  private getSession(scopeId: string, discordContext: DiscordToolContext) {
+    return getOrCreateScopeSession({ ...this.sessionDeps(), sessions: this.sessions, sessionAccess: this.sessionAccess, sessionContext: this.sessionContext }, scopeId, discordContext);
+  }
+
+  private sessionDeps() {
+    return {
+      repoRoot: this.options.repoRoot,
+      sessionsRoot: this.options.sessionsRoot,
+      agentDir: this.agentDir,
+      authStorage: this.authStorage,
+      modelRegistry: this.modelRegistry,
+      model: this.model,
+      thinkingLevel: this.options.thinkingLevel,
+      settingsManager: this.settingsManager,
+      loader: this.loader,
+      discordClient: this.options.discordClient,
+    };
   }
 }

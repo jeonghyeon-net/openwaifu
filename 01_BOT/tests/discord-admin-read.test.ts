@@ -31,13 +31,13 @@ const guild = {
       ]),
   },
 };
-const client = {
+const client = Object.assign({} as Parameters<typeof listDiscordServers>[0], {
+  channels: {},
   guilds: {
-    fetch: async (id?: string) =>
-      id ? guild : new Map([["g", { id: "g", name: "Guild" }], ["x", { id: "x", name: "Other" }]]),
+    fetch: async (id?: string) => (id === "g" ? guild : Promise.reject(new Error("missing"))),
     cache: new Map([["g", { id: "g", name: "Guild" }], ["x", { id: "x", name: "Other" }]]),
   },
-} as Parameters<typeof listDiscordServers>[0];
+});
 
 describe("discord admin read", () => {
   it("lists visible servers", async () => {
@@ -48,7 +48,7 @@ describe("discord admin read", () => {
     await expect(inspectDiscordServer(client, context, { view: "summary" })).resolves.toContain("members: 2");
     await expect(inspectDiscordServer(client, context, { view: "channels" })).resolves.toContain("beta (c) type=GuildText [current]");
     await expect(inspectDiscordServer(client, context, { view: "roles" })).resolves.toContain("role-b (2)");
-    await expect(listDiscordServers(client, { ...context, guildId: "none" })).resolves.toContain("Other (x)");
+    await expect(listDiscordServers(client, { ...context, guildId: "none" })).rejects.toThrow("Guild not found: none");
     const members = await inspectDiscordServer(client, context, { view: "members" });
     expect(members).toContain("a#1 (1) roles=role-a");
     expect(members).toContain("b#2 (2) roles=none");

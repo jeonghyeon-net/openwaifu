@@ -35,7 +35,7 @@ describe("scheduler update", () => {
     ]);
   });
 
-  it("switches one-time task to cron schedule and one-time date updates keep existing time", async () => {
+  it("switches one-time task to cron schedule and keeps one-time fields when partly updating", async () => {
     const now = DateTime.fromISO("2026-04-13T08:00:00", { zone: "Asia/Seoul" });
     const cronUpdate = await runScheduler(
       { action: "update", id: "task-1", cron: "30 10 * * 1-5" },
@@ -50,6 +50,13 @@ describe("scheduler update", () => {
       { deps: { now: () => now } },
     );
     expect(dateUpdate.result.details.updated).toEqual(expect.objectContaining({ recurrence: "once", cron: undefined, scheduledTime: "09:00", scheduledDate: "2026-04-15", nextRunAt: "2026-04-15T00:00:00.000Z" }));
+
+    const timeUpdate = await runScheduler(
+      { action: "update", id: "task-1", time: "10:30" },
+      [schedulerTask({ id: "task-1", recurrence: "once", scheduledTime: "09:00", scheduledDate: "2026-04-15", nextRunAt: "2026-04-15T00:00:00.000Z" })],
+      { deps: { now: () => now } },
+    );
+    expect(timeUpdate.result.details.updated).toEqual(expect.objectContaining({ recurrence: "once", cron: undefined, scheduledTime: "10:30", scheduledDate: "2026-04-15", nextRunAt: "2026-04-15T01:30:00.000Z" }));
   });
 
   it("switches cron task to one-time schedule when time is provided", async () => {

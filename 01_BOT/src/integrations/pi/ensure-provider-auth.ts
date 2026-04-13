@@ -1,4 +1,4 @@
-import { exec } from "node:child_process";
+import { spawn } from "node:child_process";
 import { stdin as input, stdout as output } from "node:process";
 import { createInterface } from "node:readline/promises";
 
@@ -12,12 +12,13 @@ const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const isBootstrapError = (error: unknown) => error instanceof Error && error.message === nodeBootstrapError;
 
 const openBrowser = (url: string) => {
-  const command = process.platform === "darwin"
-    ? `open "${url}"`
+  const [command, ...args] = process.platform === "darwin"
+    ? ["open", url]
     : process.platform === "win32"
-      ? `start "" "${url}"`
-      : `xdg-open "${url}"`;
-  exec(command, () => undefined);
+      ? ["cmd", "/c", "start", "", url]
+      : ["xdg-open", url];
+  const child = spawn(command, args, { detached: true, stdio: "ignore" });
+  child.unref();
 };
 
 const promptForInput = async (message: string, placeholder?: string, allowEmpty = false) => {

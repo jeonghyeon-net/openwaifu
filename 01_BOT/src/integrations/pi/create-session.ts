@@ -10,11 +10,9 @@ import {
 import type { Model } from "@mariozechner/pi-ai";
 
 import type { PiThinkingLevel } from "../../config/pi-config.js";
+import { canUseDiscordManagementTools } from "../discord/tools/discord-admin-access.js";
 import { createDiscordAdminService } from "../discord/tools/discord-admin-service.js";
-import type {
-  DiscordAdminClient,
-  DiscordToolContext,
-} from "../discord/tools/discord-admin-types.js";
+import type { DiscordAdminClient, DiscordToolContext } from "../discord/tools/discord-admin-types.js";
 import { discordContextPrompt } from "../discord/tools/discord-context-prompt.js";
 import { createDiscordManagementTools } from "../discord/tools/discord-management-tools.js";
 import { registerDiscordSessionContext } from "./discord-session-context.js";
@@ -36,6 +34,9 @@ type CreatePiSessionOptions = {
 };
 
 export const createPiSession = async (options: CreatePiSessionOptions): Promise<AgentSession> => {
+  const customTools = await canUseDiscordManagementTools(options.discordClient, options.discordContext)
+    ? createDiscordManagementTools(createDiscordAdminService(options.discordClient, options.discordContext))
+    : [];
   const { session } = await createAgentSession({
     cwd: options.repoRoot,
     agentDir: options.agentDir,
@@ -47,9 +48,7 @@ export const createPiSession = async (options: CreatePiSessionOptions): Promise<
     resourceLoader: options.resourceLoader,
     sessionManager: options.sessionManager,
     tools: createRuntimeTools(options.repoRoot),
-    customTools: createDiscordManagementTools(
-      createDiscordAdminService(options.discordClient, options.discordContext),
-    ),
+    customTools,
   });
 
   const sessionFile = options.sessionManager.getSessionFile();
@@ -61,7 +60,7 @@ export const createPiSession = async (options: CreatePiSessionOptions): Promise<
   const systemPrompt = [
     session.agent.state.systemPrompt,
     "You are concise Discord chat bot. Reply in user's language.",
-    "Use discord_* tools when user asks to inspect or manage Discord server state.",
+    ...(customTools.length ? ["Use discord_* tools when user asks to inspect or manage Discord server state."] : []),
     "When user asks about current channel or server, answer from current_* context fields first.",
     discordContextPrompt(options.discordContext),
   ].filter((line): line is string => Boolean(line)).join("\n\n");

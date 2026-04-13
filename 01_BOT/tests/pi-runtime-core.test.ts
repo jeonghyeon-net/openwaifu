@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { createRuntime, createdSessions, discordClient, find, open, prepareChatPrompt } from "./pi-runtime-test-helpers.js";
+import { canUseDiscordManagementTools, createRuntime, createdSessions, discordClient, find, open, prepareChatPrompt } from "./pi-runtime-test-helpers.js";
 
 describe("PiRuntime core", () => {
   it("streams prompt text, reuses sessions, and prepares attachment-aware prompts", async () => {
@@ -27,6 +27,23 @@ describe("PiRuntime core", () => {
     await expect(PiRuntime.create({ repoRoot: "/repo", sessionsRoot: "/tmp", extensionsRoot: "/ext", skillsRoot: "/skills", modelId: "gpt-5.4", thinkingLevel: "high", discordClient })).rejects.toThrow("Model not found");
   });
 
+  it("recreates cached scope session when discord admin access changes", async () => {
+    canUseDiscordManagementTools.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
+    const runtime = await createRuntime();
+    await runtime.prompt("scope:a", "hello", { authorId: "u", channelId: "c", guildId: "g", isDirectMessage: false });
+    await runtime.prompt("scope:a", "again", { authorId: "u", channelId: "c", guildId: "g", isDirectMessage: false });
+    expect(createdSessions).toHaveLength(2);
+    expect(createdSessions[0]?.abort).toHaveBeenCalled();
+    expect(createdSessions[0]?.dispose).toHaveBeenCalled();
+  });
+
+  it("recreates cached scope session when discord context changes", async () => {
+    const runtime = await createRuntime();
+    await runtime.prompt("scope:a", "hello", { authorId: "u", channelId: "c", channelName: "old", guildId: "g", guildName: "guild", isDirectMessage: false });
+    await runtime.prompt("scope:a", "again", { authorId: "u", channelId: "c", channelName: "new", guildId: "g", guildName: "guild", isDirectMessage: false });
+    expect(createdSessions).toHaveLength(2);
+  });
+
   it("runs scheduled prompts in fresh clean sessions", async () => {
     const runtime = await createRuntime();
     await expect(runtime.runScheduledPrompt("scope:a", "task-1", "do thing", { authorId: "u", channelId: "c", guildId: "g", isDirectMessage: false })).resolves.toBe("reply");
@@ -34,6 +51,8 @@ describe("PiRuntime core", () => {
     expect(createdSessions).toHaveLength(2);
     expect(createdSessions[0]?.prompt).toHaveBeenCalledWith("do thing");
     expect(createdSessions[1]?.prompt).toHaveBeenCalledWith("do thing again");
+    expect(createdSessions[0]?.dispose).toHaveBeenCalled();
+    expect(createdSessions[1]?.dispose).toHaveBeenCalled();
     expect(open).toHaveBeenNthCalledWith(1, expect.stringContaining("scheduled__scope_a__task-1__"), expect.any(String), "/repo");
     expect(open).toHaveBeenNthCalledWith(2, expect.stringContaining("scheduled__scope_a__task-1__"), expect.any(String), "/repo");
   });

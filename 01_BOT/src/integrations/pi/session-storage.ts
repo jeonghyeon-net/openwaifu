@@ -20,3 +20,10 @@ export const clearScopeSessionStorage = async (
   clearDiscordSessionContext(sessionFile);
   return { sessionFile, attachmentsDir, existed };
 };
+
+export const clearScheduledSessionStorage = async (sessionFile: string) => {
+  const existed = existsSync(sessionFile);
+  await rm(sessionFile, { force: true });
+  clearDiscordSessionContext(sessionFile);
+  return { sessionFile, existed };
+};

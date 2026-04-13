@@ -1,9 +1,6 @@
 import { DateTime } from "luxon";
 
-import {
-  describeScheduledTask,
-  nextScheduledRunAt,
-} from "../../../01_BOT/src/features/scheduler/scheduler-time.js";
+import { describeScheduledTask, nextScheduledRunAt } from "./scheduler-time.js";
 import type { ScheduledTaskRecord } from "../../../01_BOT/src/features/scheduler/scheduler-types.js";
 
 import type { SchedulerToolInput } from "./schema.js";

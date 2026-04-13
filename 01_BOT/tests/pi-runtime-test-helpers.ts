@@ -28,6 +28,7 @@ export const open = vi.fn(() => "session-manager");
 export const createResourceLoader = vi.fn(async () => ({ reload: vi.fn(async () => undefined) }));
 export const lastAssistantText = vi.fn(() => "reply");
 export const ensureProviderAuth = vi.fn(async () => undefined);
+export const canUseDiscordManagementTools = vi.fn(async () => false);
 export const prepareChatPrompt = vi.fn(async ({ prompt }: { prompt: string }): Promise<PreparedPrompt> => ({ prompt, images: undefined }));
 export const createdSessions: MockSession[] = [];
 let promptImpl: (session: MockSession, text: string, options: unknown) => Promise<void>;
@@ -56,10 +57,12 @@ vi.mock("../src/integrations/pi/create-resource-loader.js", () => ({ createResou
 vi.mock("../src/integrations/pi/create-session.js", () => ({ createPiSession }));
 vi.mock("../src/integrations/pi/ensure-provider-auth.js", () => ({ ensureProviderAuth }));
 vi.mock("../src/integrations/pi/last-assistant-text.js", () => ({ lastAssistantText }));
+vi.mock("../src/integrations/discord/tools/discord-admin-access.js", () => ({ canUseDiscordManagementTools }));
 beforeEach(() => {
   createdSessions.length = 0;
   find.mockReturnValue({ id: "model", provider: "openai-codex" });
-  [ensureProviderAuth, open, createPiSession, createResourceLoader, lastAssistantText].forEach((mock) => mock.mockClear());
+  [ensureProviderAuth, canUseDiscordManagementTools, open, createPiSession, createResourceLoader, lastAssistantText].forEach((mock) => mock.mockClear());
+  canUseDiscordManagementTools.mockResolvedValue(false);
   prepareChatPrompt.mockReset();
   prepareChatPrompt.mockImplementation(async ({ prompt }: { prompt: string }) => ({ prompt, images: undefined }));
   promptImpl = async (session, text) => (session as MockSession & { emit(event: SessionEvent): void }).emit({ type: "message_update", message: { role: "assistant" }, assistantMessageEvent: { type: "text_delta", delta: text } });

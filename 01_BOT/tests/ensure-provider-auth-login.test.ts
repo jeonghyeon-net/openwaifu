@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { exec, createInterface } = vi.hoisted(() => ({
-  exec: vi.fn<(command: string, callback?: () => void) => void>((_command, callback) => callback?.()),
+const { spawn, createInterface } = vi.hoisted(() => ({
+  spawn: vi.fn(() => ({ unref: vi.fn() })),
   createInterface: vi.fn(),
 }));
-vi.mock("node:child_process", () => ({ exec }));
+vi.mock("node:child_process", () => ({ spawn }));
 vi.mock("node:readline/promises", () => ({ createInterface }));
 
 import { ensureProviderAuth } from "../src/integrations/pi/ensure-provider-auth.js";
@@ -21,7 +21,7 @@ const setPlatform = (value: NodeJS.Platform) => Object.defineProperty(process, "
 
 beforeEach(() => {
   setInteractive(true);
-  exec.mockClear();
+  spawn.mockClear();
   createInterface.mockReset();
   log.mockClear();
 });
@@ -53,7 +53,7 @@ describe("ensureProviderAuth login", () => {
 
     await expect(ensureProviderAuth({ getApiKey, login })).resolves.toBeUndefined();
     expect(login).toHaveBeenCalledTimes(2);
-    expect(exec).toHaveBeenCalledWith('open "https://auth.example"', expect.any(Function));
+    expect(spawn).toHaveBeenCalledWith("open", ["https://auth.example"], { detached: true, stdio: "ignore" });
     expect(log).toHaveBeenCalledWith("Input required.");
     expect(log).toHaveBeenCalledWith("Open browser to complete login.");
     expect(log).toHaveBeenCalledWith("waiting");
@@ -76,7 +76,7 @@ describe("ensureProviderAuth login", () => {
     });
 
     await expect(ensureProviderAuth({ getApiKey, login })).resolves.toBeUndefined();
-    expect(exec).toHaveBeenCalledWith('start "" "https://auth.example"', expect.any(Function));
+    expect(spawn).toHaveBeenCalledWith("cmd", ["/c", "start", "", "https://auth.example"], { detached: true, stdio: "ignore" });
     expect(log).toHaveBeenCalledWith("Do login");
   });
 });

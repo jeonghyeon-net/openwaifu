@@ -8,11 +8,8 @@ import type {
 } from "./discord-admin-types.js";
 
 export const listDiscordServers = async (client: DiscordAdminClient, context: DiscordToolContext) => {
-  const guilds = await client.guilds.fetch();
-  const lines = [...guilds.values()].map(
-    (guild) => `- ${guild.name} (${guild.id})${guild.id === context.guildId ? " [current]" : ""}`,
-  );
-  return formatBlock("Discord servers", lines);
+  const guild = await requireGuild(client, context);
+  return formatBlock("Discord servers", [`- ${guild.name} (${guild.id}) [current]`]);
 };
 
 export const inspectDiscordServer = async (

@@ -1,5 +1,4 @@
 {
-  "type": "module",
   "pi": {
     "extensions": [
       "dist/index.js"

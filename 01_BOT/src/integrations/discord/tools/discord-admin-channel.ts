@@ -30,7 +30,7 @@ export const sendDiscordMessage = async (
   context: DiscordToolContext,
   input: SendDiscordMessageInput,
 ) => {
-  const channel = await requireSendableChannel(client, input.channelId ?? context.channelId);
+  const channel = await requireSendableChannel(client, context, input.channelId ?? context.channelId);
   const message = await channel.send(input.content);
   return `Sent message ${message.id} to channel ${channel.id}`;
 };
@@ -50,8 +50,12 @@ export const createDiscordChannel = async (
   return `Created channel ${channel.name} (${channel.id}) in guild ${guild.id}`;
 };
 
-export const updateDiscordChannel = async (client: DiscordAdminClient, input: UpdateDiscordChannelInput) => {
-  const channel = await requireGuildChannel(client, input.channelId);
+export const updateDiscordChannel = async (
+  client: DiscordAdminClient,
+  context: DiscordToolContext,
+  input: UpdateDiscordChannelInput,
+) => {
+  const channel = await requireGuildChannel(client, context, input.channelId);
   if (input.name) await channel.edit({ name: input.name, reason: input.reason });
   if (input.categoryId !== undefined && "setParent" in channel) {
     await channel.setParent(input.categoryId || null, { reason: input.reason });
@@ -63,8 +67,12 @@ export const updateDiscordChannel = async (client: DiscordAdminClient, input: Up
   return `Updated channel ${channel.name} (${channel.id}) type=${ChannelType[channel.type]}`;
 };
 
-export const deleteDiscordChannel = async (client: DiscordAdminClient, input: DeleteDiscordChannelInput) => {
-  const channel = await requireGuildChannel(client, input.channelId);
+export const deleteDiscordChannel = async (
+  client: DiscordAdminClient,
+  context: DiscordToolContext,
+  input: DeleteDiscordChannelInput,
+) => {
+  const channel = await requireGuildChannel(client, context, input.channelId);
   const name = channel.name;
   await channel.delete(input.reason);
   return `Deleted channel ${name} (${input.channelId})`;

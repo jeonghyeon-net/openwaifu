@@ -34,17 +34,17 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   mod
 ));
 
-// ../../01_BOT/node_modules/cron-parser/dist/fields/types.js
+// node_modules/cron-parser/dist/fields/types.js
 var require_types = __commonJS({
-  "../../01_BOT/node_modules/cron-parser/dist/fields/types.js"(exports) {
+  "node_modules/cron-parser/dist/fields/types.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
   }
 });
 
-// ../../01_BOT/node_modules/cron-parser/dist/fields/CronField.js
+// node_modules/cron-parser/dist/fields/CronField.js
 var require_CronField = __commonJS({
-  "../../01_BOT/node_modules/cron-parser/dist/fields/CronField.js"(exports) {
+  "node_modules/cron-parser/dist/fields/CronField.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.CronField = void 0;
@@ -255,9 +255,9 @@ var require_CronField = __commonJS({
   }
 });
 
-// ../../01_BOT/node_modules/cron-parser/dist/fields/CronDayOfMonth.js
+// node_modules/cron-parser/dist/fields/CronDayOfMonth.js
 var require_CronDayOfMonth = __commonJS({
-  "../../01_BOT/node_modules/cron-parser/dist/fields/CronDayOfMonth.js"(exports) {
+  "node_modules/cron-parser/dist/fields/CronDayOfMonth.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.CronDayOfMonth = void 0;
@@ -300,9 +300,9 @@ var require_CronDayOfMonth = __commonJS({
   }
 });
 
-// ../../01_BOT/node_modules/cron-parser/dist/fields/CronDayOfWeek.js
+// node_modules/cron-parser/dist/fields/CronDayOfWeek.js
 var require_CronDayOfWeek = __commonJS({
-  "../../01_BOT/node_modules/cron-parser/dist/fields/CronDayOfWeek.js"(exports) {
+  "node_modules/cron-parser/dist/fields/CronDayOfWeek.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.CronDayOfWeek = void 0;
@@ -352,9 +352,9 @@ var require_CronDayOfWeek = __commonJS({
   }
 });
 
-// ../../01_BOT/node_modules/cron-parser/dist/fields/CronHour.js
+// node_modules/cron-parser/dist/fields/CronHour.js
 var require_CronHour = __commonJS({
-  "../../01_BOT/node_modules/cron-parser/dist/fields/CronHour.js"(exports) {
+  "node_modules/cron-parser/dist/fields/CronHour.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.CronHour = void 0;
@@ -393,9 +393,9 @@ var require_CronHour = __commonJS({
   }
 });
 
-// ../../01_BOT/node_modules/cron-parser/dist/fields/CronMinute.js
+// node_modules/cron-parser/dist/fields/CronMinute.js
 var require_CronMinute = __commonJS({
-  "../../01_BOT/node_modules/cron-parser/dist/fields/CronMinute.js"(exports) {
+  "node_modules/cron-parser/dist/fields/CronMinute.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.CronMinute = void 0;
@@ -434,9 +434,9 @@ var require_CronMinute = __commonJS({
   }
 });
 
-// ../../01_BOT/node_modules/luxon/build/node/luxon.js
+// node_modules/luxon/build/node/luxon.js
 var require_luxon = __commonJS({
-  "../../01_BOT/node_modules/luxon/build/node/luxon.js"(exports) {
+  "node_modules/luxon/build/node/luxon.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var LuxonError3 = class extends Error {
@@ -7195,9 +7195,9 @@ var require_luxon = __commonJS({
   }
 });
 
-// ../../01_BOT/node_modules/cron-parser/dist/CronDate.js
+// node_modules/cron-parser/dist/CronDate.js
 var require_CronDate = __commonJS({
-  "../../01_BOT/node_modules/cron-parser/dist/CronDate.js"(exports) {
+  "node_modules/cron-parser/dist/CronDate.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.CronDate = exports.DAYS_IN_MONTH = exports.DateMathOp = exports.TimeUnit = void 0;
@@ -7700,9 +7700,9 @@ var require_CronDate = __commonJS({
   }
 });
 
-// ../../01_BOT/node_modules/cron-parser/dist/fields/CronMonth.js
+// node_modules/cron-parser/dist/fields/CronMonth.js
 var require_CronMonth = __commonJS({
-  "../../01_BOT/node_modules/cron-parser/dist/fields/CronMonth.js"(exports) {
+  "node_modules/cron-parser/dist/fields/CronMonth.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.CronMonth = void 0;
@@ -7745,9 +7745,9 @@ var require_CronMonth = __commonJS({
   }
 });
 
-// ../../01_BOT/node_modules/cron-parser/dist/fields/CronSecond.js
+// node_modules/cron-parser/dist/fields/CronSecond.js
 var require_CronSecond = __commonJS({
-  "../../01_BOT/node_modules/cron-parser/dist/fields/CronSecond.js"(exports) {
+  "node_modules/cron-parser/dist/fields/CronSecond.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.CronSecond = void 0;
@@ -7786,9 +7786,9 @@ var require_CronSecond = __commonJS({
   }
 });
 
-// ../../01_BOT/node_modules/cron-parser/dist/fields/index.js
+// node_modules/cron-parser/dist/fields/index.js
 var require_fields = __commonJS({
-  "../../01_BOT/node_modules/cron-parser/dist/fields/index.js"(exports) {
+  "node_modules/cron-parser/dist/fields/index.js"(exports) {
     "use strict";
     var __createBinding = exports && exports.__createBinding || (Object.create ? (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
@@ -7818,9 +7818,9 @@ var require_fields = __commonJS({
   }
 });
 
-// ../../01_BOT/node_modules/cron-parser/dist/CronFieldCollection.js
+// node_modules/cron-parser/dist/CronFieldCollection.js
 var require_CronFieldCollection = __commonJS({
-  "../../01_BOT/node_modules/cron-parser/dist/CronFieldCollection.js"(exports) {
+  "node_modules/cron-parser/dist/CronFieldCollection.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.CronFieldCollection = void 0;
@@ -8167,9 +8167,9 @@ var require_CronFieldCollection = __commonJS({
   }
 });
 
-// ../../01_BOT/node_modules/cron-parser/dist/CronExpression.js
+// node_modules/cron-parser/dist/CronExpression.js
 var require_CronExpression = __commonJS({
-  "../../01_BOT/node_modules/cron-parser/dist/CronExpression.js"(exports) {
+  "node_modules/cron-parser/dist/CronExpression.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.CronExpression = exports.LOOPS_LIMIT_EXCEEDED_ERROR_MESSAGE = exports.TIME_SPAN_OUT_OF_BOUNDS_ERROR_MESSAGE = void 0;
@@ -8640,9 +8640,9 @@ var require_CronExpression = __commonJS({
   }
 });
 
-// ../../01_BOT/node_modules/cron-parser/dist/utils/random.js
+// node_modules/cron-parser/dist/utils/random.js
 var require_random = __commonJS({
-  "../../01_BOT/node_modules/cron-parser/dist/utils/random.js"(exports) {
+  "node_modules/cron-parser/dist/utils/random.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.seededRandom = seededRandom;
@@ -8669,9 +8669,9 @@ var require_random = __commonJS({
   }
 });
 
-// ../../01_BOT/node_modules/cron-parser/dist/CronExpressionParser.js
+// node_modules/cron-parser/dist/CronExpressionParser.js
 var require_CronExpressionParser = __commonJS({
-  "../../01_BOT/node_modules/cron-parser/dist/CronExpressionParser.js"(exports) {
+  "node_modules/cron-parser/dist/CronExpressionParser.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.CronExpressionParser = exports.DayOfWeek = exports.Months = exports.CronUnit = exports.PredefinedExpressions = void 0;
@@ -9037,9 +9037,9 @@ var require_CronExpressionParser = __commonJS({
   }
 });
 
-// ../../01_BOT/node_modules/cron-parser/dist/CronFileParser.js
+// node_modules/cron-parser/dist/CronFileParser.js
 var require_CronFileParser = __commonJS({
-  "../../01_BOT/node_modules/cron-parser/dist/CronFileParser.js"(exports) {
+  "node_modules/cron-parser/dist/CronFileParser.js"(exports) {
     "use strict";
     var __createBinding = exports && exports.__createBinding || (Object.create ? (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
@@ -9151,9 +9151,9 @@ var require_CronFileParser = __commonJS({
   }
 });
 
-// ../../01_BOT/node_modules/cron-parser/dist/index.js
+// node_modules/cron-parser/dist/index.js
 var require_dist = __commonJS({
-  "../../01_BOT/node_modules/cron-parser/dist/index.js"(exports) {
+  "node_modules/cron-parser/dist/index.js"(exports) {
     "use strict";
     var __createBinding = exports && exports.__createBinding || (Object.create ? (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
@@ -18339,8 +18339,221 @@ function friendlyDateTime(dateTimeish) {
   }
 }
 
+// src/scheduler-time.ts
+var import_cron_parser = __toESM(require_dist());
+var timePattern = /^([01]\d|2[0-3]):([0-5]\d)$/;
+var datePattern = /^\d{4}-\d{2}-\d{2}$/;
+var toUtcIso = (value) => {
+  const iso = value.toUTC().toISO();
+  if (!iso) throw new Error("Failed to serialize scheduled task time");
+  return iso;
+};
+var parseTime = (time) => {
+  const match3 = timePattern.exec(time);
+  if (!match3) throw new Error(`Invalid time: ${time}. Use HH:mm.`);
+  return { hour: Number(match3[1]), minute: Number(match3[2]) };
+};
+var assertDate = (date) => {
+  if (date === void 0 || datePattern.test(date)) return;
+  throw new Error(`Invalid date: ${date}. Use YYYY-MM-DD.`);
+};
+var assertTimezone = (timezone) => {
+  if (DateTime.now().setZone(timezone).isValid) return;
+  throw new Error(`Invalid timezone: ${timezone}`);
+};
+var nextScheduledRunAt = (input, now3 = DateTime.now()) => {
+  assertTimezone(input.timezone);
+  assertDate(input.date);
+  const zonedNow = now3.setZone(input.timezone);
+  if (input.cron) {
+    const interval = import_cron_parser.CronExpressionParser.parse(input.cron, { currentDate: zonedNow.toJSDate(), tz: input.timezone });
+    return toUtcIso(DateTime.fromJSDate(interval.next().toDate(), { zone: input.timezone }));
+  }
+  if (!input.time) throw new Error("Time required when cron is not set");
+  const { hour, minute } = parseTime(input.time);
+  if (input.date) {
+    const scheduled2 = DateTime.fromISO(`${input.date}T${input.time}`, { zone: input.timezone, setZone: true });
+    if (!scheduled2.isValid) throw new Error(`Invalid date/time: ${input.date} ${input.time}`);
+    if (scheduled2 <= zonedNow) throw new Error("Scheduled time must be in future");
+    return toUtcIso(scheduled2);
+  }
+  const scheduled = zonedNow.set({ hour, minute, second: 0, millisecond: 0 });
+  return toUtcIso(scheduled <= zonedNow ? scheduled.plus({ days: 1 }) : scheduled);
+};
+var describeScheduledTask = (task) => {
+  const runAt = DateTime.fromISO(task.nextRunAt, { zone: "utc" }).setZone(task.timezone);
+  return task.recurrence === "cron" && task.cron ? `cron ${task.cron} (next ${runAt.toFormat("yyyy-LL-dd HH:mm")} ${task.timezone})` : `${runAt.toFormat("yyyy-LL-dd HH:mm")} (${task.timezone})`;
+};
+
+// src/helpers.ts
+import { randomUUID } from "node:crypto";
+
+// ../../01_BOT/src/features/scheduler/scheduler-paths.ts
+import { join } from "node:path";
+var schedulerDirectoryForCwd = (cwd) => join(cwd, "01_BOT", ".data", "scheduler");
+var schedulerFileForCwd = (cwd) => join(schedulerDirectoryForCwd(cwd), "scheduled-tasks.json");
+
+// ../../01_BOT/src/features/scheduler/scheduler-store.ts
+import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { dirname } from "node:path";
+var schedulerStoreStateSymbol = Symbol.for("openwaifu.schedulerStoreState");
+var schedulerStoreState = () => {
+  const scope = globalThis;
+  scope[schedulerStoreStateSymbol] ??= { mutexes: /* @__PURE__ */ new Map() };
+  return scope[schedulerStoreStateSymbol];
+};
+var acquireLock = async (filePath) => {
+  const state = schedulerStoreState();
+  const mutex = state.mutexes.get(filePath) ?? { locked: false, waiters: [] };
+  state.mutexes.set(filePath, mutex);
+  if (!mutex.locked) {
+    mutex.locked = true;
+    return () => releaseLock(filePath);
+  }
+  await new Promise((resolve) => mutex.waiters.push(resolve));
+  return () => releaseLock(filePath);
+};
+var releaseLock = (filePath) => {
+  const mutex = schedulerStoreState().mutexes.get(filePath);
+  const waiter = mutex.waiters.shift();
+  if (waiter) {
+    waiter();
+    return;
+  }
+  schedulerStoreState().mutexes.delete(filePath);
+};
+var ensureStoreFile = async (filePath) => {
+  await mkdir(dirname(filePath), { recursive: true });
+  try {
+    await readFile(filePath, "utf8");
+  } catch {
+    await writeFile(filePath, "[]\n", "utf8");
+  }
+};
+var parseScheduledTasks = (content) => {
+  const trimmed = content.trim();
+  if (!trimmed) return [];
+  return JSON.parse(trimmed);
+};
+var writeScheduledTasks = async (filePath, tasks) => {
+  const tempPath = `${filePath}.tmp`;
+  await writeFile(tempPath, `${JSON.stringify(tasks, null, 2)}
+`, "utf8");
+  await rename(tempPath, filePath);
+};
+var listScheduledTasks = async (filePath) => {
+  await ensureStoreFile(filePath);
+  return parseScheduledTasks(await readFile(filePath, "utf8"));
+};
+var mutateScheduledTasks = async (filePath, mutate) => {
+  const release = await acquireLock(filePath);
+  try {
+    const current = await listScheduledTasks(filePath);
+    const next = await mutate(current);
+    await writeScheduledTasks(filePath, next.tasks);
+    return next.result;
+  } finally {
+    release();
+  }
+};
+
+// ../../01_BOT/src/integrations/pi/discord-session-context.ts
+var discordSessionContextSymbol = Symbol.for(
+  "openwaifu.discordSessionContextState"
+);
+var discordSessionContextState = () => {
+  const scope = globalThis;
+  scope[discordSessionContextSymbol] ??= { contexts: /* @__PURE__ */ new Map() };
+  return scope[discordSessionContextSymbol];
+};
+var getDiscordSessionContext = (sessionFile) => discordSessionContextState().contexts.get(sessionFile);
+
+// src/helpers.ts
+var defaultTimezone = () => "Asia/Seoul";
+var makeId = () => randomUUID().slice(0, 8);
+var sortScheduledTasks = (tasks) => [...tasks].sort((left, right) => left.nextRunAt.localeCompare(right.nextRunAt));
+var scopeScheduledTasks = (tasks, scopeId) => sortScheduledTasks(tasks.filter((scheduledTask) => scheduledTask.scopeId === scopeId));
+var response = (action, tasks, text, extra = {}) => ({ content: [{ type: "text", text }], details: { action, tasks, ...extra } });
+var resolveExecution = (ctx, deps = {}) => ({
+  tasksFile: schedulerFileForCwd(ctx.cwd),
+  listScheduledTasksFn: deps.listScheduledTasksFn ?? listScheduledTasks,
+  mutateScheduledTasksFn: deps.mutateScheduledTasksFn ?? mutateScheduledTasks,
+  sessionContext: ctx.sessionFile ? (deps.getSessionContextFn ?? getDiscordSessionContext)(ctx.sessionFile) : void 0
+});
+
+// src/add-action.ts
+var addScheduledTaskAction = async (params, scopeId, sessionContext, tasksFile, currentScopeTasks, deps) => {
+  const hasCron = typeof params.cron === "string" && params.cron.trim() !== "";
+  if (!params.prompt || !hasCron && !params.time) {
+    return response("add", currentScopeTasks, "Error: prompt and either cron or time required for add.", {
+      error: "prompt and either cron or time required for add."
+    });
+  }
+  if (hasCron && (params.time || params.date)) {
+    return response("add", currentScopeTasks, "Error: use cron for recurring schedules, or time/date for one-time schedules, not both.", {
+      error: "use cron for recurring schedules, or time/date for one-time schedules, not both."
+    });
+  }
+  const timezone = defaultTimezone();
+  try {
+    const now3 = deps.now?.() ?? DateTime.now();
+    const scheduledTask = {
+      id: deps.createId?.() ?? makeId(),
+      scopeId,
+      authorId: sessionContext.discordContext.authorId,
+      channelId: sessionContext.discordContext.channelId,
+      channelName: sessionContext.discordContext.channelName,
+      guildId: sessionContext.discordContext.guildId,
+      guildName: sessionContext.discordContext.guildName,
+      isDirectMessage: sessionContext.discordContext.isDirectMessage,
+      recurrence: hasCron ? "cron" : "once",
+      prompt: params.prompt,
+      cron: hasCron ? params.cron : void 0,
+      timezone,
+      scheduledTime: params.time,
+      scheduledDate: params.date,
+      mentionUser: params.mentionUser ?? true,
+      createdAt: now3.toUTC().toISO(),
+      nextRunAt: nextScheduledRunAt({ cron: hasCron ? params.cron : void 0, time: params.time, date: params.date, timezone }, now3)
+    };
+    const tasks = await deps.mutateScheduledTasksFn(tasksFile, async (existing) => ({
+      tasks: sortScheduledTasks([...existing, scheduledTask]),
+      result: scopeScheduledTasks([...existing, scheduledTask], scopeId)
+    }));
+    return response("add", tasks, `Scheduled ${scheduledTask.id} for ${describeScheduledTask(scheduledTask)} in fresh clean session.`, { created: scheduledTask });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return response("add", currentScopeTasks, `Error: ${message}`, { error: message });
+  }
+};
+
+// src/cancel-action.ts
+var cancelScheduledTaskAction = async (taskId, scopeId, tasksFile, currentScopeTasks, deps) => {
+  if (!taskId) {
+    return response("cancel", currentScopeTasks, "Error: id required for cancel.", {
+      error: "id required for cancel."
+    });
+  }
+  const result = await deps.mutateScheduledTasksFn(tasksFile, async (existing) => {
+    const scoped = scopeScheduledTasks(existing, scopeId);
+    if (!scoped.some((scheduledTask) => scheduledTask.id === taskId)) {
+      return { tasks: existing, result: { removed: false, tasks: scoped } };
+    }
+    const tasks = existing.filter(
+      (scheduledTask) => !(scheduledTask.scopeId === scopeId && scheduledTask.id === taskId)
+    );
+    return { tasks, result: { removed: true, tasks: scopeScheduledTasks(tasks, scopeId) } };
+  });
+  if (!result.removed) {
+    return response("cancel", result.tasks, `Scheduled task not found: ${taskId}`, {
+      error: `Scheduled task not found: ${taskId}`
+    });
+  }
+  return response("cancel", result.tasks, `Cancelled scheduled task ${taskId}.`, { removedId: taskId });
+};
+
 // ../../01_BOT/src/features/scheduler/scheduler-time.ts
-var import_cron_parser = __toESM(require_dist(), 1);
+import { createRequire } from "node:module";
 
 // ../../01_BOT/node_modules/luxon/build/es6/luxon.mjs
 var LuxonError2 = class extends Error {
@@ -24849,58 +25062,8 @@ function friendlyDateTime2(dateTimeish) {
 }
 
 // ../../01_BOT/src/features/scheduler/scheduler-time.ts
-var timePattern = /^([01]\d|2[0-3]):([0-5]\d)$/;
-var datePattern = /^\d{4}-\d{2}-\d{2}$/;
-var toUtcIso = (value) => {
-  const iso = value.toUTC().toISO();
-  if (!iso) throw new Error("Failed to serialize scheduled task time");
-  return iso;
-};
-var parseTime = (time) => {
-  const match3 = timePattern.exec(time);
-  if (!match3) throw new Error(`Invalid time: ${time}. Use HH:mm.`);
-  return { hour: Number(match3[1]), minute: Number(match3[2]) };
-};
-var assertDate = (date) => {
-  if (date === void 0 || datePattern.test(date)) return;
-  throw new Error(`Invalid date: ${date}. Use YYYY-MM-DD.`);
-};
-var assertTimezone = (timezone) => {
-  if (DateTime2.now().setZone(timezone).isValid) return;
-  throw new Error(`Invalid timezone: ${timezone}`);
-};
-var scheduleClock = (value, hour, minute) => value.set({ hour, minute, second: 0, millisecond: 0 });
-var assertCron = (cron, timezone) => {
-  if (!cron) return;
-  import_cron_parser.CronExpressionParser.parse(cron, {
-    currentDate: /* @__PURE__ */ new Date(),
-    tz: timezone
-  });
-};
-var nextScheduledRunAt = (input, now3 = DateTime2.now()) => {
-  assertTimezone(input.timezone);
-  assertDate(input.date);
-  assertCron(input.cron, input.timezone);
-  const zonedNow = now3.setZone(input.timezone);
-  if (input.cron) {
-    const interval = import_cron_parser.CronExpressionParser.parse(input.cron, {
-      currentDate: zonedNow.toJSDate(),
-      tz: input.timezone
-    });
-    return toUtcIso(DateTime2.fromJSDate(interval.next().toDate(), { zone: input.timezone }));
-  }
-  if (!input.time) throw new Error("Time required when cron is not set");
-  const { hour, minute } = parseTime(input.time);
-  if (input.date) {
-    const scheduled2 = DateTime2.fromISO(`${input.date}T${input.time}`, { zone: input.timezone, setZone: true });
-    if (!scheduled2.isValid) throw new Error(`Invalid date/time: ${input.date} ${input.time}`);
-    if (scheduled2 <= zonedNow) throw new Error("Scheduled time must be in future");
-    return toUtcIso(scheduled2);
-  }
-  const scheduled = scheduleClock(zonedNow, hour, minute);
-  return toUtcIso(scheduled <= zonedNow ? scheduled.plus({ days: 1 }) : scheduled);
-};
-var describeScheduledTask = (task) => {
+var require2 = createRequire(import.meta.url);
+var describeScheduledTask2 = (task) => {
   const runAt = DateTime2.fromISO(task.nextRunAt, { zone: "utc" }).setZone(task.timezone);
   if (task.recurrence === "cron" && task.cron) {
     return `cron ${task.cron} (next ${runAt.toFormat("yyyy-LL-dd HH:mm")} ${task.timezone})`;
@@ -24908,190 +25071,22 @@ var describeScheduledTask = (task) => {
   return `${runAt.toFormat("yyyy-LL-dd HH:mm")} (${task.timezone})`;
 };
 
-// src/helpers.ts
-import { randomUUID } from "node:crypto";
-
-// ../../01_BOT/src/features/scheduler/scheduler-paths.ts
-import { join } from "node:path";
-var schedulerDirectoryForCwd = (cwd) => join(cwd, "01_BOT", ".data", "scheduler");
-var schedulerFileForCwd = (cwd) => join(schedulerDirectoryForCwd(cwd), "scheduled-tasks.json");
-
-// ../../01_BOT/src/features/scheduler/scheduler-store.ts
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
-import { dirname } from "node:path";
-var schedulerStoreStateSymbol = Symbol.for("openwaifu.schedulerStoreState");
-var schedulerStoreState = () => {
-  const scope = globalThis;
-  scope[schedulerStoreStateSymbol] ??= { mutexes: /* @__PURE__ */ new Map() };
-  return scope[schedulerStoreStateSymbol];
-};
-var acquireLock = async (filePath) => {
-  const state = schedulerStoreState();
-  const mutex = state.mutexes.get(filePath) ?? { locked: false, waiters: [] };
-  state.mutexes.set(filePath, mutex);
-  if (!mutex.locked) {
-    mutex.locked = true;
-    return () => releaseLock(filePath);
-  }
-  await new Promise((resolve) => mutex.waiters.push(resolve));
-  return () => releaseLock(filePath);
-};
-var releaseLock = (filePath) => {
-  const mutex = schedulerStoreState().mutexes.get(filePath);
-  const waiter = mutex.waiters.shift();
-  if (waiter) {
-    waiter();
-    return;
-  }
-  schedulerStoreState().mutexes.delete(filePath);
-};
-var ensureStoreFile = async (filePath) => {
-  await mkdir(dirname(filePath), { recursive: true });
-  try {
-    await readFile(filePath, "utf8");
-  } catch {
-    await writeFile(filePath, "[]\n", "utf8");
-  }
-};
-var parseScheduledTasks = (content) => {
-  const trimmed = content.trim();
-  if (!trimmed) return [];
-  return JSON.parse(trimmed);
-};
-var writeScheduledTasks = async (filePath, tasks) => {
-  const tempPath = `${filePath}.tmp`;
-  await writeFile(tempPath, `${JSON.stringify(tasks, null, 2)}
-`, "utf8");
-  await rename(tempPath, filePath);
-};
-var listScheduledTasks = async (filePath) => {
-  await ensureStoreFile(filePath);
-  return parseScheduledTasks(await readFile(filePath, "utf8"));
-};
-var mutateScheduledTasks = async (filePath, mutate) => {
-  const release = await acquireLock(filePath);
-  try {
-    const current = await listScheduledTasks(filePath);
-    const next = await mutate(current);
-    await writeScheduledTasks(filePath, next.tasks);
-    return next.result;
-  } finally {
-    release();
-  }
-};
-
-// ../../01_BOT/src/integrations/pi/discord-session-context.ts
-var discordSessionContextSymbol = Symbol.for(
-  "openwaifu.discordSessionContextState"
-);
-var discordSessionContextState = () => {
-  const scope = globalThis;
-  scope[discordSessionContextSymbol] ??= { contexts: /* @__PURE__ */ new Map() };
-  return scope[discordSessionContextSymbol];
-};
-var getDiscordSessionContext = (sessionFile) => discordSessionContextState().contexts.get(sessionFile);
-
-// src/helpers.ts
-var defaultTimezone = () => "Asia/Seoul";
-var makeId = () => randomUUID().slice(0, 8);
-var sortScheduledTasks = (tasks) => [...tasks].sort((left, right) => left.nextRunAt.localeCompare(right.nextRunAt));
-var scopeScheduledTasks = (tasks, scopeId) => sortScheduledTasks(tasks.filter((scheduledTask) => scheduledTask.scopeId === scopeId));
-var response = (action, tasks, text, extra = {}) => ({ content: [{ type: "text", text }], details: { action, tasks, ...extra } });
-var resolveExecution = (ctx, deps = {}) => ({
-  tasksFile: schedulerFileForCwd(ctx.cwd),
-  listScheduledTasksFn: deps.listScheduledTasksFn ?? listScheduledTasks,
-  mutateScheduledTasksFn: deps.mutateScheduledTasksFn ?? mutateScheduledTasks,
-  sessionContext: ctx.sessionFile ? (deps.getSessionContextFn ?? getDiscordSessionContext)(ctx.sessionFile) : void 0
-});
-
-// src/add-action.ts
-var addScheduledTaskAction = async (params, scopeId, sessionContext, tasksFile, currentScopeTasks, deps) => {
-  const hasCron = typeof params.cron === "string" && params.cron.trim() !== "";
-  if (!params.prompt || !hasCron && !params.time) {
-    return response("add", currentScopeTasks, "Error: prompt and either cron or time required for add.", {
-      error: "prompt and either cron or time required for add."
-    });
-  }
-  if (hasCron && (params.time || params.date)) {
-    return response("add", currentScopeTasks, "Error: use cron for recurring schedules, or time/date for one-time schedules, not both.", {
-      error: "use cron for recurring schedules, or time/date for one-time schedules, not both."
-    });
-  }
-  const timezone = defaultTimezone();
-  try {
-    const now3 = deps.now?.() ?? DateTime.now();
-    const scheduledTask = {
-      id: deps.createId?.() ?? makeId(),
-      scopeId,
-      authorId: sessionContext.discordContext.authorId,
-      channelId: sessionContext.discordContext.channelId,
-      channelName: sessionContext.discordContext.channelName,
-      guildId: sessionContext.discordContext.guildId,
-      guildName: sessionContext.discordContext.guildName,
-      isDirectMessage: sessionContext.discordContext.isDirectMessage,
-      recurrence: hasCron ? "cron" : "once",
-      prompt: params.prompt,
-      cron: hasCron ? params.cron : void 0,
-      timezone,
-      scheduledTime: params.time,
-      scheduledDate: params.date,
-      mentionUser: params.mentionUser ?? true,
-      createdAt: now3.toUTC().toISO(),
-      nextRunAt: nextScheduledRunAt({ cron: hasCron ? params.cron : void 0, time: params.time, date: params.date, timezone }, now3)
-    };
-    const tasks = await deps.mutateScheduledTasksFn(tasksFile, async (existing) => ({
-      tasks: sortScheduledTasks([...existing, scheduledTask]),
-      result: scopeScheduledTasks([...existing, scheduledTask], scopeId)
-    }));
-    return response("add", tasks, `Scheduled ${scheduledTask.id} for ${describeScheduledTask(scheduledTask)} in fresh clean session.`, { created: scheduledTask });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    return response("add", currentScopeTasks, `Error: ${message}`, { error: message });
-  }
-};
-
-// src/cancel-action.ts
-var cancelScheduledTaskAction = async (taskId, scopeId, tasksFile, currentScopeTasks, deps) => {
-  if (!taskId) {
-    return response("cancel", currentScopeTasks, "Error: id required for cancel.", {
-      error: "id required for cancel."
-    });
-  }
-  const result = await deps.mutateScheduledTasksFn(tasksFile, async (existing) => {
-    const scoped = scopeScheduledTasks(existing, scopeId);
-    if (!scoped.some((scheduledTask) => scheduledTask.id === taskId)) {
-      return { tasks: existing, result: { removed: false, tasks: scoped } };
-    }
-    const tasks = existing.filter(
-      (scheduledTask) => !(scheduledTask.scopeId === scopeId && scheduledTask.id === taskId)
-    );
-    return { tasks, result: { removed: true, tasks: scopeScheduledTasks(tasks, scopeId) } };
-  });
-  if (!result.removed) {
-    return response("cancel", result.tasks, `Scheduled task not found: ${taskId}`, {
-      error: `Scheduled task not found: ${taskId}`
-    });
-  }
-  return response("cancel", result.tasks, `Cancelled scheduled task ${taskId}.`, { removedId: taskId });
-};
-
 // src/list-action.ts
 var scheduledTaskPrompt = (scheduledTask) => scheduledTask.prompt;
 var listScheduledTaskAction = (tasks) => {
   if (tasks.length === 0) return response("list", [], "No scheduled tasks.");
   const lines = tasks.map(
-    (scheduledTask) => `- ${scheduledTask.id}: ${describeScheduledTask(scheduledTask)} -> ${scheduledTaskPrompt(scheduledTask)}`
+    (scheduledTask) => `- ${scheduledTask.id}: ${describeScheduledTask2(scheduledTask)} -> ${scheduledTaskPrompt(scheduledTask)}`
   );
   return response("list", tasks, lines.join("\n"));
 };
 
-// src/update-action.ts
+// src/update-action-helpers.ts
 var hasNonEmptyCron = (cron) => typeof cron === "string" && cron.trim() !== "";
 var hasUpdateFields = (params) => typeof params.prompt === "string" || typeof params.mentionUser === "boolean" || typeof params.time === "string" || typeof params.date === "string" || typeof params.cron === "string";
 var buildUpdatedSchedule = (current, params, now3) => {
   const timezone = current.timezone;
-  const hasCron = hasNonEmptyCron(params.cron);
-  if (hasCron) {
+  if (hasNonEmptyCron(params.cron)) {
     return {
       recurrence: "cron",
       cron: params.cron,
@@ -25103,7 +25098,7 @@ var buildUpdatedSchedule = (current, params, now3) => {
   if (typeof params.time === "string" || typeof params.date === "string") {
     const scheduledTime = typeof params.time === "string" ? params.time : current.recurrence === "once" ? current.scheduledTime : void 0;
     if (!scheduledTime) throw new Error("time required when updating one-time schedule.");
-    const scheduledDate = typeof params.time === "string" ? params.date : params.date;
+    const scheduledDate = typeof params.date === "string" ? params.date : current.recurrence === "once" ? current.scheduledDate : void 0;
     return {
       recurrence: "once",
       cron: void 0,
@@ -25120,54 +25115,39 @@ var buildUpdatedSchedule = (current, params, now3) => {
     nextRunAt: current.nextRunAt
   };
 };
+
+// src/update-action.ts
+var updateError = (tasks, message) => response("update", tasks, `Error: ${message}`, { error: message });
 var updateScheduledTaskAction = async (params, scopeId, tasksFile, currentScopeTasks, deps) => {
-  if (!params.id) {
-    return response("update", currentScopeTasks, "Error: id required for update.", {
-      error: "id required for update."
-    });
-  }
-  if (!hasUpdateFields(params)) {
-    return response("update", currentScopeTasks, "Error: provide at least one field to update.", {
-      error: "provide at least one field to update."
-    });
-  }
+  if (!params.id) return updateError(currentScopeTasks, "id required for update.");
+  if (!hasUpdateFields(params)) return updateError(currentScopeTasks, "provide at least one field to update.");
   if (typeof params.prompt === "string" && params.prompt.trim() === "") {
-    return response("update", currentScopeTasks, "Error: prompt cannot be empty for update.", {
-      error: "prompt cannot be empty for update."
-    });
+    return updateError(currentScopeTasks, "prompt cannot be empty for update.");
   }
   if (hasNonEmptyCron(params.cron) && (params.time || params.date)) {
-    return response("update", currentScopeTasks, "Error: use cron for recurring schedules, or time/date for one-time schedules, not both.", {
-      error: "use cron for recurring schedules, or time/date for one-time schedules, not both."
-    });
+    return updateError(currentScopeTasks, "use cron for recurring schedules, or time/date for one-time schedules, not both.");
   }
   try {
     const now3 = deps.now?.() ?? DateTime.now();
     const result = await deps.mutateScheduledTasksFn(tasksFile, async (existing) => {
       const scoped = scopeScheduledTasks(existing, scopeId);
-      const current = scoped.find((scheduledTask) => scheduledTask.id === params.id);
+      const current = scoped.find((task) => task.id === params.id);
       if (!current) return { tasks: existing, result: { tasks: scoped } };
-      const schedule = buildUpdatedSchedule(current, params, now3);
       const updated = {
         ...current,
-        ...schedule,
+        ...buildUpdatedSchedule(current, params, now3),
         ...typeof params.prompt === "string" ? { prompt: params.prompt } : {},
         ...typeof params.mentionUser === "boolean" ? { mentionUser: params.mentionUser } : {}
       };
-      const tasks = sortScheduledTasks(existing.map((scheduledTask) => scheduledTask.scopeId === scopeId && scheduledTask.id === params.id ? updated : scheduledTask));
+      const tasks = sortScheduledTasks(existing.map((task) => task.scopeId === scopeId && task.id === params.id ? updated : task));
       return { tasks, result: { updated, tasks: scopeScheduledTasks(tasks, scopeId) } };
     });
     if (!result.updated) {
-      return response("update", result.tasks, `Scheduled task not found: ${params.id}`, {
-        error: `Scheduled task not found: ${params.id}`
-      });
+      return response("update", result.tasks, `Scheduled task not found: ${params.id}`, { error: `Scheduled task not found: ${params.id}` });
     }
-    return response("update", result.tasks, `Updated scheduled task ${params.id}: ${describeScheduledTask(result.updated)}.`, {
-      updated: result.updated
-    });
+    return response("update", result.tasks, `Updated scheduled task ${params.id}: ${describeScheduledTask(result.updated)}.`, { updated: result.updated });
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    return response("update", currentScopeTasks, `Error: ${message}`, { error: message });
+    return updateError(currentScopeTasks, error instanceof Error ? error.message : String(error));
   }
 };
 

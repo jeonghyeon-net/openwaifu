@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { exec, createInterface } = vi.hoisted(() => ({
-  exec: vi.fn<(command: string, callback?: () => void) => void>((_command, callback) => callback?.()),
+const { spawn, createInterface } = vi.hoisted(() => ({
+  spawn: vi.fn(() => ({ unref: vi.fn() })),
   createInterface: vi.fn(),
 }));
-vi.mock("node:child_process", () => ({ exec }));
+vi.mock("node:child_process", () => ({ spawn }));
 vi.mock("node:readline/promises", () => ({ createInterface }));
 
 import { ensureProviderAuth } from "../src/integrations/pi/ensure-provider-auth.js";
@@ -22,7 +22,7 @@ const setPlatform = (value: NodeJS.Platform) => Object.defineProperty(process, "
 beforeEach(() => {
   setInteractive(true);
   setPlatform("linux");
-  exec.mockClear();
+  spawn.mockClear();
   createInterface.mockReset();
   log.mockClear();
 });
@@ -38,7 +38,7 @@ describe("ensureProviderAuth errors", () => {
     const login = vi.fn(async (_provider: string, callbacks: any) => callbacks.onAuth({ url: "https://auth.example", instructions: "Do login" }));
 
     await expect(ensureProviderAuth({ getApiKey, login })).rejects.toThrow("Pi auth completed but token unavailable for provider: openai-codex");
-    expect(exec).toHaveBeenCalledWith('xdg-open "https://auth.example"', expect.any(Function));
+    expect(spawn).toHaveBeenCalledWith("xdg-open", ["https://auth.example"], { detached: true, stdio: "ignore" });
   });
 
   it("rethrows non-bootstrap login errors without retry", async () => {
