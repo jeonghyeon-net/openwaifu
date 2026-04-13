@@ -1,5 +1,3 @@
-import { type Client } from "discord.js";
-
 import {
   createAgentSession,
   type AgentSession,
@@ -11,10 +9,15 @@ import {
 } from "@mariozechner/pi-coding-agent";
 import type { Model } from "@mariozechner/pi-ai";
 
+import type { PiReasoningEffort, PiThinkingLevel } from "../../config/pi-config.js";
 import { createDiscordAdminService } from "../discord/tools/discord-admin-service.js";
-import type { DiscordToolContext } from "../discord/tools/discord-admin-types.js";
+import type {
+  DiscordAdminClient,
+  DiscordToolContext,
+} from "../discord/tools/discord-admin-types.js";
 import { discordContextPrompt } from "../discord/tools/discord-context-prompt.js";
 import { createDiscordManagementTools } from "../discord/tools/discord-management-tools.js";
+import { withReasoningEffort } from "./reasoning-effort.js";
 import { createRuntimeTools } from "./runtime-tools.js";
 
 type CreatePiSessionOptions = {
@@ -23,10 +26,12 @@ type CreatePiSessionOptions = {
   authStorage: AuthStorage;
   modelRegistry: ModelRegistry;
   model: Model<any>;
+  thinkingLevel?: PiThinkingLevel;
+  reasoningEffort?: PiReasoningEffort;
   settingsManager: SettingsManager;
   resourceLoader: ResourceLoader;
   sessionManager: SessionManager;
-  discordClient: Client;
+  discordClient: DiscordAdminClient;
   discordContext: DiscordToolContext;
 };
 
@@ -37,6 +42,7 @@ export const createPiSession = async (options: CreatePiSessionOptions): Promise<
     authStorage: options.authStorage,
     modelRegistry: options.modelRegistry,
     model: options.model,
+    thinkingLevel: options.thinkingLevel,
     settingsManager: options.settingsManager,
     resourceLoader: options.resourceLoader,
     sessionManager: options.sessionManager,
@@ -46,6 +52,7 @@ export const createPiSession = async (options: CreatePiSessionOptions): Promise<
     ),
   });
 
+  session.agent.onPayload = withReasoningEffort(session.agent.onPayload, options.reasoningEffort);
   session.agent.state.systemPrompt = [
     "You are concise Discord chat bot. Reply in user's language.",
     "Use discord_* tools when user asks to inspect or manage Discord server state.",

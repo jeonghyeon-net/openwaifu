@@ -1,3 +1,5 @@
+import type { Client } from "discord.js";
+
 export const discordManagementToolNames = [
   "discord_list_servers",
   "discord_inspect_server",
@@ -9,6 +11,8 @@ export const discordManagementToolNames = [
   "discord_update_member_roles",
   "discord_moderate_member",
 ] as const;
+
+export type DiscordAdminClient = Pick<Client, "channels" | "guilds">;
 
 export type DiscordToolContext = {
   authorId: string;

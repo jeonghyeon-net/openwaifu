@@ -1,6 +1,5 @@
 import { mkdir } from "node:fs/promises";
 
-import type { Client } from "discord.js";
 import {
   AuthStorage,
   ModelRegistry,
@@ -11,8 +10,10 @@ import {
   type DefaultResourceLoader,
 } from "@mariozechner/pi-coding-agent";
 
-import type { DiscordToolContext } from "../discord/tools/discord-admin-types.js";
+import type { PiReasoningEffort, PiThinkingLevel } from "../../config/pi-config.js";
+import type { DiscordAdminClient, DiscordToolContext } from "../discord/tools/discord-admin-types.js";
 import { createPiSession } from "./create-session.js";
+import { ensureProviderAuth } from "./ensure-provider-auth.js";
 import { createResourceLoader } from "./create-resource-loader.js";
 import { lastAssistantText } from "./last-assistant-text.js";
 import { ScopedQueue } from "./scoped-queue.js";
@@ -23,8 +24,11 @@ export type PiRuntimeOptions = {
   sessionsRoot: string;
   extensionsRoot: string;
   skillsRoot: string;
+  provider: string;
   modelId: string;
-  discordClient: Client;
+  thinkingLevel?: PiThinkingLevel;
+  reasoningEffort?: PiReasoningEffort;
+  discordClient: DiscordAdminClient;
 };
 
 export class PiRuntime {
@@ -39,13 +43,14 @@ export class PiRuntime {
 
   private constructor(private readonly options: PiRuntimeOptions) {
     this.settingsManager = SettingsManager.create(this.options.repoRoot, this.agentDir);
-    const model = this.modelRegistry.find("anthropic", this.options.modelId);
-    if (!model) throw new Error(`Model not found: anthropic/${this.options.modelId}`);
+    const model = this.modelRegistry.find(this.options.provider, this.options.modelId);
+    if (!model) throw new Error(`Model not found: ${this.options.provider}/${this.options.modelId}`);
     this.model = model;
   }
 
   static async create(options: PiRuntimeOptions) {
     const runtime = new PiRuntime(options);
+    await ensureProviderAuth(runtime.authStorage, runtime.options.provider);
     await mkdir(runtime.options.sessionsRoot, { recursive: true });
     runtime.loader = await createResourceLoader({
       repoRoot: runtime.options.repoRoot,
@@ -69,13 +74,14 @@ export class PiRuntime {
   private async getSession(scopeId: string, discordContext: DiscordToolContext) {
     const cached = this.sessions.get(scopeId);
     if (cached) return cached;
-
     const session = await createPiSession({
       repoRoot: this.options.repoRoot,
       agentDir: this.agentDir,
       authStorage: this.authStorage,
       modelRegistry: this.modelRegistry,
       model: this.model,
+      thinkingLevel: this.options.thinkingLevel,
+      reasoningEffort: this.options.reasoningEffort,
       settingsManager: this.settingsManager,
       resourceLoader: this.loader,
       sessionManager: SessionManager.open(

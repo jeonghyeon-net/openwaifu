@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { paths } from "../src/config/paths";
+import { paths } from "../src/config/paths.js";
 
 vi.mock("dotenv", () => ({ config: vi.fn() }));
 
@@ -12,7 +12,7 @@ const loadEnv = async (nextEnv: NodeJS.ProcessEnv) => {
     if (value === undefined) delete process.env[key];
     else process.env[key] = value;
   }
-  return (await import("../src/config/env")).env;
+  return (await import("../src/config/env.js")).env;
 };
 
 afterEach(() => {
@@ -27,9 +27,40 @@ describe("config", () => {
     expect(paths.sessionsRoot.endsWith("/01_BOT/.data/sessions")).toBe(true);
   });
 
-  it("loads token and defaults model", async () => {
-    const env = await loadEnv({ DISCORD_BOT_TOKEN: "token", PI_MODEL: undefined });
-    expect(env).toEqual({ discordBotToken: "token", piModel: "claude-sonnet-4-5" });
+  it("loads token and defaults to openai-codex", async () => {
+    const env = await loadEnv({
+      DISCORD_BOT_TOKEN: "token",
+      OPENAI_API_KEY: undefined,
+      PI_MODEL: undefined,
+      PI_PROVIDER: undefined,
+      PI_REASONING_EFFORT: undefined,
+      PI_THINKING_LEVEL: undefined,
+    });
+    expect(env).toEqual({
+      discordBotToken: "token",
+      piProvider: "openai-codex",
+      piModel: "gpt-5.4",
+      piThinkingLevel: undefined,
+      piReasoningEffort: undefined,
+    });
+  });
+
+  it("loads explicit thinking and effort", async () => {
+    const env = await loadEnv({
+      DISCORD_BOT_TOKEN: "token",
+      OPENAI_API_KEY: "sk-test",
+      PI_MODEL: undefined,
+      PI_PROVIDER: undefined,
+      PI_REASONING_EFFORT: "low",
+      PI_THINKING_LEVEL: "high",
+    });
+    expect(env).toEqual({
+      discordBotToken: "token",
+      piProvider: "openai",
+      piModel: "gpt-5.4",
+      piThinkingLevel: "high",
+      piReasoningEffort: "low",
+    });
   });
 
   it("throws when DISCORD_BOT_TOKEN missing", async () => {
