@@ -35,14 +35,37 @@ afterEach(() => {
 describe("ensureProviderAuth errors", () => {
   it("uses xdg-open on linux and throws if token still missing after login", async () => {
     const getApiKey = vi.fn(async () => undefined);
-    const login = vi.fn(async (_provider: string, callbacks: any) => {
-      callbacks.onAuth({ url: "https://auth.example", instructions: "Do login" });
+    const login = vi.fn(async (_provider: string, callbacks: any) => callbacks.onAuth({ url: "https://auth.example", instructions: "Do login" }));
+
+    await expect(ensureProviderAuth({ getApiKey, login })).rejects.toThrow("Pi auth completed but token unavailable for provider: openai-codex");
+    expect(exec).toHaveBeenCalledWith('xdg-open "https://auth.example"', expect.any(Function));
+  });
+
+  it("rethrows non-bootstrap login errors without retry", async () => {
+    const getApiKey = vi.fn(async () => undefined);
+    const login = vi.fn(async () => { throw new Error("boom"); });
+
+    await expect(ensureProviderAuth({ getApiKey, login })).rejects.toThrow("boom");
+    expect(login).toHaveBeenCalledTimes(1);
+  });
+
+  it("rethrows non-bootstrap error from second retry", async () => {
+    const getApiKey = vi.fn(async () => undefined);
+    const login = vi.fn(async () => {
+      if (login.mock.calls.length === 1) throw new Error("OpenAI Codex OAuth is only available in Node.js environments");
+      throw new Error("second boom");
     });
 
-    await expect(ensureProviderAuth({ getApiKey, login })).rejects.toThrow(
-      "Pi auth completed but token unavailable for provider: openai-codex",
-    );
-    expect(exec).toHaveBeenCalledWith('xdg-open "https://auth.example"', expect.any(Function));
+    await expect(ensureProviderAuth({ getApiKey, login })).rejects.toThrow("second boom");
+    expect(login).toHaveBeenCalledTimes(2);
+  });
+
+  it("throws bootstrap error after third failed retry", async () => {
+    const getApiKey = vi.fn(async () => undefined);
+    const login = vi.fn(async () => { throw new Error("OpenAI Codex OAuth is only available in Node.js environments"); });
+
+    await expect(ensureProviderAuth({ getApiKey, login })).rejects.toThrow("OpenAI Codex OAuth is only available in Node.js environments");
+    expect(login).toHaveBeenCalledTimes(3);
   });
 
   it("throws when auth missing in non-interactive terminal", async () => {
@@ -50,9 +73,7 @@ describe("ensureProviderAuth errors", () => {
     const getApiKey = vi.fn(async () => undefined);
     const login = vi.fn(async () => undefined);
 
-    await expect(ensureProviderAuth({ getApiKey, login })).rejects.toThrow(
-      "Missing pi auth for provider: openai-codex. Run pi and use /login, or start bot in interactive terminal for automatic browser login.",
-    );
+    await expect(ensureProviderAuth({ getApiKey, login })).rejects.toThrow("Missing pi auth for provider: openai-codex. Run pi and use /login, or start bot in interactive terminal for automatic browser login.");
     expect(login).not.toHaveBeenCalled();
   });
 });

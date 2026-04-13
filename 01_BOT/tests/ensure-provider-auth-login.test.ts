@@ -40,21 +40,30 @@ describe("ensureProviderAuth login", () => {
     expect(login).not.toHaveBeenCalled();
   });
 
-  it("opens browser, prompts for code, and retries on macOS", async () => {
+  it("retries bootstrap race, opens browser, and prompts for code on macOS", async () => {
     setPlatform("darwin");
     createInterface.mockReturnValue({ question: vi.fn().mockResolvedValueOnce("").mockResolvedValueOnce(" pasted-code "), close: vi.fn() });
     const getApiKey = vi.fn<() => Promise<string | undefined>>().mockResolvedValueOnce(undefined).mockResolvedValueOnce("token");
     const login = vi.fn(async (_provider: string, callbacks: any) => {
+      if (login.mock.calls.length === 1) throw new Error("OpenAI Codex OAuth is only available in Node.js environments");
       callbacks.onAuth({ url: "https://auth.example" });
       callbacks.onProgress?.("waiting");
       await expect(callbacks.onPrompt({ message: "Paste code", placeholder: "url" })).resolves.toBe("pasted-code");
     });
 
     await expect(ensureProviderAuth({ getApiKey, login })).resolves.toBeUndefined();
+    expect(login).toHaveBeenCalledTimes(2);
     expect(exec).toHaveBeenCalledWith('open "https://auth.example"', expect.any(Function));
     expect(log).toHaveBeenCalledWith("Input required.");
     expect(log).toHaveBeenCalledWith("Open browser to complete login.");
     expect(log).toHaveBeenCalledWith("waiting");
+  });
+
+  it("succeeds on third try after two bootstrap races", async () => {
+    const getApiKey = vi.fn<() => Promise<string | undefined>>().mockResolvedValueOnce(undefined).mockResolvedValueOnce("token");
+    const login = vi.fn(async () => { if (login.mock.calls.length < 3) throw new Error("OpenAI Codex OAuth is only available in Node.js environments"); });
+    await expect(ensureProviderAuth({ getApiKey, login })).resolves.toBeUndefined();
+    expect(login).toHaveBeenCalledTimes(3);
   });
 
   it("supports blank input when provider allows empty and uses Windows command", async () => {
