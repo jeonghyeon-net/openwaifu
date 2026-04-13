@@ -57,12 +57,13 @@ export const createPiSession = async (options: CreatePiSessionOptions): Promise<
     registerDiscordSessionContext(sessionFile, options.scopeId, options.discordContext);
   }
 
+  await session.bindExtensions({});
   session.agent.state.systemPrompt = [
+    session.agent.state.systemPrompt,
     "You are concise Discord chat bot. Reply in user's language.",
     "Use discord_* tools when user asks to inspect or manage Discord server state.",
     "When user asks about current channel or server, answer from current_* context fields first.",
     discordContextPrompt(options.discordContext),
-  ].join("\n");
-  await session.bindExtensions({});
+  ].filter((line): line is string => Boolean(line)).join("\n\n");
   return session;
 };

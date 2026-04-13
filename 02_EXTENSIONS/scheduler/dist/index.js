@@ -2,13 +2,13 @@
 import { defineTool } from "@mariozechner/pi-coding-agent";
 
 // src/metadata.ts
-var schedulerToolDescription = "Create, list, and cancel one-time or daily Discord reminders for current user/session. All reminder times use Korea time (Asia/Seoul).";
-var schedulerToolPromptSnippet = "`scheduler_reminder`: create, list, or cancel one-time and daily reminders for current Discord user/session";
+var schedulerToolDescription = "Schedule, list, and cancel one-time or daily tasks for current Discord user/session. Scheduled tasks currently post reminder-style messages, and all times use Korea time (Asia/Seoul).";
+var schedulerToolPromptSnippet = "`scheduler`: create, list, or cancel one-time and daily scheduled tasks for current Discord user/session";
 var schedulerToolGuidelines = [
-  "Use this tool when user asks for reminder, wake-up message, recurring alarm, or scheduled notification.",
-  "All reminder times are fixed to Korea time (Asia/Seoul). Do not ask for or use another timezone.",
-  "Use recurrence `once` for single reminder. If user gives only time, omit `date` and tool schedules next Korea-time occurrence.",
-  "Use recurrence `daily` for every-day reminders like '\uB9E4\uC77C \uC624\uC804 9\uC2DC'."
+  "Use this tool when user asks to schedule something later, set reminder, wake-up message, recurring alarm, or timed task.",
+  "All scheduler times are fixed to Korea time (Asia/Seoul). Do not ask for or use another timezone.",
+  "Use recurrence `once` for single scheduled task. If user gives only time, omit `date` and tool schedules next Korea-time occurrence.",
+  "Use recurrence `daily` for every-day schedules like '\uB9E4\uC77C \uC624\uC804 9\uC2DC'."
 ];
 
 // src/schema.ts
@@ -272,8 +272,8 @@ var executeSchedulerAction = async (params, ctx, deps = {}) => {
 
 // src/tool.ts
 var createSchedulerTool = () => defineTool({
-  name: "scheduler_reminder",
-  label: "Scheduler Reminder",
+  name: "scheduler",
+  label: "Scheduler",
   description: schedulerToolDescription,
   promptSnippet: schedulerToolPromptSnippet,
   promptGuidelines: schedulerToolGuidelines,

@@ -10,8 +10,8 @@ import { executeSchedulerAction } from "./execute.js";
 
 export const createSchedulerTool = () =>
   defineTool({
-    name: "scheduler_reminder",
-    label: "Scheduler Reminder",
+    name: "scheduler",
+    label: "Scheduler",
     description: schedulerToolDescription,
     promptSnippet: schedulerToolPromptSnippet,
     promptGuidelines: schedulerToolGuidelines,
