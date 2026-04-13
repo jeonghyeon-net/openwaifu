@@ -1,4 +1,4 @@
-import { defineTool } from "@mariozechner/pi-coding-agent";
+import type { ToolDefinition } from "@mariozechner/pi-coding-agent";
 
 import {
   schedulerToolDescription,
@@ -9,7 +9,7 @@ import { schedulerToolParameters, type SchedulerToolInput } from "./schema.js";
 import { executeSchedulerAction } from "./execute.js";
 
 export const createSchedulerTool = () =>
-  defineTool({
+  ({
     name: "scheduler",
     label: "Scheduler",
     description: schedulerToolDescription,
@@ -21,4 +21,4 @@ export const createSchedulerTool = () =>
         cwd: ctx.cwd,
         sessionFile: ctx.sessionManager.getSessionFile(),
       }),
-  });
+  }) satisfies ToolDefinition<typeof schedulerToolParameters>;
