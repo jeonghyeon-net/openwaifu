@@ -1,8 +1,13 @@
 // src/persona.ts
 import { existsSync, readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 var PERSONA_FILENAME = "PERSONA";
-var personaPathFromModuleUrl = (moduleUrl) => fileURLToPath(new URL(`../${PERSONA_FILENAME}`, moduleUrl));
+var PERSONA_RELATIVE_PATH = join(
+  "02_EXTENSIONS",
+  "persona",
+  PERSONA_FILENAME
+);
+var personaPathForCwd = (cwd) => join(cwd, PERSONA_RELATIVE_PATH);
 var readPersonaMarkdown = (personaPath) => {
   try {
     if (!existsSync(personaPath)) return void 0;
@@ -12,8 +17,9 @@ var readPersonaMarkdown = (personaPath) => {
     return void 0;
   }
 };
-var createBeforeAgentStartHandler = (personaPath = personaPathFromModuleUrl(import.meta.url)) => async (event, _ctx) => {
-  const personaMarkdown = readPersonaMarkdown(personaPath);
+var createBeforeAgentStartHandler = (personaPath) => async (event, ctx) => {
+  const resolvedPath = personaPath ?? personaPathForCwd(ctx.cwd);
+  const personaMarkdown = readPersonaMarkdown(resolvedPath);
   if (!personaMarkdown) return void 0;
   return {
     systemPrompt: `${event.systemPrompt}

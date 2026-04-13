@@ -1,7 +1,6 @@
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { pathToFileURL } from "node:url";
 import type {
 	BeforeAgentStartEvent,
 	ExtensionContext,
@@ -10,8 +9,9 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
 	PERSONA_FILENAME,
+	PERSONA_RELATIVE_PATH,
 	createBeforeAgentStartHandler,
-	personaPathFromModuleUrl,
+	personaPathForCwd,
 	readPersonaMarkdown,
 } from "../src/persona";
 
@@ -28,14 +28,13 @@ afterEach(async () => {
 	);
 });
 
-describe("personaPathFromModuleUrl", () => {
+describe("personaPathForCwd", () => {
 	it("points to extension-local PERSONA file", () => {
-		expect(
-			personaPathFromModuleUrl(
-				pathToFileURL("/tmp/project/src/persona.ts").href,
-			),
-		).toBe("/tmp/project/PERSONA");
+		expect(personaPathForCwd("/tmp/project")).toBe(
+			"/tmp/project/02_EXTENSIONS/persona/PERSONA",
+		);
 		expect(PERSONA_FILENAME).toBe("PERSONA");
+		expect(PERSONA_RELATIVE_PATH).toBe("02_EXTENSIONS/persona/PERSONA");
 	});
 });
 
@@ -69,11 +68,11 @@ describe("readPersonaMarkdown", () => {
 describe("createBeforeAgentStartHandler", () => {
 	it("returns undefined when persona file missing", async () => {
 		const dir = await createTempDir();
-		const handler = createBeforeAgentStartHandler(join(dir, PERSONA_FILENAME));
+		const handler = createBeforeAgentStartHandler();
 		await expect(
 			handler(
 				{ systemPrompt: "base prompt" } as BeforeAgentStartEvent,
-				{} as ExtensionContext,
+				{ cwd: dir } as ExtensionContext,
 			),
 		).resolves.toBeUndefined();
 	});
@@ -86,7 +85,7 @@ describe("createBeforeAgentStartHandler", () => {
 		await expect(
 			handler(
 				{ systemPrompt: "base prompt" } as BeforeAgentStartEvent,
-				{} as ExtensionContext,
+				{ cwd: dir } as ExtensionContext,
 			),
 		).resolves.toEqual({
 			systemPrompt: "base prompt\n\npersona body\n",
