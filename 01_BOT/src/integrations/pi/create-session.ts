@@ -10,7 +10,6 @@ import {
 import type { Model } from "@mariozechner/pi-ai";
 
 import type { PiThinkingLevel } from "../../config/pi-config.js";
-import { createSchedulerTool } from "../../../../02_EXTENSIONS/scheduler/src/tool.js";
 import { createDiscordAdminService } from "../discord/tools/discord-admin-service.js";
 import type {
   DiscordAdminClient,
@@ -48,12 +47,9 @@ export const createPiSession = async (options: CreatePiSessionOptions): Promise<
     resourceLoader: options.resourceLoader,
     sessionManager: options.sessionManager,
     tools: createRuntimeTools(options.repoRoot),
-    customTools: [
-      createSchedulerTool(),
-      ...createDiscordManagementTools(
-        createDiscordAdminService(options.discordClient, options.discordContext),
-      ),
-    ],
+    customTools: createDiscordManagementTools(
+      createDiscordAdminService(options.discordClient, options.discordContext),
+    ),
   });
 
   const sessionFile = options.sessionManager.getSessionFile();
