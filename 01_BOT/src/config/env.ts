@@ -11,6 +11,5 @@ if (!discordBotToken) throw new Error("Missing DISCORD_BOT_TOKEN");
 
 export const env = {
   discordBotToken,
-  discordGuildId: process.env.DISCORD_GUILD_ID,
   piModel: process.env.PI_MODEL ?? "claude-sonnet-4-5",
 };

@@ -18,6 +18,7 @@ func TestLefthook_HasRequiredCommands(t *testing.T) {
     "pre-commit:",
     "go test -count=1 ./...",
     "npm run check",
+    "npm run test:bot",
     "npx biome check --error-on-warnings .",
     "pre-push:",
     "npm run build",

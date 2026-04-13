@@ -1,7 +1,15 @@
 Discord bot 런타임.
 
 - `.env` 위치: `01_BOT/.env`
+- 모든 비봇 메시지에 응답
+- 세션 파일 유지: `01_BOT/.data/sessions/`
+- 길드 메시지: 채널+사용자 단위 세션
+- DM 메시지: 사용자 단위 세션
+- pi built-in tool 7종 + 로컬 extension tool 사용
+- 이 구성은 trusted Discord 환경 전제
+- 실행은 전역 직렬 큐로 보호
 - `src/config`: env/path
 - `src/features`: use case
 - `src/integrations`: Discord/pi adapter
+- `tests`: 순수 로직 테스트
 - `src/main.ts`: wiring only

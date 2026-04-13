@@ -11,7 +11,9 @@ var botRequiredPaths = []string{
   "01_BOT/.gitignore",
   "01_BOT/package.json",
   "01_BOT/tsconfig.json",
+  "01_BOT/vitest.config.ts",
   "01_BOT/README",
+  "01_BOT/tests",
   "01_BOT/src/main.ts",
 }
 

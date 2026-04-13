@@ -3,11 +3,13 @@ import {
   type AgentSession,
   type AuthStorage,
   type ModelRegistry,
+  type ResourceLoader,
   type SessionManager,
   type SettingsManager,
-  type ResourceLoader,
 } from "@mariozechner/pi-coding-agent";
 import type { Model } from "@mariozechner/pi-ai";
+
+import { createRuntimeTools } from "./runtime-tools.js";
 
 type CreatePiSessionOptions = {
   repoRoot: string;
@@ -30,13 +32,10 @@ export const createPiSession = async (options: CreatePiSessionOptions): Promise<
     settingsManager: options.settingsManager,
     resourceLoader: options.resourceLoader,
     sessionManager: options.sessionManager,
-    tools: [],
+    tools: createRuntimeTools(options.repoRoot),
   });
 
-  session.agent.state.systemPrompt = [
-    "You are concise Discord chat bot.",
-    "Reply in user's language.",
-  ].join("\n");
+  session.agent.state.systemPrompt = "You are concise Discord chat bot. Reply in user's language.";
   await session.bindExtensions({});
   return session;
 };

@@ -1,12 +1,24 @@
-import { AuthStorage, ModelRegistry, SessionManager, SettingsManager, getAgentDir, type AgentSession } from "@mariozechner/pi-coding-agent";
+import { mkdir } from "node:fs/promises";
+
+import {
+  AuthStorage,
+  ModelRegistry,
+  SessionManager,
+  SettingsManager,
+  getAgentDir,
+  type AgentSession,
+  type DefaultResourceLoader,
+} from "@mariozechner/pi-coding-agent";
 
 import { createResourceLoader } from "./create-resource-loader.js";
 import { createPiSession } from "./create-session.js";
 import { lastAssistantText } from "./last-assistant-text.js";
 import { SerialQueue } from "./serial-queue.js";
+import { sessionFileForScope } from "./session-path.js";
 
 export type PiRuntimeOptions = {
   repoRoot: string;
+  sessionsRoot: string;
   extensionsRoot: string;
   skillsRoot: string;
   modelId: string;
@@ -17,10 +29,10 @@ export class PiRuntime {
   private readonly authStorage = AuthStorage.create();
   private readonly modelRegistry = ModelRegistry.create(this.authStorage);
   private readonly settingsManager: SettingsManager;
-  private readonly sessionManager = SessionManager.inMemory();
   private readonly queue = new SerialQueue();
+  private readonly sessions = new Map<string, AgentSession>();
   private readonly model;
-  private session!: AgentSession;
+  private loader!: DefaultResourceLoader;
 
   private constructor(private readonly options: PiRuntimeOptions) {
     this.settingsManager = SettingsManager.create(this.options.repoRoot, this.agentDir);
@@ -31,37 +43,46 @@ export class PiRuntime {
 
   static async create(options: PiRuntimeOptions) {
     const runtime = new PiRuntime(options);
-    await runtime.refreshSession();
+    await mkdir(runtime.options.sessionsRoot, { recursive: true });
+    runtime.loader = await createResourceLoader({
+      repoRoot: runtime.options.repoRoot,
+      agentDir: runtime.agentDir,
+      settingsManager: runtime.settingsManager,
+      extensionsRoot: runtime.options.extensionsRoot,
+      skillsRoot: runtime.options.skillsRoot,
+    });
+    await runtime.loader.reload();
     return runtime;
   }
 
-  prompt(prompt: string) {
+  prompt(scopeId: string, prompt: string) {
     return this.queue.run(async () => {
-      await this.session.prompt(prompt);
-      return lastAssistantText(this.session);
+      const session = await this.getSession(scopeId);
+      await session.prompt(prompt);
+      return lastAssistantText(session);
     });
   }
 
-  private async refreshSession() {
-    const loader = await createResourceLoader({
-      ...this.options,
-      agentDir: this.agentDir,
-      settingsManager: this.settingsManager,
-    });
-    await loader.reload();
+  private async getSession(scopeId: string) {
+    const cached = this.sessions.get(scopeId);
+    if (cached) return cached;
 
     const session = await createPiSession({
-      ...this.options,
+      repoRoot: this.options.repoRoot,
       agentDir: this.agentDir,
       authStorage: this.authStorage,
       modelRegistry: this.modelRegistry,
       model: this.model,
       settingsManager: this.settingsManager,
-      resourceLoader: loader,
-      sessionManager: this.sessionManager,
+      resourceLoader: this.loader,
+      sessionManager: SessionManager.open(
+        sessionFileForScope(this.options.sessionsRoot, scopeId),
+        this.options.sessionsRoot,
+        this.options.repoRoot,
+      ),
     });
 
-    this.session?.dispose();
-    this.session = session;
+    this.sessions.set(scopeId, session);
+    return session;
   }
 }

@@ -11,6 +11,8 @@ export const paths = {
   srcRoot,
   botRoot,
   repoRoot,
+  dataRoot: resolve(botRoot, ".data"),
+  sessionsRoot: resolve(botRoot, ".data", "sessions"),
   extensionsRoot: resolve(repoRoot, "02_EXTENSIONS"),
   skillsRoot: resolve(repoRoot, "03_SKILLS"),
 };

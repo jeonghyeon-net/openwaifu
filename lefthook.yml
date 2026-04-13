@@ -4,6 +4,8 @@ pre-commit:
       run: cd 00_ARCHITECTURE/tests && go test -count=1 ./...
     bot-check:
       run: npm run check
+    bot-tests:
+      run: npm run test:bot
     biome:
       run: |
         set -e
