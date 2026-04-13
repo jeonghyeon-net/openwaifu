@@ -13,9 +13,7 @@
 
   VERIFY
     npm run check
-    npm run test:bot
-    npm run test:arch
-    npm run test:extensions
+    npm run test
 
   BOT
     01_BOT  … discord.js runtime, replies to all non-bot messages, keeps per-scope sessions

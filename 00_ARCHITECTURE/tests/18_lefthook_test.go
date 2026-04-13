@@ -16,13 +16,11 @@ func TestLefthook_HasRequiredCommands(t *testing.T) {
   content := string(raw)
   requiredSnippets := []string{
     "pre-commit:",
-    "go test -count=1 ./...",
     "npm run check",
-    "npm run test:bot",
+    "npm run test",
     "npx biome check --error-on-warnings .",
     "pre-push:",
     "npm run build",
-    "npm run test:extensions",
     "git add 02_EXTENSIONS/*/dist/",
   }
 

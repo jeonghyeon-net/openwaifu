@@ -34,7 +34,7 @@ func TestPackageJSON_AllowedKeysOnly(t *testing.T) {
     t.Fatalf("package.json 재파싱 실패: %v", err)
   }
 
-  for _, script := range []string{"setup", "dev", "start", "check", "test:bot", "test:arch", "test:extensions"} {
+  for _, script := range []string{"setup", "dev", "start", "check", "test"} {
     if parsed.Scripts[script] == "" {
       t.Errorf("필수 스크립트 누락: %s", script)
     }

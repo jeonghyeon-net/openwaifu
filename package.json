@@ -4,8 +4,6 @@
     "dev": "npm --prefix 01_BOT run dev",
     "start": "npm --prefix 01_BOT run start",
     "check": "npm --prefix 01_BOT run check",
-    "test:bot": "npm --prefix 01_BOT test",
-    "test:arch": "cd 00_ARCHITECTURE/tests && go test -count=1 ./...",
-    "test:extensions": "bash -lc 'set -e; for dir in 02_EXTENSIONS/*/; do [ -f \"$dir/package.json\" ] || continue; (cd \"$dir\" && npm test); done'"
+    "test": "bash -lc 'set -e; npm --prefix 01_BOT test; (cd 00_ARCHITECTURE/tests && go test -count=1 ./...); for dir in 02_EXTENSIONS/*/; do [ -f \"$dir/package.json\" ] || continue; (cd \"$dir\" && npm test); done'"
   }
 }

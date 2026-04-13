@@ -49,8 +49,6 @@
 
 ```bash
 npm run check
-npm run test:bot
-npm run test:arch
-npm run test:extensions
+npm run test
 bash -lc 'for dir in 02_EXTENSIONS/*/; do [ -f "$dir/package.json" ] || continue; (cd "$dir" && npm run build); done'
 ```

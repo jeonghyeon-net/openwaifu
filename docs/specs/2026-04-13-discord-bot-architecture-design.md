@@ -159,13 +159,14 @@ npm run dev
 
 ```bash
 npm run check
-npm run test:bot
-npm run test:arch
-npm run test:extensions
+npm run test
 ```
 
 ## 테스트 전략
 
+루트 검증 진입점은 `npm run test` 하나다.
+
+내부 구성:
 1. 구조 테스트
 - `00_ARCHITECTURE/tests` 의 Go 테스트
 - 루트 계약, bot 필수 파일, slash command 금지, extension 규칙 검증
@@ -175,7 +176,7 @@ npm run test:extensions
 - 메시지 정규화, 세션 파일 경로, runtime tool 구성 검증
 
 3. extension 테스트
-- 각 extension 내부 Vitest + build 검증
+- 각 extension 내부 Vitest 검증
 
 ## 설계 이유
 

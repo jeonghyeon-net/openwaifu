@@ -1,11 +1,9 @@
 pre-commit:
   commands:
-    architecture:
-      run: cd 00_ARCHITECTURE/tests && go test -count=1 ./...
-    bot-check:
+    check:
       run: npm run check
-    bot-tests:
-      run: npm run test:bot
+    test:
+      run: npm run test
     biome:
       run: |
         set -e
@@ -33,5 +31,3 @@ pre-push:
             git commit -m "dist 빌드 반영"
           fi
         fi
-    extension-tests:
-      run: npm run test:extensions
