@@ -1,0 +1,11 @@
+{
+  "name": "openwaifu",
+  "private": true,
+  "workspaces": ["01_BOT", "02_EXTENSIONS/*"],
+  "scripts": {
+    "dev": "npm --workspace 01_BOT run dev",
+    "start": "npm --workspace 01_BOT run start",
+    "check": "npm --workspace 01_BOT run check",
+    "test:arch": "cd 00_ARCHITECTURE/tests && go test -count=1 ./..."
+  }
+}

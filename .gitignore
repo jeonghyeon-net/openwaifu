@@ -1,0 +1,6 @@
+node_modules/
+.env
+.pi/
+01_BOT/dist/
+02_EXTENSIONS/*/dist/
+.DS_Store

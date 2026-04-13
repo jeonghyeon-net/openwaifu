@@ -29,6 +29,7 @@
 ├── 01_BOT/
 ├── 02_EXTENSIONS/
 ├── 03_SKILLS/
+├── docs/
 ├── .env.example
 ├── .gitignore
 ├── .mise.toml
@@ -43,7 +44,7 @@
 - `02_EXTENSIONS`: 앱이 로컬에서 직접 읽는 pi extensions
 - `03_SKILLS`: 앱이 로컬에서 직접 읽는 pi skills
 
-루트에는 앱 소스코드를 두지 않는다. TypeScript 실행 코드는 `01_BOT` 밖에 두지 않는다.
+루트에는 앱 소스코드를 두지 않는다. TypeScript 실행 코드는 `01_BOT` 밖에 두지 않는다. 생성물(`.env`, `.pi`, `node_modules`)은 개발 편의를 위해 테스트에서 예외 허용한다.
 
 ## 01_BOT 내부 구조
 
@@ -56,26 +57,26 @@
 ├── README
 └── src/
     ├── main.ts
-    ├── app/
     ├── config/
-    ├── discord/
-    ├── pi/
-    └── shared/
+    ├── features/
+    └── integrations/
 ```
 
 역할:
 - `src/main.ts`: 프로세스 부트스트랩. 의존성 조립만 수행
 - `src/config/`: env 파싱, 경로 계산, 상수
-- `src/discord/`: client 생성, slash command 등록, message/interaction adapter
-- `src/pi/`: `createAgentSession`, `DefaultResourceLoader`, `DefaultPackageManager` 조립과 session refresh
-- `src/app/`: 유스케이스
+- `src/features/`: 유스케이스 중심 구조
   - `chat`: DM/멘션/slash chat 처리
-  - `pi_admin`: `/pi packages|resources|install|remove|reload` 처리
-- `src/shared/`: 정말 공용인 유틸만 허용
+  - `pi-admin`: `/pi packages|resources|install|remove|reload` 처리
+- `src/integrations/`: 외부 시스템 어댑터
+  - `discord`: client 생성, slash command 등록, message/interaction adapter
+  - `pi`: `createAgentSession`, `DefaultResourceLoader`, `DefaultPackageManager` 조립과 session refresh
 
 원칙:
+- feature가 중심이고 integration은 입출력 어댑터다.
 - Discord 이벤트 핸들러 안에 pi 로직을 직접 길게 쓰지 않는다.
-- package/resource 관리 로직은 `app/pi_admin` 쪽으로 이동한다.
+- package/resource 관리 로직은 `features/pi-admin` 으로 이동한다.
+- `shared` 나 `utils` 같은 범용 잡동사니 디렉터리는 1차 구조에서 두지 않는다.
 - `main.ts` 는 wiring 외 로직을 갖지 않는다.
 
 ## 02_EXTENSIONS 구조
@@ -181,7 +182,7 @@
 1차 테스트 범위:
 - 루트 허용 엔트리만 존재하는지 (`.env.example`, `package-lock.json` 포함)
 - `01_BOT` 필수 파일이 존재하는지
-- `01_BOT/src` 하위 허용 디렉터리만 존재하는지
+- `01_BOT/src` 하위 허용 디렉터리만 존재하는지 (`config`, `features`, `integrations`)
 - `02_EXTENSIONS/<name>` 에 필수 파일이 존재하는지
 - `03_SKILLS/<name>/SKILL.md` 가 존재하는지
 - 루트 `package.json` 에 필수 스크립트가 있는지
@@ -197,7 +198,7 @@
 - 루트 `.env.example`
 
 리팩토링 후 이동 방향:
-- `src/index.ts` → `01_BOT/src/main.ts` 및 하위 모듈로 분해
+- `src/index.ts` → `01_BOT/src/main.ts` 및 `config/features/integrations` 하위 모듈로 분해
 - 루트 `package.json` → monorepo orchestration 용으로 재작성
 - 앱 관련 설정/의존성 → `01_BOT/package.json`, `01_BOT/tsconfig.json`
 - `.env.example` 는 루트 또는 `01_BOT` 중 한 곳으로 정리하되, 1차에서는 루트 유지 가능

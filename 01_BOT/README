@@ -1,0 +1,7 @@
+Discord bot 런타임.
+
+구조:
+- `src/config`: env/path
+- `src/features`: 유스케이스
+- `src/integrations`: Discord/pi 어댑터
+- `src/main.ts`: wiring

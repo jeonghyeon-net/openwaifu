@@ -1,0 +1,8 @@
+{
+  "name": "@openwaifu/noop-extension",
+  "private": true,
+  "type": "module",
+  "pi": {
+    "extensions": ["./src/index.ts"]
+  }
+}
