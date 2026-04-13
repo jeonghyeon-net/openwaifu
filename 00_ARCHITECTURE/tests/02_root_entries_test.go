@@ -6,12 +6,8 @@ import (
 )
 
 var rootAllowed = map[string]bool{
-  ".env": true,
-  ".env.example": true,
   ".git": true,
-  ".gitignore": true,
   ".mise.toml": true,
-  ".pi": true,
   "00_ARCHITECTURE": true,
   "01_BOT": true,
   "02_EXTENSIONS": true,
@@ -19,8 +15,6 @@ var rootAllowed = map[string]bool{
   "README": true,
   "docs": true,
   "lefthook.yml": true,
-  "node_modules": true,
-  "package-lock.json": true,
   "package.json": true,
 }
 

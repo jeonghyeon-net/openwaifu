@@ -1,8 +1,9 @@
 구조 규칙은 문서가 아니라 Go 테스트와 훅으로 강제한다.
 
 RULES
-- 루트 구조 고정
+- 루트 허용 항목은 정확히 고정
 - 루트 README는 확장자 없이 `README`
+- 루트 `.gitignore`, 루트 `.env.example`, 루트 `package-lock.json` 금지
 - `.md` 파일은 `docs/` 와 `03_SKILLS/` 밖에서 금지
 - 모든 코드 파일은 99줄 이하
 - extension은 독립 빌드/테스트/coverage 규칙 준수

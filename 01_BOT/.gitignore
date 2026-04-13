@@ -1,6 +1,4 @@
 node_modules/
+dist/
 .env
-.pi/
 coverage/
-01_BOT/dist/
-.DS_Store

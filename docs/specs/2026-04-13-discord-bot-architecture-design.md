@@ -30,11 +30,8 @@
 ├── 02_EXTENSIONS/
 ├── 03_SKILLS/
 ├── docs/
-├── .env.example
-├── .gitignore
 ├── .mise.toml
 ├── lefthook.yml
-├── package-lock.json
 ├── package.json
 └── README
 ```
@@ -45,7 +42,7 @@
 - `02_EXTENSIONS`: 앱이 로컬에서 직접 읽는 pi extensions
 - `03_SKILLS`: 앱이 로컬에서 직접 읽는 pi skills
 
-루트에는 앱 소스코드를 두지 않는다. TypeScript 실행 코드는 `01_BOT` 밖에 두지 않는다. 루트 README는 확장자 없이 `README` 를 사용한다. 생성물(`.env`, `.pi`, `node_modules`, `coverage`)은 개발 편의를 위해 테스트에서 예외 허용한다.
+루트에는 앱 소스코드를 두지 않는다. TypeScript 실행 코드는 `01_BOT` 밖에 두지 않는다. 루트 README는 확장자 없이 `README` 를 사용한다. 루트 `.gitignore`, 루트 `.env.example`, 루트 `package-lock.json` 은 두지 않는다. 런타임 env 파일은 `01_BOT/.env` 로 고정한다.
 
 ## 01_BOT 내부 구조
 
@@ -68,15 +65,14 @@
 - `src/config/`: env 파싱, 경로 계산, 상수
 - `src/features/`: 유스케이스 중심 구조
   - `chat`: DM/멘션/slash chat 처리
-  - `pi-admin`: `/pi packages|resources|install|remove|reload` 처리
 - `src/integrations/`: 외부 시스템 어댑터
   - `discord`: client 생성, slash command 등록, message/interaction adapter
-  - `pi`: `createAgentSession`, `DefaultResourceLoader`, `DefaultPackageManager` 조립과 session refresh
+  - `pi`: 로컬 extensions/skills 를 로드한 agent session 생성
 
 원칙:
 - feature가 중심이고 integration은 입출력 어댑터다.
 - Discord 이벤트 핸들러 안에 pi 로직을 직접 길게 쓰지 않는다.
-- package/resource 관리 로직은 `features/pi-admin` 으로 이동한다.
+- bot 내부에서 extension/skill/package 를 슬래시 커맨드로 관리하지 않는다.
 - `shared` 나 `utils` 같은 범용 잡동사니 디렉터리는 1차 구조에서 두지 않는다.
 - `main.ts` 는 wiring 외 로직을 갖지 않는다.
 
@@ -126,10 +122,11 @@
 
 이 레포는 pi package 설치/배포를 전제로 하지 않는다. 실행 흐름은 아래와 같다.
 
-1. 사용자는 루트에서 `npm install`, `npm run dev` 또는 `npm run start` 실행
-2. 루트 스크립트가 `01_BOT` 실행
-3. `01_BOT` 가 레포 루트 기준으로 `02_EXTENSIONS`, `03_SKILLS` 경로를 직접 로드
-4. Discord bot 이 동작
+1. 사용자는 `01_BOT/.env.example` 를 `01_BOT/.env` 로 복사
+2. 루트에서 `npm run setup` 실행
+3. 루트에서 `npm run dev` 또는 `npm run start` 실행
+4. `01_BOT` 가 레포 루트 기준으로 `02_EXTENSIONS`, `03_SKILLS` 경로를 직접 로드
+5. Discord bot 이 동작
 
 의미:
 - `pi install ./repo` 는 지원 목표가 아니다
@@ -141,17 +138,19 @@
 ### 루트 package.json
 
 역할:
-- workspace 관리
 - 루트 공통 스크립트 제공
 - 아키텍처 테스트 실행 진입점 제공
+- `01_BOT`, `02_EXTENSIONS/*` 설치/검증 래퍼 제공
 
 예상 스크립트:
+- `setup`: `01_BOT`, `02_EXTENSIONS/*` 의 npm install + lefthook 설치
 - `dev`: `01_BOT` 개발 서버 실행
 - `start`: `01_BOT` 실행
 - `check`: `01_BOT` 타입체크
 - `test:arch`: `00_ARCHITECTURE/tests` Go 테스트 실행
+- `test:extensions`: extension 테스트 실행
 
-루트 `package.json` 은 pi package manifest를 두지 않는다.
+루트 `package.json` 은 `scripts` 외 키를 두지 않는다.
 
 ### 01_BOT/package.json
 
@@ -184,7 +183,7 @@
 ```
 
 테스트 범위:
-- 루트 허용 엔트리만 존재하는지 (`README`, `lefthook.yml`, `.env.example`, `package-lock.json` 포함)
+- 루트 허용 엔트리만 존재하는지 (`README`, `lefthook.yml`, `package.json` 등만 허용)
 - 상위 디렉터리의 top-level file 이 `README` 외에는 없는지 (`00_ARCHITECTURE`, `02_EXTENSIONS`, `03_SKILLS`)
 - `.md` 파일이 `docs/`, `03_SKILLS/` 밖에 없는지
 - 모든 코드/설정 파일이 99줄 이하인지
@@ -207,6 +206,7 @@
 
 리팩토링 후 이동 방향:
 - `src/index.ts` → `01_BOT/src/main.ts` 및 `config/features/integrations` 하위 모듈로 분해
+- bot 의 `/pi` 관리 명령 제거
 - 루트 `package.json` → monorepo orchestration 용으로 재작성
 - 앱 관련 설정/의존성 → `01_BOT/package.json`, `01_BOT/tsconfig.json`
 - `.env.example` 는 루트 또는 `01_BOT` 중 한 곳으로 정리하되, 1차에서는 루트 유지 가능
@@ -223,10 +223,12 @@
 개발자는 루트에서만 명령을 실행한다.
 
 예상 흐름:
-- `npm install`
+- `cp 01_BOT/.env.example 01_BOT/.env`
+- `npm run setup`
 - `npm run dev`
 - `npm run check`
 - `npm run test:arch`
+- `npm run test:extensions`
 
 즉, 사용자 경험은 단순 앱 레포 그대로 유지하고, 내부 구조만 monorepo 스타일로 강화한다.
 

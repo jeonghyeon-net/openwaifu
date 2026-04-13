@@ -1,7 +1,7 @@
 Discord bot 런타임.
 
-구조:
+- `.env` 위치: `01_BOT/.env`
 - `src/config`: env/path
-- `src/features`: 유스케이스
-- `src/integrations`: Discord/pi 어댑터
-- `src/main.ts`: wiring
+- `src/features`: use case
+- `src/integrations`: Discord/pi adapter
+- `src/main.ts`: wiring only

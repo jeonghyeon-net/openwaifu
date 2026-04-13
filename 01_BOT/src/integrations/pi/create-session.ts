@@ -36,7 +36,6 @@ export const createPiSession = async (options: CreatePiSessionOptions): Promise<
   session.agent.state.systemPrompt = [
     "You are concise Discord chat bot.",
     "Reply in user's language.",
-    "Pi package management happens through Discord slash command /pi.",
   ].join("\n");
   await session.bindExtensions({});
   return session;

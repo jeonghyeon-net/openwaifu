@@ -4,7 +4,7 @@ import { config as loadDotenv } from "dotenv";
 
 import { paths } from "./paths.js";
 
-loadDotenv({ path: join(paths.repoRoot, ".env") });
+loadDotenv({ path: join(paths.botRoot, ".env") });
 
 const discordBotToken = process.env.DISCORD_BOT_TOKEN;
 if (!discordBotToken) throw new Error("Missing DISCORD_BOT_TOKEN");

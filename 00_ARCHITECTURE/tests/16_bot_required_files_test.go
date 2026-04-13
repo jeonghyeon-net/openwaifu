@@ -7,6 +7,8 @@ import (
 )
 
 var botRequiredPaths = []string{
+  "01_BOT/.env.example",
+  "01_BOT/.gitignore",
   "01_BOT/package.json",
   "01_BOT/tsconfig.json",
   "01_BOT/README",

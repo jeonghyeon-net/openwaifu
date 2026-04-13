@@ -1,11 +1,11 @@
 
          ╔════════════════════════════════════════╗
-         ║               openwaifu                ║
-         ║        discord bot + local pi          ║
+         ║               openwaifu               ║
+         ║        discord bot + local pi         ║
          ╚════════════════════════════════════════╝
 
   SETUP
-    npm install
+    cp 01_BOT/.env.example 01_BOT/.env
     npm run setup
 
   RUN
