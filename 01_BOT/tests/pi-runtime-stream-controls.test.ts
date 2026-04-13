@@ -33,6 +33,23 @@ describe("PiRuntime stream controls", () => {
     expect(createdSessions[1]?.abort).toHaveBeenCalledTimes(1);
   });
 
+  it("resetScope aborts in-flight prompt and clears cached session", async () => {
+    let resolveRunning: () => void = () => undefined;
+    const runningGate = new Promise<void>((resolve) => { resolveRunning = resolve; });
+    setPromptImpl(async (session, text) => {
+      emit(session, { type: "message_update", message: { role: "assistant" }, assistantMessageEvent: { type: "text_delta", delta: text } });
+      if (text === "live") await runningGate;
+    });
+    const runtime = await createRuntime();
+    const liveIterator = runtime.stream("scope:a", "live", { authorId: "u", channelId: "c", guildId: "g", isDirectMessage: false })[Symbol.asyncIterator]();
+    await expect(liveIterator.next()).resolves.toEqual({ done: false, value: { type: "text", text: "live" } });
+    createdSessions[0]?.abort.mockImplementationOnce(async () => resolveRunning());
+    await runtime.resetScope("scope:a");
+    expect(createdSessions[0]?.abort).toHaveBeenCalledTimes(2);
+    expect(createdSessions[0]?.dispose).toHaveBeenCalledTimes(1);
+    await expect(liveIterator.next()).resolves.toEqual({ done: true, value: undefined });
+  });
+
   it("interrupts in-flight scope prompt before starting newer prompt", async () => {
     let resolveFirst: () => void = () => undefined;
     const releaseFirst = new Promise<void>((resolve) => { resolveFirst = resolve; });

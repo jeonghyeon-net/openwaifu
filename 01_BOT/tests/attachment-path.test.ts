@@ -2,11 +2,15 @@ import { describe, expect, it } from "vitest";
 
 import {
   attachmentDirectoryForMessage,
+  attachmentDirectoryForScope,
   attachmentPathForName,
 } from "../src/features/chat/attachment-path.js";
 
 describe("attachment paths", () => {
   it("sanitizes scope ids, message ids, and file names", () => {
+    expect(attachmentDirectoryForScope("/repo", "channel:1/user")).toBe(
+      "/repo/01_BOT/.data/discord-attachments/channel_1_user",
+    );
     expect(attachmentDirectoryForMessage("/repo", "channel:1/user", "msg:2")).toBe(
       "/repo/01_BOT/.data/discord-attachments/channel_1_user/msg_2",
     );

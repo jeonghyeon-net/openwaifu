@@ -32,5 +32,9 @@ export const registerDiscordSessionContext = (
   });
 };
 
+export const clearDiscordSessionContext = (sessionFile: string) => {
+  discordSessionContextState().contexts.delete(sessionFile);
+};
+
 export const getDiscordSessionContext = (sessionFile: string) =>
   discordSessionContextState().contexts.get(sessionFile);

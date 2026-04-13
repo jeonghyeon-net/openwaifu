@@ -97,27 +97,73 @@ describe("main", () => {
 
     const schedulerServiceArgs = createSchedulerService.mock.calls[0]?.[0];
     if (!schedulerServiceArgs) throw new Error("scheduler service args missing");
-    await expect(schedulerServiceArgs.runTask({
-      id: "sched-1",
-      scopeId: "scope:1",
+    const baseTask = {
       authorId: "u",
       channelId: "c",
       channelName: "general",
       guildId: "g",
       guildName: "guild",
       isDirectMessage: false,
-      prompt: "do thing",
       timezone: "Asia/Seoul",
       recurrence: "once",
       scheduledTime: "09:00",
       mentionUser: true,
       createdAt: "2026-04-13T00:00:00.000Z",
       nextRunAt: "2026-04-13T00:01:00.000Z",
+    };
+    await expect(schedulerServiceArgs.runTask({
+      ...baseTask,
+      id: "sched-1",
+      scopeId: "scope:1",
+      prompt: "do thing",
     })).resolves.toBe("scheduled reply");
-    expect(runtime.runScheduledPrompt).toHaveBeenCalledWith(
+    expect(runtime.runScheduledPrompt).toHaveBeenNthCalledWith(
+      1,
       "scope:1",
       "sched-1",
       "do thing",
+      {
+        authorId: "u",
+        channelId: "c",
+        channelName: "general",
+        guildId: "g",
+        guildName: "guild",
+        isDirectMessage: false,
+      },
+    );
+    await expect(schedulerServiceArgs.runTask({
+      ...baseTask,
+      id: "sched-2",
+      scopeId: "scope:2",
+      prompt: "",
+      message: "fallback message",
+    })).resolves.toBe("scheduled reply");
+    expect(runtime.runScheduledPrompt).toHaveBeenNthCalledWith(
+      2,
+      "scope:2",
+      "sched-2",
+      "fallback message",
+      {
+        authorId: "u",
+        channelId: "c",
+        channelName: "general",
+        guildId: "g",
+        guildName: "guild",
+        isDirectMessage: false,
+      },
+    );
+    await expect(schedulerServiceArgs.runTask({
+      ...baseTask,
+      id: "sched-3",
+      scopeId: "scope:3",
+      prompt: "",
+      message: "",
+    })).resolves.toBe("scheduled reply");
+    expect(runtime.runScheduledPrompt).toHaveBeenNthCalledWith(
+      3,
+      "scope:3",
+      "sched-3",
+      "",
       {
         authorId: "u",
         channelId: "c",
@@ -133,6 +179,9 @@ describe("main", () => {
     const readyClient = { user: { tag: "bot#0001" } };
     onReady(readyClient);
     expect(syncDiscordSessionCommands).toHaveBeenCalledWith(readyClient);
+    syncDiscordSessionCommands.mockRejectedValueOnce(new Error("sync fail"));
+    onReady(readyClient);
+    await Promise.resolve();
     expect(startSchedulerService).toHaveBeenCalled();
     expect(startChatGptQuotaStatusService).toHaveBeenCalled();
     expect(login).toHaveBeenCalledWith("token");

@@ -1,4 +1,5 @@
 import { attachmentOnlyPrompt, type ChatAttachment } from "./chat-attachment.js";
+import { scopeIdOfChatTarget } from "./chat-scope.js";
 
 export type ChatRequest = {
   prompt: string;
@@ -32,16 +33,13 @@ const normalizePrompt = (content: string, attachments: ChatAttachment[]) => {
   return attachments.length > 0 ? attachmentOnlyPrompt : null;
 };
 
-const scopeIdOf = ({ authorId, channelId, isDirectMessage }: ChatMessage) =>
-  isDirectMessage ? `dm:${authorId}` : `channel:${channelId}:user:${authorId}`;
-
 export const buildChatRequest = (message: ChatMessage): ChatRequest | null => {
   const prompt = normalizePrompt(message.content, message.attachments);
   if (message.isBot || !prompt) return null;
 
   return {
     prompt,
-    scopeId: scopeIdOf(message),
+    scopeId: scopeIdOfChatTarget(message),
     messageId: message.messageId,
     authorId: message.authorId,
     channelId: message.channelId,

@@ -10,7 +10,19 @@ import type { DiscordAdminClient } from "../src/integrations/discord/tools/disco
 export type ModelInfo = { id: string; provider: string } | undefined;
 export type PreparedPrompt = { prompt: string; images?: ImageContent[] };
 export type SessionEvent = { type: string; message?: { role?: string }; assistantMessageEvent?: { type?: string; delta?: string } };
-export type MockSession = { abort: ReturnType<typeof vi.fn>; prompt: ReturnType<typeof vi.fn>; subscribe: ReturnType<typeof vi.fn>; messages: unknown[] };
+export type MockSessionManager = {
+  getEntries: ReturnType<typeof vi.fn>;
+  getSessionFile: ReturnType<typeof vi.fn>;
+  getSessionId: ReturnType<typeof vi.fn>;
+};
+export type MockSession = {
+  abort: ReturnType<typeof vi.fn>;
+  dispose: ReturnType<typeof vi.fn>;
+  prompt: ReturnType<typeof vi.fn>;
+  subscribe: ReturnType<typeof vi.fn>;
+  messages: unknown[];
+  sessionManager: MockSessionManager;
+};
 export const find = vi.fn<(_provider?: string, _modelId?: string) => ModelInfo>(() => ({ id: "model", provider: "openai-codex" }));
 export const open = vi.fn(() => "session-manager");
 export const createResourceLoader = vi.fn(async () => ({ reload: vi.fn(async () => undefined) }));
@@ -21,7 +33,19 @@ export const createdSessions: MockSession[] = [];
 let promptImpl: (session: MockSession, text: string, options: unknown) => Promise<void>;
 const createSession = (): MockSession => {
   const listeners = new Set<(event: SessionEvent) => void>();
-  const session = { abort: vi.fn(async () => undefined), prompt: vi.fn(async (text: string, options: unknown) => promptImpl(session, text, options)), subscribe: vi.fn((listener) => (listeners.add(listener), () => listeners.delete(listener))), messages: [] } as MockSession;
+  const sessionManager = {
+    getEntries: vi.fn(() => []),
+    getSessionFile: vi.fn(() => "/tmp/mock-session.jsonl"),
+    getSessionId: vi.fn(() => "session-1"),
+  };
+  const session = {
+    abort: vi.fn(async () => undefined),
+    dispose: vi.fn(() => undefined),
+    prompt: vi.fn(async (text: string, options: unknown) => promptImpl(session, text, options)),
+    subscribe: vi.fn((listener) => (listeners.add(listener), () => listeners.delete(listener))),
+    messages: [],
+    sessionManager,
+  } as MockSession;
   (session as MockSession & { emit(event: SessionEvent): void }).emit = (event) => listeners.forEach((listener) => listener(event));
   return session;
 };

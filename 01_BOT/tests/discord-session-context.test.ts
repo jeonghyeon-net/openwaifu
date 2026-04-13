@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  clearDiscordSessionContext,
   getDiscordSessionContext,
   registerDiscordSessionContext,
 } from "../src/integrations/pi/discord-session-context.js";
@@ -23,5 +24,8 @@ describe("discord session context", () => {
         isDirectMessage: false,
       },
     });
+
+    clearDiscordSessionContext("/tmp/session.jsonl");
+    expect(getDiscordSessionContext("/tmp/session.jsonl")).toBeUndefined();
   });
 });
