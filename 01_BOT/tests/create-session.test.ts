@@ -41,8 +41,9 @@ describe("createPiSession", () => {
     });
     const args = createAgentSession.mock.calls[0]?.[0];
     if (!args) throw new Error("createAgentSession args missing");
-    expect(args.customTools).toHaveLength(9);
+    expect(args.customTools).toHaveLength(10);
     expect(args.tools.map((tool) => tool.name)).toEqual(["read", "bash", "edit", "write", "grep", "find", "ls"]);
+    expect(args.customTools).toEqual(expect.arrayContaining([expect.objectContaining({ name: "scheduler" })]));
     expect(session.agent.state.systemPrompt).toContain("BASE TOOLS");
     expect(session.agent.state.systemPrompt).toContain("`scheduler`: create, list, or cancel one-time and daily scheduled tasks");
     expect(session.agent.state.systemPrompt).toContain("discord_* tools");

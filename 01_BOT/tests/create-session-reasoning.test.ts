@@ -7,7 +7,7 @@ import type { DiscordAdminClient } from "../src/integrations/discord/tools/disco
 const registerDiscordSessionContext = vi.fn();
 vi.mock("../src/integrations/pi/discord-session-context.js", () => ({ registerDiscordSessionContext }));
 
-type Args = { customTools: unknown[]; tools: Array<{ name: string }>; thinkingLevel?: string };
+type Args = { customTools: Array<{ name?: string }>; tools: Array<{ name: string }>; thinkingLevel?: string };
 const bindExtensions = vi.fn(async () => undefined);
 const createSession = (onPayload?: (payload: unknown, model: Model<Api>) => unknown) => ({ agent: { onPayload, state: {} }, _baseSystemPrompt: undefined as string | undefined, bindExtensions });
 const createAgentSession = vi.fn(async (options: Args) => ({ session: createSession(), options }));
