@@ -1,7 +1,8 @@
 Discord bot 런타임.
 
 - `.env` 위치: `01_BOT/.env`
-- pi 인증: `pi` 실행 → `/login` → `OpenAI Codex` 선택
+- pi 인증: auth 없으면 봇 시작 시 브라우저 로그인 자동 시도
+- 수동 인증도 가능: `pi` 실행 → `/login` → `OpenAI Codex` 선택
 - pi 인증 저장 위치: `~/.pi/agent/auth.json`
 - `OPENAI_API_KEY`, `PI_PROVIDER`, `PI_REASONING_EFFORT` 사용 안 함
 - 모든 비봇 메시지에 응답
