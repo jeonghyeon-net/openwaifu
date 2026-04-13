@@ -5,7 +5,6 @@ import type { PiThinkingLevel } from "../../config/pi-config.js";
 import { canUseDiscordManagementTools } from "../discord/tools/discord-admin-access.js";
 import type { DiscordAdminClient, DiscordToolContext } from "../discord/tools/discord-admin-types.js";
 import { createPiSession } from "./create-session.js";
-import { lastAssistantText } from "./last-assistant-text.js";
 import { clearScheduledSessionStorage } from "./session-admin.js";
 import { sessionFileForScope, sessionFileForScheduledRun } from "./session-path.js";
 
@@ -68,7 +67,6 @@ export const runScheduledPromptSession = async (deps: SessionDeps, scopeId: stri
   const session = await createRuntimeSession(deps, sessionManager, scopeId, discordContext);
   try {
     await session.prompt(prompt);
-    return lastAssistantText(session);
   } finally {
     session.dispose();
     await clearScheduledSessionStorage(sessionFile);

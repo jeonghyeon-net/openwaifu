@@ -9,22 +9,17 @@ import { createSchedulerService } from "../src/features/scheduler/scheduler-serv
 import {
   cleanupSchedulerServiceTempRoots,
   scheduledTask,
-  schedulerServiceClient,
   schedulerServiceTempRoots,
 } from "./scheduler-service-test-helpers.js";
 
-const { sendDiscordMessage, runTask } = vi.hoisted(() => ({
-  sendDiscordMessage: vi.fn(async () => "sent"),
-  runTask: vi.fn(async () => "generated reply"),
+const { runTask } = vi.hoisted(() => ({
+  runTask: vi.fn(async () => undefined),
 }));
-vi.mock("../src/integrations/discord/tools/discord-admin-channel.js", () => ({ sendDiscordMessage }));
 
 afterEach(cleanupSchedulerServiceTempRoots);
 beforeEach(() => {
-  sendDiscordMessage.mockReset();
-  sendDiscordMessage.mockResolvedValue("sent");
   runTask.mockReset();
-  runTask.mockResolvedValue("generated reply");
+  runTask.mockResolvedValue(undefined);
 });
 
 describe("scheduler service dispatch", () => {
@@ -37,13 +32,13 @@ describe("scheduler service dispatch", () => {
         scheduledTask({ id: "once-dm", isDirectMessage: true, guildId: undefined, mentionUser: true }),
         scheduledTask({ id: "cron-guild", recurrence: "cron", cron: "0 9 * * *", nextRunAt: "2026-04-13T00:00:00.000Z", scheduledTime: undefined }),
         scheduledTask({ id: "once-no-mention", mentionUser: false }),
+        scheduledTask({ id: "silent-side-effect" }),
         scheduledTask({ id: "future", nextRunAt: "2026-04-14T00:00:00.000Z" }),
       ],
       result: undefined,
     }));
 
     await createSchedulerService({
-      client: schedulerServiceClient,
       tasksFile: file,
       now: () => new Date("2026-04-13T00:01:00.000Z"),
       runTask,
@@ -52,9 +47,7 @@ describe("scheduler service dispatch", () => {
     expect(runTask).toHaveBeenNthCalledWith(1, expect.objectContaining({ id: "once-dm", prompt: "wake up" }));
     expect(runTask).toHaveBeenNthCalledWith(2, expect.objectContaining({ id: "cron-guild", prompt: "wake up", cron: "0 9 * * *" }));
     expect(runTask).toHaveBeenNthCalledWith(3, expect.objectContaining({ id: "once-no-mention", prompt: "wake up" }));
-    expect(sendDiscordMessage).toHaveBeenNthCalledWith(1, schedulerServiceClient, expect.objectContaining({ id: "once-dm" }), { channelId: "channel-1", content: "generated reply" });
-    expect(sendDiscordMessage).toHaveBeenNthCalledWith(2, schedulerServiceClient, expect.objectContaining({ id: "cron-guild" }), { channelId: "channel-1", content: "<@user-1> generated reply" });
-    expect(sendDiscordMessage).toHaveBeenNthCalledWith(3, schedulerServiceClient, expect.objectContaining({ id: "once-no-mention" }), { channelId: "channel-1", content: "generated reply" });
+    expect(runTask).toHaveBeenNthCalledWith(4, expect.objectContaining({ id: "silent-side-effect", prompt: "wake up" }));
     await expect(listScheduledTasks(file)).resolves.toEqual([
       expect.objectContaining({ id: "cron-guild", lastTriggeredAt: "2026-04-13T00:01:00.000Z", nextRunAt: "2026-04-14T00:00:00.000Z" }),
       expect.objectContaining({ id: "future" }),

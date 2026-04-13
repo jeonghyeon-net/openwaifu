@@ -46,8 +46,8 @@ describe("PiRuntime core", () => {
 
   it("runs scheduled prompts in fresh clean sessions", async () => {
     const runtime = await createRuntime();
-    await expect(runtime.runScheduledPrompt("scope:a", "task-1", "do thing", { authorId: "u", channelId: "c", guildId: "g", isDirectMessage: false })).resolves.toBe("reply");
-    await expect(runtime.runScheduledPrompt("scope:a", "task-1", "do thing again", { authorId: "u", channelId: "c", guildId: "g", isDirectMessage: false })).resolves.toBe("reply");
+    await expect(runtime.runScheduledPrompt("scope:a", "task-1", "do thing", { authorId: "u", channelId: "c", guildId: "g", isDirectMessage: false })).resolves.toBeUndefined();
+    await expect(runtime.runScheduledPrompt("scope:a", "task-1", "do thing again", { authorId: "u", channelId: "c", guildId: "g", isDirectMessage: false })).resolves.toBeUndefined();
     expect(createdSessions).toHaveLength(2);
     expect(createdSessions[0]?.prompt).toHaveBeenCalledWith("do thing");
     expect(createdSessions[1]?.prompt).toHaveBeenCalledWith("do thing again");

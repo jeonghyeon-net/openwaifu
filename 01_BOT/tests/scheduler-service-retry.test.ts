@@ -9,22 +9,17 @@ import { createSchedulerService } from "../src/features/scheduler/scheduler-serv
 import {
   cleanupSchedulerServiceTempRoots,
   scheduledTask,
-  schedulerServiceClient,
   schedulerServiceTempRoots,
 } from "./scheduler-service-test-helpers.js";
 
-const { sendDiscordMessage, runTask } = vi.hoisted(() => ({
-  sendDiscordMessage: vi.fn(async () => "sent"),
-  runTask: vi.fn(async () => "generated reply"),
+const { runTask } = vi.hoisted(() => ({
+  runTask: vi.fn(async () => undefined),
 }));
-vi.mock("../src/integrations/discord/tools/discord-admin-channel.js", () => ({ sendDiscordMessage }));
 
 afterEach(cleanupSchedulerServiceTempRoots);
 beforeEach(() => {
-  sendDiscordMessage.mockReset();
-  sendDiscordMessage.mockResolvedValue("sent");
   runTask.mockReset();
-  runTask.mockResolvedValue("generated reply");
+  runTask.mockResolvedValue(undefined);
 });
 
 describe("scheduler service retry", () => {
@@ -38,20 +33,20 @@ describe("scheduler service retry", () => {
     let release: () => void = () => {};
     let notifyStarted: () => void = () => {};
     const started = new Promise<void>((resolve) => { notifyStarted = () => resolve(); });
-    sendDiscordMessage.mockImplementationOnce(() => new Promise((resolve) => {
+    runTask.mockImplementationOnce(() => new Promise((resolve) => {
       notifyStarted();
-      release = () => { resolve("sent"); };
+      release = () => { resolve(undefined); };
     }));
 
     const logger = { error: vi.fn() };
-    const service = createSchedulerService({ client: schedulerServiceClient, tasksFile: file, now: () => new Date("2026-04-13T00:00:00.000Z"), logger, runTask });
+    const service = createSchedulerService({ tasksFile: file, now: () => new Date("2026-04-13T00:00:00.000Z"), logger, runTask });
     const first = service.dispatchDue();
     await started;
     const second = service.dispatchDue();
     release();
     await first;
     await second;
-    expect(sendDiscordMessage).toHaveBeenCalledTimes(1);
+    expect(runTask).toHaveBeenCalledTimes(1);
 
     await seed();
     runTask.mockRejectedValueOnce(new Error("boom"));

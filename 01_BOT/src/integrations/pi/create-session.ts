@@ -34,9 +34,10 @@ type CreatePiSessionOptions = {
 };
 
 export const createPiSession = async (options: CreatePiSessionOptions): Promise<AgentSession> => {
-  const customTools = await canUseDiscordManagementTools(options.discordClient, options.discordContext)
+  const managementTools = (await canUseDiscordManagementTools(options.discordClient, options.discordContext))
     ? createDiscordManagementTools(createDiscordAdminService(options.discordClient, options.discordContext))
     : [];
+  const customTools = [...managementTools];
   const { session } = await createAgentSession({
     cwd: options.repoRoot,
     agentDir: options.agentDir,
@@ -60,7 +61,7 @@ export const createPiSession = async (options: CreatePiSessionOptions): Promise<
   const systemPrompt = [
     session.agent.state.systemPrompt,
     "You are concise Discord chat bot. Reply in user's language.",
-    ...(customTools.length ? ["Use discord_* tools when user asks to inspect or manage Discord server state."] : []),
+    ...(managementTools.length ? ["Use discord_* tools when user asks to inspect or manage Discord server state."] : []),
     "When user asks about current channel or server, answer from current_* context fields first.",
     discordContextPrompt(options.discordContext),
   ].filter((line): line is string => Boolean(line)).join("\n\n");

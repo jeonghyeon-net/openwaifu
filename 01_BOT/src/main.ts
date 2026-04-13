@@ -24,10 +24,9 @@ const runtime = await PiRuntime.create({
 });
 
 const schedulerService = createSchedulerService({
-  client,
   tasksFile: schedulerFileForCwd(paths.repoRoot),
-  runTask: (scheduledTask) =>
-    runtime.runScheduledPrompt(
+  runTask: async (scheduledTask) => {
+    await runtime.runScheduledPrompt(
       scheduledTask.scopeId,
       scheduledTask.id,
       scheduledTask.prompt,
@@ -39,7 +38,8 @@ const schedulerService = createSchedulerService({
         guildName: scheduledTask.guildName,
         isDirectMessage: scheduledTask.isDirectMessage,
       },
-    ),
+    );
+  },
 });
 const presenceService = createDiscordPresenceService(client);
 const chatGptQuotaStatusService = createChatGptQuotaStatusService({

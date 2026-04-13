@@ -1,8 +1,11 @@
 Registers `scheduler` tool for one-time and cron-based Discord schedules.
-Each due schedule runs saved prompt in completely fresh clean pi session, then posts result back to Discord.
+Each due schedule runs saved prompt in completely fresh clean pi session.
+Scheduler does not auto-post assistant text after run.
 Current chat history is not reused at trigger time, so scheduled prompt must include full instructions.
 All schedule times are fixed to Korea time (`Asia/Seoul`).
 Supported actions: add, list, update, cancel.
+If user wants Discord-side delivery or side effects, saved prompt must tell future session to do that work itself.
+For Discord side-effect schedules, saved prompt should perform action and end without extra confirmation text unless user explicitly asked for report.
 
 Examples:
 - "오후 1시에 오늘 할 일 정리해달라고 실행해줘"

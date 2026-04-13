@@ -7,7 +7,7 @@ describe("scheduler tool", () => {
     const tool = createSchedulerTool();
     expect(tool.name).toBe("scheduler");
     expect(tool.label).toBe("Scheduler");
-    expect(tool.promptGuidelines).toHaveLength(7);
+    expect(tool.promptGuidelines).toHaveLength(10);
     expect(tool.prepareArguments?.({ action: "add", message: "legacy" })).toEqual({ action: "add", prompt: "legacy" });
     expect(tool.prepareArguments?.({ action: "add", prompt: "fresh" })).toEqual({ action: "add", prompt: "fresh" });
     expect(tool.prepareArguments?.({ action: "add", recurrence: "daily", time: "09:15", message: "legacy daily" })).toEqual({

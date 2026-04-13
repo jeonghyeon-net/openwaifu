@@ -81,4 +81,5 @@ describe("createPiSession", () => {
     expect(args?.customTools).toHaveLength(0);
     expect(dmSession.agent.state.systemPrompt).not.toContain("discord_* tools");
   });
+
 });

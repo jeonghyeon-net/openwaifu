@@ -1,26 +1,18 @@
 import { DateTime } from "luxon";
 
-import type { DiscordAdminClient } from "../../integrations/discord/tools/discord-admin-types.js";
-import { sendDiscordMessage } from "../../integrations/discord/tools/discord-admin-channel.js";
 import { mutateScheduledTasks } from "./scheduler-store.js";
 import { nextCronRunAt, retryScheduledRunAt } from "./scheduler-time.js";
 import type { ScheduledTaskRecord } from "./scheduler-types.js";
 
 type SchedulerServiceOptions = {
-  client: DiscordAdminClient;
   tasksFile: string;
-  runTask: (scheduledTask: ScheduledTaskRecord) => Promise<string>;
+  runTask: (scheduledTask: ScheduledTaskRecord) => Promise<void>;
   pollMs?: number;
   now?: () => Date;
   logger?: Pick<Console, "error">;
   setIntervalFn?: typeof setInterval;
   clearIntervalFn?: typeof clearInterval;
 };
-
-const scheduledContent = (scheduledTask: ScheduledTaskRecord, text: string) =>
-  scheduledTask.isDirectMessage || !scheduledTask.mentionUser
-    ? text
-    : `<@${scheduledTask.authorId}> ${text}`;
 
 export class SchedulerService {
   private readonly pollMs: number;
@@ -66,11 +58,7 @@ export class SchedulerService {
             continue;
           }
           try {
-            const text = await this.options.runTask(scheduledTask);
-            await sendDiscordMessage(this.options.client, scheduledTask, {
-              channelId: scheduledTask.channelId,
-              content: scheduledContent(scheduledTask, text),
-            });
+            await this.options.runTask(scheduledTask);
             if (scheduledTask.recurrence === "cron") {
               tasks.push({
                 ...scheduledTask,

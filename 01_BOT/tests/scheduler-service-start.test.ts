@@ -1,16 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createSchedulerService } from "../src/features/scheduler/scheduler-service.js";
-import {
-  cleanupSchedulerServiceTempRoots,
-  schedulerServiceClient,
-} from "./scheduler-service-test-helpers.js";
+import { cleanupSchedulerServiceTempRoots } from "./scheduler-service-test-helpers.js";
 
-const { sendDiscordMessage, runTask } = vi.hoisted(() => ({
-  sendDiscordMessage: vi.fn(async () => "sent"),
-  runTask: vi.fn(async () => "generated reply"),
+const { runTask } = vi.hoisted(() => ({
+  runTask: vi.fn(async () => undefined),
 }));
-vi.mock("../src/integrations/discord/tools/discord-admin-channel.js", () => ({ sendDiscordMessage }));
 
 afterEach(async () => {
   vi.useRealTimers();
@@ -18,16 +13,14 @@ afterEach(async () => {
 });
 
 beforeEach(() => {
-  sendDiscordMessage.mockReset();
-  sendDiscordMessage.mockResolvedValue("sent");
   runTask.mockReset();
-  runTask.mockResolvedValue("generated reply");
+  runTask.mockResolvedValue(undefined);
 });
 
 describe("scheduler service start", () => {
   it("starts once and stops once", async () => {
     vi.useFakeTimers();
-    const service = createSchedulerService({ client: schedulerServiceClient, tasksFile: "/tmp/scheduled-tasks.json", runTask });
+    const service = createSchedulerService({ tasksFile: "/tmp/scheduled-tasks.json", runTask });
 
     service.start();
     await vi.advanceTimersByTimeAsync(5_000);
