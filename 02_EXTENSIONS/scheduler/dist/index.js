@@ -12,11 +12,14 @@ var schedulerToolGuidelines = [
 ];
 
 // src/schema.ts
-import { StringEnum } from "@mariozechner/pi-ai";
 import { Type } from "@sinclair/typebox";
+var stringEnum = (values) => Type.Unsafe({
+  type: "string",
+  enum: values
+});
 var schedulerToolParameters = Type.Object({
-  action: StringEnum(["add", "list", "cancel"]),
-  recurrence: Type.Optional(StringEnum(["once", "daily"])),
+  action: stringEnum(["add", "list", "cancel"]),
+  recurrence: Type.Optional(stringEnum(["once", "daily"])),
   time: Type.Optional(Type.String({ description: "24-hour local time in HH:mm format" })),
   date: Type.Optional(Type.String({ description: "Local date in YYYY-MM-DD format for one-time reminders" })),
   message: Type.Optional(Type.String({ description: "Reminder text to send" })),

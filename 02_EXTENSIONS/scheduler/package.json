@@ -1,15 +1,18 @@
 {
+  "type": "module",
   "pi": {
-    "extensions": ["dist/index.js"]
+    "extensions": [
+      "dist/index.js"
+    ]
   },
   "scripts": {
-    "build": "rm -rf dist && esbuild src/index.ts --bundle --platform=node --format=esm --outfile=dist/index.js --external:@mariozechner/pi-coding-agent --external:@mariozechner/pi-ai --external:@sinclair/typebox --external:luxon",
+    "build": "rm -rf dist && esbuild src/index.ts --bundle --platform=node --format=esm --outfile=dist/index.js --external:@mariozechner/pi-coding-agent --external:@sinclair/typebox --external:luxon",
     "test": "vitest run --coverage"
   },
   "devDependencies": {
-    "@mariozechner/pi-ai": "latest",
     "@mariozechner/pi-coding-agent": "latest",
     "@sinclair/typebox": "^0.34.49",
+    "@types/luxon": "^3.7.1",
     "@types/node": "^24.6.1",
     "@vitest/coverage-v8": "^3.2.4",
     "esbuild": "^0.25.3",

@@ -41,7 +41,7 @@ describe("scheduler integration", () => {
     });
 
     const originalNow = DateTime.now;
-    DateTime.now = () => DateTime.fromISO("2026-04-13T08:00:00", { zone: "Asia/Seoul" });
+    DateTime.now = () => DateTime.fromISO("2026-04-13T08:00:00", { zone: "Asia/Seoul" }) as DateTime<true>;
     try {
       const result = await executeSchedulerAction(
         { action: "add", recurrence: "once", date: "2099-01-01", time: "13:00", message: "env reminder" },

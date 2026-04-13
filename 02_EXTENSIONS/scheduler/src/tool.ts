@@ -5,7 +5,7 @@ import {
   schedulerToolGuidelines,
   schedulerToolPromptSnippet,
 } from "./metadata.js";
-import { schedulerToolParameters } from "./schema.js";
+import { schedulerToolParameters, type SchedulerToolInput } from "./schema.js";
 import { executeSchedulerAction } from "./execute.js";
 
 export const createSchedulerTool = () =>
@@ -16,7 +16,7 @@ export const createSchedulerTool = () =>
     promptSnippet: schedulerToolPromptSnippet,
     promptGuidelines: schedulerToolGuidelines,
     parameters: schedulerToolParameters,
-    execute: async (_toolCallId, params, _signal, _onUpdate, ctx) =>
+    execute: async (_toolCallId, params: SchedulerToolInput, _signal, _onUpdate, ctx) =>
       executeSchedulerAction(params, {
         cwd: ctx.cwd,
         sessionFile: ctx.sessionManager.getSessionFile(),
