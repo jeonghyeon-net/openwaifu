@@ -9,7 +9,7 @@ vi.mock("../src/integrations/pi/discord-session-context.js", () => ({ registerDi
 
 type Args = { customTools: unknown[]; tools: Array<{ name: string }>; thinkingLevel?: string };
 const bindExtensions = vi.fn(async () => undefined);
-const createSession = (onPayload?: (payload: unknown, model: Model<Api>) => unknown) => ({ agent: { onPayload, state: {} }, bindExtensions });
+const createSession = (onPayload?: (payload: unknown, model: Model<Api>) => unknown) => ({ agent: { onPayload, state: {} }, _baseSystemPrompt: undefined as string | undefined, bindExtensions });
 const createAgentSession = vi.fn(async (options: Args) => ({ session: createSession(), options }));
 vi.mock("@mariozechner/pi-coding-agent", async () => ({ ...(await vi.importActual<object>("@mariozechner/pi-coding-agent")), createAgentSession }));
 
