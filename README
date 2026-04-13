@@ -16,7 +16,7 @@
     npm run test
 
   BOT
-    01_BOT  … discord.js runtime, replies to all non-bot messages, keeps per-scope sessions
+    01_BOT  … discord.js runtime, replies to all non-bot messages, keeps per-scope sessions, manages Discord via tools
 
   EXTENSIONS
     persona … loads extension-local PERSONA file into pi system prompt

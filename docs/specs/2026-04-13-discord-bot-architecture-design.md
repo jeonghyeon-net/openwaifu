@@ -64,7 +64,7 @@
 - `src/main.ts`: 부트스트랩과 wiring 만 담당
 - `src/config/`: env 파싱, 경로 계산
 - `src/features/chat/`: 메시지를 chat request 로 정규화하고 use case 실행
-- `src/integrations/discord/`: Discord 이벤트 어댑터
+- `src/integrations/discord/`: Discord 이벤트 어댑터와 Discord 관리 custom tool
 - `src/integrations/pi/`: pi session, tool, resource loading, session file 관리
 - `tests/`: 순수 로직 테스트
 
@@ -103,6 +103,17 @@
   - `grep`
   - `find`
   - `ls`
+- Discord 관리용 custom tool 제공
+  - 서버 목록/상태 조회
+  - 채널 생성/수정/삭제
+  - 메시지 전송
+  - 역할 생성
+  - 멤버 역할 변경
+  - timeout/kick/ban 등 moderation
+- guild 메시지에서는 Administrator 권한 사용자에게만 Discord 관리 tool 제공
+- DM 에서는 `DISCORD_ADMIN_USER_IDS` allowlist 사용자에게만 Discord 관리 tool 제공
+- `DISCORD_ADMIN_USER_IDS` 는 전역 superadmin 용도다
+- guild 메시지에서 얻은 관리 세션은 현재 guild 범위로만 제한
 - extension 이 제공하는 tool 은 `bindExtensions()` 로 추가 사용
 - 이 구성은 trusted Discord 환경을 전제한다
 
@@ -154,6 +165,12 @@ cp 01_BOT/.env.example 01_BOT/.env
 npm run setup
 npm run dev
 ```
+
+추가 설정:
+- Discord developer portal 에서 Message Content intent 활성화
+- Discord developer portal 에서 Server Members intent 활성화
+- 필요 시 `DISCORD_ADMIN_USER_IDS` 로 DM 관리자 allowlist 설정
+- 이 값은 전역 superadmin 이므로 최소 인원만 넣는다
 
 검증 흐름:
 

@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@mariozechner/pi-coding-agent": "latest",
+    "@sinclair/typebox": "^0.34.49",
     "discord.js": "^14.19.3",
     "dotenv": "^17.2.3"
   },

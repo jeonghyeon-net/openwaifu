@@ -35,6 +35,8 @@
 4. pi 런타임 정리
 - 로컬 extensions / skills 직접 로드
 - built-in tool 7종 모두 주입
+- Discord 관리용 custom tool 추가
+- guild admin / DM allowlist 권한 체크 추가
 - extension tool 은 `bindExtensions()` 로 바인드
 - 채널/DM scope 별 session file 사용
 

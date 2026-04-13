@@ -1,9 +1,16 @@
 import type { PiRuntime } from "../../integrations/pi/pi-runtime.js";
+import type { ChatRequest } from "./chat-message.js";
 
 export type ChatService = {
-  reply(scopeId: string, prompt: string): Promise<string>;
+  reply(request: ChatRequest): Promise<string>;
 };
 
 export const createChatService = (runtime: PiRuntime): ChatService => ({
-  reply: (scopeId, prompt) => runtime.prompt(scopeId, prompt),
+  reply: (request) =>
+    runtime.prompt(request.scopeId, request.prompt, {
+      authorId: request.authorId,
+      channelId: request.channelId,
+      guildId: request.guildId,
+      isDirectMessage: request.isDirectMessage,
+    }),
 });

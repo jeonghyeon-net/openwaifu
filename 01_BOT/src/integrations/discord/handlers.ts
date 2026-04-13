@@ -13,6 +13,7 @@ const toChatMessage = (message: Message<boolean>) => ({
   authorId: message.author.id,
   channelId: message.channelId,
   content: message.content,
+  guildId: message.guildId ?? undefined,
   isBot: message.author.bot,
   isDirectMessage: message.channel.isDMBased(),
 });
@@ -23,7 +24,7 @@ export const registerDiscordHandlers = ({ client, chatService }: HandlerDeps) =>
     if (!request) return;
 
     try {
-      await message.reply(limitText(await chatService.reply(request.scopeId, request.prompt)));
+      await message.reply(limitText(await chatService.reply(request)));
     } catch (error) {
       const text = error instanceof Error ? error.message : String(error);
       await message.reply(limitText(`에러: ${text}`));

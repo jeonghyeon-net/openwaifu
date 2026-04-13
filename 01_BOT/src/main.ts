@@ -7,15 +7,17 @@ import { createDiscordClient } from "./integrations/discord/client.js";
 import { registerDiscordHandlers } from "./integrations/discord/handlers.js";
 import { PiRuntime } from "./integrations/pi/pi-runtime.js";
 
+const client = createDiscordClient();
 const runtime = await PiRuntime.create({
   repoRoot: paths.repoRoot,
   sessionsRoot: paths.sessionsRoot,
   extensionsRoot: paths.extensionsRoot,
   skillsRoot: paths.skillsRoot,
   modelId: env.piModel,
+  discordClient: client,
+  discordAdminUserIds: env.discordAdminUserIds,
 });
 
-const client = createDiscordClient();
 registerDiscordHandlers({ client, chatService: createChatService(runtime) });
 client.once(Events.ClientReady, (readyClient) => console.log(`Logged in as ${readyClient.user.tag}`));
 void client.login(env.discordBotToken);

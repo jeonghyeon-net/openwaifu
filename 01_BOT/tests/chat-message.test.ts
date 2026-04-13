@@ -12,9 +12,13 @@ describe("buildChatRequest", () => {
   });
 
   it("uses per-user scope for guild messages", () => {
-    expect(buildChatRequest({ authorId: "u", channelId: "c", content: "hello", isBot: false, isDirectMessage: false })).toEqual({
+    expect(buildChatRequest({ authorId: "u", channelId: "c", content: "hello", guildId: "g", isBot: false, isDirectMessage: false })).toEqual({
       prompt: "hello",
       scopeId: "channel:c:user:u",
+      authorId: "u",
+      channelId: "c",
+      guildId: "g",
+      isDirectMessage: false,
     });
   });
 
@@ -22,6 +26,10 @@ describe("buildChatRequest", () => {
     expect(buildChatRequest({ authorId: "u", channelId: "dm", content: "hello", isBot: false, isDirectMessage: true })).toEqual({
       prompt: "hello",
       scopeId: "dm:u",
+      authorId: "u",
+      channelId: "dm",
+      guildId: undefined,
+      isDirectMessage: true,
     });
   });
 });

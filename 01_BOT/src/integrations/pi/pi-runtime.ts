@@ -1,5 +1,5 @@
 import { mkdir } from "node:fs/promises";
-
+import type { Client } from "discord.js";
 import {
   AuthStorage,
   ModelRegistry,
@@ -9,20 +9,25 @@ import {
   type AgentSession,
   type DefaultResourceLoader,
 } from "@mariozechner/pi-coding-agent";
-
-import { createResourceLoader } from "./create-resource-loader.js";
+import { loadDiscordAdminAccess, type DiscordAdminAccess } from "../discord/tools/discord-admin-access.js";
+import type { DiscordToolContext } from "../discord/tools/discord-admin-types.js";
 import { createPiSession } from "./create-session.js";
+import { createResourceLoader } from "./create-resource-loader.js";
 import { lastAssistantText } from "./last-assistant-text.js";
 import { SerialQueue } from "./serial-queue.js";
 import { sessionFileForScope } from "./session-path.js";
 
+type CachedSession = { accessKey: string; session: AgentSession };
 export type PiRuntimeOptions = {
   repoRoot: string;
   sessionsRoot: string;
   extensionsRoot: string;
   skillsRoot: string;
   modelId: string;
+  discordClient: Client;
+  discordAdminUserIds: string[];
 };
+const accessKeyOf = (access: DiscordAdminAccess) => `${access.enabled}:${access.scopeGuildId ?? "*"}`;
 
 export class PiRuntime {
   private readonly agentDir = getAgentDir();
@@ -30,7 +35,7 @@ export class PiRuntime {
   private readonly modelRegistry = ModelRegistry.create(this.authStorage);
   private readonly settingsManager: SettingsManager;
   private readonly queue = new SerialQueue();
-  private readonly sessions = new Map<string, AgentSession>();
+  private readonly sessions = new Map<string, CachedSession>();
   private readonly model;
   private loader!: DefaultResourceLoader;
 
@@ -55,18 +60,19 @@ export class PiRuntime {
     return runtime;
   }
 
-  prompt(scopeId: string, prompt: string) {
+  prompt(scopeId: string, prompt: string, discordContext: DiscordToolContext) {
     return this.queue.run(async () => {
-      const session = await this.getSession(scopeId);
+      const access = await loadDiscordAdminAccess(this.options.discordClient, discordContext, this.options.discordAdminUserIds);
+      const session = await this.getSession(scopeId, discordContext, access);
       await session.prompt(prompt);
       return lastAssistantText(session);
     });
   }
 
-  private async getSession(scopeId: string) {
+  private async getSession(scopeId: string, discordContext: DiscordToolContext, access: DiscordAdminAccess) {
     const cached = this.sessions.get(scopeId);
-    if (cached) return cached;
-
+    if (cached && cached.accessKey === accessKeyOf(access)) return cached.session;
+    if (cached) cached.session.dispose();
     const session = await createPiSession({
       repoRoot: this.options.repoRoot,
       agentDir: this.agentDir,
@@ -75,14 +81,12 @@ export class PiRuntime {
       model: this.model,
       settingsManager: this.settingsManager,
       resourceLoader: this.loader,
-      sessionManager: SessionManager.open(
-        sessionFileForScope(this.options.sessionsRoot, scopeId),
-        this.options.sessionsRoot,
-        this.options.repoRoot,
-      ),
+      sessionManager: SessionManager.open(sessionFileForScope(this.options.sessionsRoot, scopeId), this.options.sessionsRoot, this.options.repoRoot),
+      discordClient: this.options.discordClient,
+      discordContext,
+      discordAdminAccess: access,
     });
-
-    this.sessions.set(scopeId, session);
+    this.sessions.set(scopeId, { accessKey: accessKeyOf(access), session });
     return session;
   }
 }
