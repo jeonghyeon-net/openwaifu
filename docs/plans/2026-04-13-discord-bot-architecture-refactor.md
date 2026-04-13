@@ -36,13 +36,14 @@
 - 로컬 extensions / skills 직접 로드
 - built-in tool 7종 모두 주입
 - Discord 관리용 custom tool 추가
-- guild admin / DM allowlist 권한 체크 추가
+- scope 단위 동시 실행 유지
 - extension tool 은 `bindExtensions()` 로 바인드
 - 채널/DM scope 별 session file 사용
 
 5. 테스트 강화
 - Go 아키텍처 테스트 보강
 - bot unit test 추가
+- bot coverage 100 강제
 - lefthook 에 bot test 추가
 
 ## 완료 기준

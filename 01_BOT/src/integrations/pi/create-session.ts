@@ -11,7 +11,6 @@ import {
 } from "@mariozechner/pi-coding-agent";
 import type { Model } from "@mariozechner/pi-ai";
 
-import type { DiscordAdminAccess } from "../discord/tools/discord-admin-access.js";
 import { createDiscordAdminService } from "../discord/tools/discord-admin-service.js";
 import type { DiscordToolContext } from "../discord/tools/discord-admin-types.js";
 import { discordContextPrompt } from "../discord/tools/discord-context-prompt.js";
@@ -29,15 +28,9 @@ type CreatePiSessionOptions = {
   sessionManager: SessionManager;
   discordClient: Client;
   discordContext: DiscordToolContext;
-  discordAdminAccess: DiscordAdminAccess;
 };
 
 export const createPiSession = async (options: CreatePiSessionOptions): Promise<AgentSession> => {
-  const customTools = options.discordAdminAccess.enabled
-    ? createDiscordManagementTools(
-        createDiscordAdminService(options.discordClient, options.discordContext, options.discordAdminAccess),
-      )
-    : [];
   const { session } = await createAgentSession({
     cwd: options.repoRoot,
     agentDir: options.agentDir,
@@ -48,12 +41,14 @@ export const createPiSession = async (options: CreatePiSessionOptions): Promise<
     resourceLoader: options.resourceLoader,
     sessionManager: options.sessionManager,
     tools: createRuntimeTools(options.repoRoot),
-    customTools,
+    customTools: createDiscordManagementTools(
+      createDiscordAdminService(options.discordClient, options.discordContext),
+    ),
   });
 
   session.agent.state.systemPrompt = [
     "You are concise Discord chat bot. Reply in user's language.",
-    ...(options.discordAdminAccess.enabled ? ["Use discord_* tools for authorized Discord server management."] : []),
+    "Use discord_* tools when user asks to inspect or manage Discord server state.",
     discordContextPrompt(options.discordContext),
   ].join("\n");
   await session.bindExtensions({});

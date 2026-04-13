@@ -1,3 +1,15 @@
+export const discordManagementToolNames = [
+  "discord_list_servers",
+  "discord_inspect_server",
+  "discord_send_message",
+  "discord_create_channel",
+  "discord_update_channel",
+  "discord_delete_channel",
+  "discord_create_role",
+  "discord_update_member_roles",
+  "discord_moderate_member",
+] as const;
+
 export type DiscordToolContext = {
   authorId: string;
   channelId: string;
@@ -10,7 +22,6 @@ export type InspectDiscordServerInput = {
   view: "summary" | "channels" | "roles" | "members";
   limit?: number;
 };
-
 export type SendDiscordMessageInput = { channelId?: string; content: string };
 export type CreateDiscordChannelInput = {
   guildId?: string;
@@ -27,13 +38,7 @@ export type UpdateDiscordChannelInput = {
   reason?: string;
 };
 export type DeleteDiscordChannelInput = { channelId: string; reason?: string };
-export type CreateDiscordRoleInput = {
-  guildId?: string;
-  name: string;
-  colorHex?: string;
-  hoist?: boolean;
-  mentionable?: boolean;
-};
+export type CreateDiscordRoleInput = { guildId?: string; name: string; colorHex?: string; hoist?: boolean; mentionable?: boolean };
 export type UpdateDiscordMemberRolesInput = {
   guildId?: string;
   memberId: string;
@@ -50,7 +55,6 @@ export type ModerateDiscordMemberInput = {
   deleteMessageSeconds?: number;
   reason?: string;
 };
-
 export type DiscordAdminService = {
   listServers(): Promise<string>;
   inspectServer(input: InspectDiscordServerInput): Promise<string>;

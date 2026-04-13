@@ -1,7 +1,5 @@
-import { ChannelType, type Client } from "discord.js";
+import { ChannelType, type Client, type ForumChannel, type NewsChannel, type TextChannel } from "discord.js";
 
-import type { DiscordAdminAccess } from "./discord-admin-access.js";
-import { requireAdminActor } from "./discord-admin-actor.js";
 import {
   requireGuild,
   requireGuildChannel,
@@ -15,22 +13,23 @@ import type {
   UpdateDiscordChannelInput,
 } from "./discord-admin-types.js";
 
+type TopicChannel = ForumChannel | NewsChannel | TextChannel;
 const channelTypeOf = (type: CreateDiscordChannelInput["type"]) => {
   if (type === "announcement") return ChannelType.GuildAnnouncement;
   if (type === "forum") return ChannelType.GuildForum;
   if (type === "voice") return ChannelType.GuildVoice;
   return ChannelType.GuildText;
 };
+const topicChannelTypes = new Set([ChannelType.GuildAnnouncement, ChannelType.GuildForum, ChannelType.GuildText]);
+const canSetTopic = (channel: Awaited<ReturnType<typeof requireGuildChannel>>): channel is TopicChannel =>
+  "setTopic" in channel && topicChannelTypes.has(channel.type);
 
 export const sendDiscordMessage = async (
   client: Client,
   context: DiscordToolContext,
-  access: DiscordAdminAccess,
   input: SendDiscordMessageInput,
 ) => {
-  const targetGuild = context.guildId ? await client.guilds.fetch(context.guildId) : null;
-  if (targetGuild) await requireAdminActor(targetGuild, context, access);
-  const channel = await requireSendableChannel(client, access, input.channelId ?? context.channelId);
+  const channel = await requireSendableChannel(client, input.channelId ?? context.channelId);
   const message = await channel.send(input.content);
   return `Sent message ${message.id} to channel ${channel.id}`;
 };
@@ -38,11 +37,9 @@ export const sendDiscordMessage = async (
 export const createDiscordChannel = async (
   client: Client,
   context: DiscordToolContext,
-  access: DiscordAdminAccess,
   input: CreateDiscordChannelInput,
 ) => {
-  const guild = await requireGuild(client, context, access, input.guildId);
-  await requireAdminActor(guild, context, access);
+  const guild = await requireGuild(client, context, input.guildId);
   const channel = await guild.channels.create({
     name: input.name,
     parent: input.categoryId,
@@ -52,38 +49,22 @@ export const createDiscordChannel = async (
   return `Created channel ${channel.name} (${channel.id}) in guild ${guild.id}`;
 };
 
-export const updateDiscordChannel = async (
-  client: Client,
-  context: DiscordToolContext,
-  access: DiscordAdminAccess,
-  input: UpdateDiscordChannelInput,
-) => {
-  const channel = await requireGuildChannel(client, access, input.channelId);
-  await requireAdminActor(await client.guilds.fetch(channel.guildId), context, access);
+export const updateDiscordChannel = async (client: Client, input: UpdateDiscordChannelInput) => {
+  const channel = await requireGuildChannel(client, input.channelId);
   if (input.name) await channel.edit({ name: input.name, reason: input.reason });
   if (input.categoryId !== undefined && "setParent" in channel) {
     await channel.setParent(input.categoryId || null, { reason: input.reason });
   }
   if (input.topic !== undefined) {
-    if (channel.type === ChannelType.GuildText || channel.type === ChannelType.GuildAnnouncement) {
-      await channel.setTopic(input.topic || null, input.reason);
-    } else if (channel.type === ChannelType.GuildForum) {
-      await channel.setTopic(input.topic || null, input.reason);
-    } else {
-      throw new Error(`Channel does not support topic: ${channel.id}`);
-    }
+    if (!canSetTopic(channel)) throw new Error(`Channel does not support topic: ${channel.id}`);
+    await channel.setTopic(input.topic || null, input.reason);
   }
   return `Updated channel ${channel.name} (${channel.id}) type=${ChannelType[channel.type]}`;
 };
 
-export const deleteDiscordChannel = async (
-  client: Client,
-  context: DiscordToolContext,
-  access: DiscordAdminAccess,
-  input: DeleteDiscordChannelInput,
-) => {
-  const channel = await requireGuildChannel(client, access, input.channelId);
-  await requireAdminActor(await client.guilds.fetch(channel.guildId), context, access);
+export const deleteDiscordChannel = async (client: Client, input: DeleteDiscordChannelInput) => {
+  const channel = await requireGuildChannel(client, input.channelId);
+  const name = channel.name;
   await channel.delete(input.reason);
-  return `Deleted channel ${channel.name} (${input.channelId})`;
+  return `Deleted channel ${name} (${input.channelId})`;
 };

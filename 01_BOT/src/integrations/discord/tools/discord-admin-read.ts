@@ -1,20 +1,9 @@
 import { ChannelType, type Client } from "discord.js";
 
-import type { DiscordAdminAccess } from "./discord-admin-access.js";
-import { requireAdminActor } from "./discord-admin-actor.js";
 import { formatBlock, requireGuild } from "./discord-admin-helpers.js";
 import type { DiscordToolContext, InspectDiscordServerInput } from "./discord-admin-types.js";
 
-export const listDiscordServers = async (
-  client: Client,
-  context: DiscordToolContext,
-  access: DiscordAdminAccess,
-) => {
-  if (access.scopeGuildId) {
-    const guild = await client.guilds.fetch(access.scopeGuildId);
-    await requireAdminActor(guild, context, access);
-    return formatBlock("Discord servers", [`- ${guild.name} (${guild.id}) [current]`]);
-  }
+export const listDiscordServers = async (client: Client, context: DiscordToolContext) => {
   const guilds = await client.guilds.fetch();
   const lines = [...guilds.values()].map(
     (guild) => `- ${guild.name} (${guild.id})${guild.id === context.guildId ? " [current]" : ""}`,
@@ -25,11 +14,9 @@ export const listDiscordServers = async (
 export const inspectDiscordServer = async (
   client: Client,
   context: DiscordToolContext,
-  access: DiscordAdminAccess,
   input: InspectDiscordServerInput,
 ) => {
-  const guild = await requireGuild(client, context, access, input.guildId);
-  await requireAdminActor(guild, context, access);
+  const guild = await requireGuild(client, context, input.guildId);
   if (input.view === "summary") {
     const [channels, roles] = await Promise.all([guild.channels.fetch(), guild.roles.fetch()]);
     return formatBlock(`Discord server ${guild.name} (${guild.id})`, [

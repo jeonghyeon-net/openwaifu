@@ -110,12 +110,7 @@
   - 역할 생성
   - 멤버 역할 변경
   - timeout/kick/ban 등 moderation
-- guild 메시지에서는 Administrator 권한 사용자에게만 Discord 관리 tool 제공
-- DM 에서는 `DISCORD_ADMIN_USER_IDS` allowlist 사용자에게만 Discord 관리 tool 제공
-- `DISCORD_ADMIN_USER_IDS` 는 전역 superadmin 용도다
-- guild 메시지에서 얻은 관리 세션은 현재 guild 범위로만 제한
 - extension 이 제공하는 tool 은 `bindExtensions()` 로 추가 사용
-- 이 구성은 trusted Discord 환경을 전제한다
 
 관리 커맨드:
 - `/pi install`, `/pi remove`, `/pi packages`, `/chat` 모두 사용하지 않는다
@@ -169,8 +164,6 @@ npm run dev
 추가 설정:
 - Discord developer portal 에서 Message Content intent 활성화
 - Discord developer portal 에서 Server Members intent 활성화
-- 필요 시 `DISCORD_ADMIN_USER_IDS` 로 DM 관리자 allowlist 설정
-- 이 값은 전역 superadmin 이므로 최소 인원만 넣는다
 
 검증 흐름:
 
@@ -190,6 +183,7 @@ npm run test
 
 2. bot 테스트
 - `01_BOT/tests` 의 Vitest
+- coverage 100/100/100/100 강제
 - 메시지 정규화, 세션 파일 경로, runtime tool 구성 검증
 
 3. extension 테스트
@@ -202,7 +196,7 @@ npm run test
 얻는 것:
 - runtime, resource, architecture 관심사 분리
 - 세션 지속성과 사용자 단위 문맥 보장
-- 동일 저장소 작업은 전역 직렬 실행으로 보호
+- 서로 다른 scope 대화는 병렬 처리 가능
 - extension/skill 확장 시 루트 계약 유지
 - 테스트와 훅으로 구조 회귀 방지
 

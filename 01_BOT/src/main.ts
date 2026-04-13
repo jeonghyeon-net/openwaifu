@@ -15,7 +15,6 @@ const runtime = await PiRuntime.create({
   skillsRoot: paths.skillsRoot,
   modelId: env.piModel,
   discordClient: client,
-  discordAdminUserIds: env.discordAdminUserIds,
 });
 
 registerDiscordHandlers({ client, chatService: createChatService(runtime) });
