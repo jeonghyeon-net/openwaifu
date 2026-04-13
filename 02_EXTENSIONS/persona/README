@@ -1,0 +1,4 @@
+Loads extension-local `PERSONA` file verbatim into pi system prompt on every turn.
+
+- Edit `PERSONA` to change persona.
+- File changes are picked up on next prompt.

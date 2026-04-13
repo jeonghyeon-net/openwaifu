@@ -19,7 +19,7 @@
     01_BOT  … discord.js runtime, replies to all non-bot messages, keeps per-scope sessions
 
   EXTENSIONS
-    noop    … no-op local extension scaffold
+    persona … loads extension-local PERSONA file into pi system prompt
 
   SKILLS
     (none)
