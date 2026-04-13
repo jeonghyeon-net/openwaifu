@@ -7,8 +7,7 @@
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
-    "resolveJsonModule": true,
-    "outDir": "dist"
+    "resolveJsonModule": true
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts", "tests/**/*.ts", "vitest.config.ts"]
 }

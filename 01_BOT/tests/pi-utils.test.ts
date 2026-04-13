@@ -1,9 +1,8 @@
 import { describe, expect, it } from "vitest";
-import type { AgentSession } from "@mariozechner/pi-coding-agent";
 
-import { limitText } from "../src/integrations/pi/format-text";
-import { lastAssistantText } from "../src/integrations/pi/last-assistant-text";
-import { ScopedQueue } from "../src/integrations/pi/scoped-queue";
+import { limitText } from "../src/integrations/pi/format-text.js";
+import { lastAssistantText } from "../src/integrations/pi/last-assistant-text.js";
+import { ScopedQueue } from "../src/integrations/pi/scoped-queue.js";
 
 describe("pi utils", () => {
   it("limits long text and preserves short text", () => {
@@ -12,13 +11,15 @@ describe("pi utils", () => {
   });
 
   it("extracts latest assistant text and falls back when absent", () => {
-    const empty = { messages: [] } as AgentSession;
+    const empty = Object.assign({} as Parameters<typeof lastAssistantText>[0], { messages: [] });
     expect(lastAssistantText(empty)).toBe("응답 없음");
-    const blank = { messages: [{ role: "assistant", content: [{ type: "text", text: "   " }, { type: "toolCall", id: "1", name: "x", arguments: {} }] }] } as AgentSession;
+    const blank = Object.assign({} as Parameters<typeof lastAssistantText>[0], {
+      messages: [{ role: "assistant", content: [{ type: "text", text: "   " }, { type: "toolCall", id: "1", name: "x", arguments: {} }] }],
+    });
     expect(lastAssistantText(blank)).toBe("응답 없음");
-    const session = {
+    const session = Object.assign({} as Parameters<typeof lastAssistantText>[0], {
       messages: [{ role: "assistant", content: [{ type: "text", text: "hello" }, { type: "text", text: "world" }] }],
-    } as AgentSession;
+    });
     expect(lastAssistantText(session)).toBe("hello\nworld");
   });
 

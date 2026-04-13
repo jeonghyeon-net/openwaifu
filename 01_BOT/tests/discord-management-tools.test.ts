@@ -1,9 +1,10 @@
+import type { ExtensionContext } from "@mariozechner/pi-coding-agent";
 import { describe, expect, it, vi } from "vitest";
 
-import { discordContextPrompt } from "../src/integrations/discord/tools/discord-context-prompt";
-import { createDiscordManagementTools } from "../src/integrations/discord/tools/discord-management-tools";
-import { discordToolResult } from "../src/integrations/discord/tools/discord-tool-result";
-import { discordManagementToolNames, type DiscordAdminService } from "../src/integrations/discord/tools/discord-admin-types";
+import { discordContextPrompt } from "../src/integrations/discord/tools/discord-context-prompt.js";
+import { createDiscordManagementTools } from "../src/integrations/discord/tools/discord-management-tools.js";
+import { discordToolResult } from "../src/integrations/discord/tools/discord-tool-result.js";
+import { discordManagementToolNames, type DiscordAdminService } from "../src/integrations/discord/tools/discord-admin-types.js";
 
 const service = {
   listServers: vi.fn(async () => "servers"),
@@ -26,12 +27,16 @@ describe("discord management tools", () => {
   });
 
   it("includes expected tool names", () => {
-    expect(discordManagementToolNames).toEqual(createDiscordManagementTools(service).map((tool) => tool.name));
+    expect(discordManagementToolNames).toEqual(createDiscordManagementTools(service).map((tool: { name: string }) => tool.name));
   });
 
   it("executes every tool through service layer", async () => {
     const inputs = [{}, { view: "summary" }, { content: "x" }, { name: "n", type: "text" }, { channelId: "c" }, { channelId: "c" }, { name: "r" }, { memberId: "m" }, { memberId: "m", action: "kick" }];
-    const outputs = await Promise.all(createDiscordManagementTools(service).map((tool, index) => tool.execute("id", inputs[index], undefined, undefined, { cwd: "/repo" })));
-    expect(outputs.map((result) => result.content[0].text)).toEqual(["servers", "inspect", "send", "create-channel", "update-channel", "delete-channel", "create-role", "update-roles", "moderate"]);
+    const context = Object.assign({} as ExtensionContext, { cwd: "/repo" });
+    const outputs = await Promise.all(createDiscordManagementTools(service).map((tool: { execute: Function }, index: number) => tool.execute("id", inputs[index], undefined, undefined, context)));
+    expect(outputs.map((result: { content: Array<{ type: string; text?: string }> }) => {
+      const first = result.content[0];
+      return first && "text" in first ? first.text : "";
+    })).toEqual(["servers", "inspect", "send", "create-channel", "update-channel", "delete-channel", "create-role", "update-roles", "moderate"]);
   });
 });

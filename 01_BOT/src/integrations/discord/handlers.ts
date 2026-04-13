@@ -4,12 +4,18 @@ import { buildChatRequest } from "../../features/chat/chat-message.js";
 import type { ChatService } from "../../features/chat/chat-service.js";
 import { limitText } from "../pi/format-text.js";
 
+type DiscordEventClient = Pick<Client, "on">;
+type IncomingDiscordMessage = Pick<
+  Message<boolean>,
+  "author" | "channel" | "channelId" | "content" | "guildId" | "reply"
+>;
+
 type HandlerDeps = {
-  client: Client;
+  client: DiscordEventClient;
   chatService: ChatService;
 };
 
-const toChatMessage = (message: Message<boolean>) => ({
+const toChatMessage = (message: IncomingDiscordMessage) => ({
   authorId: message.author.id,
   channelId: message.channelId,
   content: message.content,
@@ -19,7 +25,7 @@ const toChatMessage = (message: Message<boolean>) => ({
 });
 
 export const registerDiscordHandlers = ({ client, chatService }: HandlerDeps) => {
-  client.on(Events.MessageCreate, async (message) => {
+  client.on(Events.MessageCreate, async (message: IncomingDiscordMessage) => {
     const request = buildChatRequest(toChatMessage(message));
     if (!request) return;
 

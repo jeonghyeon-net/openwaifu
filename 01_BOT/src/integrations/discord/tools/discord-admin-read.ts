@@ -1,9 +1,13 @@
-import { ChannelType, type Client } from "discord.js";
+import { ChannelType } from "discord.js";
 
 import { formatBlock, requireGuild } from "./discord-admin-helpers.js";
-import type { DiscordToolContext, InspectDiscordServerInput } from "./discord-admin-types.js";
+import type {
+  DiscordAdminClient,
+  DiscordToolContext,
+  InspectDiscordServerInput,
+} from "./discord-admin-types.js";
 
-export const listDiscordServers = async (client: Client, context: DiscordToolContext) => {
+export const listDiscordServers = async (client: DiscordAdminClient, context: DiscordToolContext) => {
   const guilds = await client.guilds.fetch();
   const lines = [...guilds.values()].map(
     (guild) => `- ${guild.name} (${guild.id})${guild.id === context.guildId ? " [current]" : ""}`,
@@ -12,7 +16,7 @@ export const listDiscordServers = async (client: Client, context: DiscordToolCon
 };
 
 export const inspectDiscordServer = async (
-  client: Client,
+  client: DiscordAdminClient,
   context: DiscordToolContext,
   input: InspectDiscordServerInput,
 ) => {

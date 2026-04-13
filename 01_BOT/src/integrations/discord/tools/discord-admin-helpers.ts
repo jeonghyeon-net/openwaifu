@@ -1,12 +1,12 @@
-import type { Client, Guild, GuildMember } from "discord.js";
+import type { Guild, GuildMember } from "discord.js";
 
-import type { DiscordToolContext } from "./discord-admin-types.js";
+import type { DiscordAdminClient, DiscordToolContext } from "./discord-admin-types.js";
 
 export const formatBlock = (title: string, lines: string[]) =>
   [title, ...(lines.length ? lines : ["- none"])].join("\n");
 
 export const requireGuild = async (
-  client: Client,
+  client: DiscordAdminClient,
   context: DiscordToolContext,
   guildId?: string,
 ): Promise<Guild> => {
@@ -22,7 +22,7 @@ export const requireGuildMember = async (guild: Guild, memberId: string): Promis
     throw new Error(`Member not found in guild ${guild.id}: ${memberId}`);
   });
 
-export const requireSendableChannel = async (client: Client, channelId: string) => {
+export const requireSendableChannel = async (client: DiscordAdminClient, channelId: string) => {
   const channel = await client.channels.fetch(channelId);
   if (!channel?.isTextBased() || !("send" in channel)) {
     throw new Error(`Channel not sendable: ${channelId}`);
@@ -30,7 +30,7 @@ export const requireSendableChannel = async (client: Client, channelId: string) 
   return channel;
 };
 
-export const requireGuildChannel = async (client: Client, channelId: string) => {
+export const requireGuildChannel = async (client: DiscordAdminClient, channelId: string) => {
   const channel = await client.channels.fetch(channelId);
   if (!channel || channel.isDMBased() || !("delete" in channel)) {
     throw new Error(`Guild channel not found: ${channelId}`);

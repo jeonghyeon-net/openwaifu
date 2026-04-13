@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   moderateDiscordMember,
   updateDiscordMemberRoles,
-} from "../src/integrations/discord/tools/discord-admin-member";
+} from "../src/integrations/discord/tools/discord-admin-member.js";
 
 const context = { authorId: "u", channelId: "c", guildId: "g", isDirectMessage: false };
 const member = {
@@ -19,7 +19,9 @@ const guild = {
   members: { fetch: async () => member, ban: vi.fn(async () => undefined) },
   bans: { remove: vi.fn(async () => undefined) },
 };
-const client = { guilds: { fetch: async () => guild } } as Parameters<typeof updateDiscordMemberRoles>[0];
+const client = Object.assign({} as Parameters<typeof updateDiscordMemberRoles>[0], {
+  guilds: { fetch: async () => guild },
+});
 
 describe("discord admin member", () => {
   it("updates member roles", async () => {

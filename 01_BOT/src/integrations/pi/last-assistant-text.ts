@@ -2,7 +2,9 @@ import type { AgentSession } from "@mariozechner/pi-coding-agent";
 
 import { limitText } from "./format-text.js";
 
-export const lastAssistantText = (session: AgentSession) => {
+type SessionWithMessages = Pick<AgentSession, "messages">;
+
+export const lastAssistantText = (session: SessionWithMessages) => {
   const last = [...session.messages].reverse().find((message) => message.role === "assistant");
   if (!last || !("content" in last) || !Array.isArray(last.content)) {
     return "응답 없음";

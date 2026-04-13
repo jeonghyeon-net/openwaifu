@@ -1,5 +1,3 @@
-import type { Client } from "discord.js";
-
 import {
   createDiscordChannel,
   deleteDiscordChannel,
@@ -9,10 +7,14 @@ import {
 import { moderateDiscordMember, updateDiscordMemberRoles } from "./discord-admin-member.js";
 import { listDiscordServers, inspectDiscordServer } from "./discord-admin-read.js";
 import { createDiscordRole } from "./discord-admin-role.js";
-import type { DiscordAdminService, DiscordToolContext } from "./discord-admin-types.js";
+import type {
+  DiscordAdminClient,
+  DiscordAdminService,
+  DiscordToolContext,
+} from "./discord-admin-types.js";
 
 export const createDiscordAdminService = (
-  client: Client,
+  client: DiscordAdminClient,
   context: DiscordToolContext,
 ): DiscordAdminService => ({
   listServers: () => listDiscordServers(client, context),

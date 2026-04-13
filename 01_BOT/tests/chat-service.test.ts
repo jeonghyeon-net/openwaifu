@@ -1,12 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { PiRuntime } from "../src/integrations/pi/pi-runtime";
-import { createChatService } from "../src/features/chat/chat-service";
+import { createChatService } from "../src/features/chat/chat-service.js";
 
 describe("createChatService", () => {
   it("forwards request fields into runtime prompt", async () => {
     const prompt = vi.fn(async () => "reply");
-    const service = createChatService({ prompt } as PiRuntime);
+    const service = createChatService({ prompt });
     const result = await service.reply({
       prompt: "hello",
       scopeId: "channel:1:user:2",

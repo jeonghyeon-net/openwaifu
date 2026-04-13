@@ -1,4 +1,4 @@
-import { ChannelType, type Client, type ForumChannel, type NewsChannel, type TextChannel } from "discord.js";
+import { ChannelType, type ForumChannel, type NewsChannel, type TextChannel } from "discord.js";
 
 import {
   requireGuild,
@@ -8,6 +8,7 @@ import {
 import type {
   CreateDiscordChannelInput,
   DeleteDiscordChannelInput,
+  DiscordAdminClient,
   DiscordToolContext,
   SendDiscordMessageInput,
   UpdateDiscordChannelInput,
@@ -25,7 +26,7 @@ const canSetTopic = (channel: Awaited<ReturnType<typeof requireGuildChannel>>): 
   "setTopic" in channel && topicChannelTypes.has(channel.type);
 
 export const sendDiscordMessage = async (
-  client: Client,
+  client: DiscordAdminClient,
   context: DiscordToolContext,
   input: SendDiscordMessageInput,
 ) => {
@@ -35,7 +36,7 @@ export const sendDiscordMessage = async (
 };
 
 export const createDiscordChannel = async (
-  client: Client,
+  client: DiscordAdminClient,
   context: DiscordToolContext,
   input: CreateDiscordChannelInput,
 ) => {
@@ -49,7 +50,7 @@ export const createDiscordChannel = async (
   return `Created channel ${channel.name} (${channel.id}) in guild ${guild.id}`;
 };
 
-export const updateDiscordChannel = async (client: Client, input: UpdateDiscordChannelInput) => {
+export const updateDiscordChannel = async (client: DiscordAdminClient, input: UpdateDiscordChannelInput) => {
   const channel = await requireGuildChannel(client, input.channelId);
   if (input.name) await channel.edit({ name: input.name, reason: input.reason });
   if (input.categoryId !== undefined && "setParent" in channel) {
@@ -62,7 +63,7 @@ export const updateDiscordChannel = async (client: Client, input: UpdateDiscordC
   return `Updated channel ${channel.name} (${channel.id}) type=${ChannelType[channel.type]}`;
 };
 
-export const deleteDiscordChannel = async (client: Client, input: DeleteDiscordChannelInput) => {
+export const deleteDiscordChannel = async (client: DiscordAdminClient, input: DeleteDiscordChannelInput) => {
   const channel = await requireGuildChannel(client, input.channelId);
   const name = channel.name;
   await channel.delete(input.reason);

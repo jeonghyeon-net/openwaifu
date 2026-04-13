@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { sessionFileForScope } from "../src/integrations/pi/session-path";
+import { sessionFileForScope } from "../src/integrations/pi/session-path.js";
 
 describe("sessionFileForScope", () => {
   it("sanitizes scope ids into stable file names", () => {

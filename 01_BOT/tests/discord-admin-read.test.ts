@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { inspectDiscordServer, listDiscordServers } from "../src/integrations/discord/tools/discord-admin-read";
+import { inspectDiscordServer, listDiscordServers } from "../src/integrations/discord/tools/discord-admin-read.js";
 
 const context = { authorId: "u", channelId: "c", guildId: "g", isDirectMessage: false };
 const channels = {

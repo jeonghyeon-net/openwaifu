@@ -1,14 +1,13 @@
-import type { Client } from "discord.js";
-
 import { requireGuild, requireGuildMember } from "./discord-admin-helpers.js";
 import type {
+  DiscordAdminClient,
   DiscordToolContext,
   ModerateDiscordMemberInput,
   UpdateDiscordMemberRolesInput,
 } from "./discord-admin-types.js";
 
 export const updateDiscordMemberRoles = async (
-  client: Client,
+  client: DiscordAdminClient,
   context: DiscordToolContext,
   input: UpdateDiscordMemberRolesInput,
 ) => {
@@ -20,7 +19,7 @@ export const updateDiscordMemberRoles = async (
 };
 
 export const moderateDiscordMember = async (
-  client: Client,
+  client: DiscordAdminClient,
   context: DiscordToolContext,
   input: ModerateDiscordMemberInput,
 ) => {

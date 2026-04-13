@@ -15,17 +15,23 @@ const read = {
   listDiscordServers: vi.fn(async () => "list-servers"),
 };
 const role = { createDiscordRole: vi.fn(async () => "create-role") };
-vi.mock("../src/integrations/discord/tools/discord-admin-channel", () => channel);
-vi.mock("../src/integrations/discord/tools/discord-admin-member", () => member);
-vi.mock("../src/integrations/discord/tools/discord-admin-read", () => read);
-vi.mock("../src/integrations/discord/tools/discord-admin-role", () => role);
+vi.mock("../src/integrations/discord/tools/discord-admin-channel.js", () => channel);
+vi.mock("../src/integrations/discord/tools/discord-admin-member.js", () => member);
+vi.mock("../src/integrations/discord/tools/discord-admin-read.js", () => read);
+vi.mock("../src/integrations/discord/tools/discord-admin-role.js", () => role);
 
 beforeEach(() => Object.values({ ...channel, ...member, ...read, ...role }).forEach((fn) => fn.mockClear()));
 
 describe("createDiscordAdminService", () => {
   it("delegates every operation", async () => {
-    const { createDiscordAdminService } = await import("../src/integrations/discord/tools/discord-admin-service");
-    const service = createDiscordAdminService({} as object, { authorId: "u", channelId: "c", guildId: "g", isDirectMessage: false });
+    const { createDiscordAdminService } = await import("../src/integrations/discord/tools/discord-admin-service.js");
+    const service = createDiscordAdminService(
+      Object.assign({} as Parameters<typeof createDiscordAdminService>[0], {
+        guilds: { fetch: vi.fn() },
+        channels: { fetch: vi.fn() },
+      }),
+      { authorId: "u", channelId: "c", guildId: "g", isDirectMessage: false },
+    );
     await Promise.all([service.listServers(), service.inspectServer({ view: "summary" }), service.sendMessage({ content: "x" }), service.createChannel({ name: "n", type: "text" }), service.updateChannel({ channelId: "c" }), service.deleteChannel({ channelId: "c" }), service.createRole({ name: "r" }), service.updateMemberRoles({ memberId: "m" }), service.moderateMember({ memberId: "m", action: "kick" })]);
     expect(read.listDiscordServers).toHaveBeenCalled();
     expect(read.inspectDiscordServer).toHaveBeenCalled();

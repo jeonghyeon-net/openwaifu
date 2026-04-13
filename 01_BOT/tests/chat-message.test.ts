@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildChatRequest } from "../src/features/chat/chat-message";
+import { buildChatRequest } from "../src/features/chat/chat-message.js";
 
 describe("buildChatRequest", () => {
   it("ignores bot messages", () => {

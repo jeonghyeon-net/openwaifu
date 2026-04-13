@@ -1,7 +1,9 @@
-import type { Client } from "discord.js";
-
 import { requireGuild } from "./discord-admin-helpers.js";
-import type { CreateDiscordRoleInput, DiscordToolContext } from "./discord-admin-types.js";
+import type {
+  CreateDiscordRoleInput,
+  DiscordAdminClient,
+  DiscordToolContext,
+} from "./discord-admin-types.js";
 
 const colorOf = (colorHex?: string) => {
   if (!colorHex) return undefined;
@@ -10,7 +12,7 @@ const colorOf = (colorHex?: string) => {
 };
 
 export const createDiscordRole = async (
-  client: Client,
+  client: DiscordAdminClient,
   context: DiscordToolContext,
   input: CreateDiscordRoleInput,
 ) => {

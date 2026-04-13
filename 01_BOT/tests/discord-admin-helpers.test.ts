@@ -6,7 +6,7 @@ import {
   requireGuildChannel,
   requireGuildMember,
   requireSendableChannel,
-} from "../src/integrations/discord/tools/discord-admin-helpers";
+} from "../src/integrations/discord/tools/discord-admin-helpers.js";
 
 const context = { authorId: "u", channelId: "c", guildId: "g", isDirectMessage: false };
 

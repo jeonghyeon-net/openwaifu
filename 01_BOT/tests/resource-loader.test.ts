@@ -3,12 +3,13 @@ import { rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import type { SettingsManager } from "@mariozechner/pi-coding-agent";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { listLocalExtensionRoots, listLocalSkillRoots } from "../src/integrations/pi/local-resource-paths";
+import { listLocalExtensionRoots, listLocalSkillRoots } from "../src/integrations/pi/local-resource-paths.js";
 
 const created: string[] = [];
-const Loader = vi.fn(function Loader(options: object) {
+const Loader = vi.fn(function Loader(this: object, options: object) {
   Object.assign(this, options);
 });
 vi.mock("@mariozechner/pi-coding-agent", () => ({ DefaultResourceLoader: Loader }));
@@ -35,8 +36,8 @@ describe("resource loading", () => {
     created.push(root);
     mkdirSync(join(root, "extensions", "one"), { recursive: true });
     mkdirSync(join(root, "skills"), { recursive: true });
-    const { createResourceLoader } = await import("../src/integrations/pi/create-resource-loader");
-    const loader = await createResourceLoader({ agentDir: "/agent", repoRoot: "/repo", settingsManager: {}, extensionsRoot: join(root, "extensions"), skillsRoot: join(root, "skills") });
+    const { createResourceLoader } = await import("../src/integrations/pi/create-resource-loader.js");
+    const loader = await createResourceLoader({ agentDir: "/agent", repoRoot: "/repo", settingsManager: {} as SettingsManager, extensionsRoot: join(root, "extensions"), skillsRoot: join(root, "skills") });
     expect(Loader).toHaveBeenCalled();
     expect(loader).toMatchObject({ cwd: "/repo", agentDir: "/agent", additionalExtensionPaths: [join(root, "extensions", "one")], additionalSkillPaths: [join(root, "skills")] });
   });
