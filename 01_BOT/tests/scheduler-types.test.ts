@@ -8,6 +8,6 @@ import {
 describe("scheduler type constants", () => {
   it("exports allowed recurrence and action values", () => {
     expect(schedulerRecurrences).toEqual(["once", "cron"]);
-    expect(schedulerToolActions).toEqual(["add", "list", "cancel"]);
+    expect(schedulerToolActions).toEqual(["add", "list", "update", "cancel"]);
   });
 });

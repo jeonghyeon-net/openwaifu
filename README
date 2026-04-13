@@ -20,7 +20,7 @@
 
   EXTENSIONS
     persona   … loads extension-local PERSONA file into pi system prompt
-    scheduler … schedules one-time and cron-based Discord tasks that run in fresh clean pi sessions for current user/session
+    scheduler … adds, updates, lists, and cancels one-time and cron-based Discord tasks that run in fresh clean pi sessions for current user/session
 
   SKILLS
     (none)

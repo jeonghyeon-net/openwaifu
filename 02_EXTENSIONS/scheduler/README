@@ -2,10 +2,12 @@ Registers `scheduler` tool for one-time and cron-based Discord schedules.
 Each due schedule runs saved prompt in completely fresh clean pi session, then posts result back to Discord.
 Current chat history is not reused at trigger time, so scheduled prompt must include full instructions.
 All schedule times are fixed to Korea time (`Asia/Seoul`).
+Supported actions: add, list, update, cancel.
 
 Examples:
 - "오후 1시에 오늘 할 일 정리해달라고 실행해줘"
 - "매일 오전 9시에 스탠드업 멘트 작성해줘" → cron `0 9 * * *`
 - "평일 오전 10시 30분에 체크리스트 만들어줘" → cron `30 10 * * 1-5`
 - "예약된 일정 목록 보여줘"
+- "방금 만든 일정 내일 오후 3시로 바꿔줘"
 - "방금 만든 일정 취소해줘"

@@ -9200,15 +9200,16 @@ var require_dist = __commonJS({
 });
 
 // src/metadata.ts
-var schedulerToolDescription = "Schedule, list, and cancel one-time or cron-based recurring tasks for current Discord user/session. Each due task runs the saved prompt in a completely fresh clean pi session, then posts the result back to Discord. All times use Korea time (Asia/Seoul).";
-var schedulerToolPromptSnippet = "`scheduler`: create, list, or cancel one-time and cron-based scheduled tasks that run later in a fresh clean pi session for current Discord user/session";
+var schedulerToolDescription = "Schedule, update, list, and cancel one-time or cron-based recurring tasks for current Discord user/session. Each due task runs the saved prompt in a completely fresh clean pi session, then posts the result back to Discord. All times use Korea time (Asia/Seoul).";
+var schedulerToolPromptSnippet = "`scheduler`: create, update, list, or cancel one-time and cron-based scheduled tasks that run later in a fresh clean pi session for current Discord user/session";
 var schedulerToolGuidelines = [
-  "Use this tool when user asks to run some task later, set recurring schedule, or execute timed work in future.",
+  "Use this tool when user asks to run some task later, set recurring schedule, change existing schedule, or execute timed work in future.",
   "Every scheduled run executes in a completely fresh clean pi session. Do not rely on current conversation history surviving until trigger time.",
   "Put full task instructions and needed context into `prompt`, because future run will not inherit current chat state.",
   "All scheduler times are fixed to Korea time (Asia/Seoul). Do not ask for or use another timezone.",
   "For one-time schedules, use `time` and optional `date`. If user gives only time, omit `date` and tool schedules next Korea-time occurrence.",
-  "For recurring schedules, use `cron`. Example: every day 09:00 => `0 9 * * *`, weekdays 10:30 => `30 10 * * 1-5`."
+  "For recurring schedules, use `cron`. Example: every day 09:00 => `0 9 * * *`, weekdays 10:30 => `30 10 * * 1-5`.",
+  "To modify an existing task, call `list` first if needed, then use `update` with task `id` and only fields that should change."
 ];
 
 // node_modules/@sinclair/typebox/build/esm/type/guard/value.mjs
@@ -11823,12 +11824,12 @@ var stringEnum = (values) => Type.Unsafe({
   enum: values
 });
 var schedulerToolParameters = Type.Object({
-  action: stringEnum(["add", "list", "cancel"]),
-  time: Type.Optional(Type.String({ description: "24-hour local time in HH:mm format for one-time schedules" })),
-  date: Type.Optional(Type.String({ description: "Local date in YYYY-MM-DD format for one-time schedules" })),
-  cron: Type.Optional(Type.String({ description: "Cron expression for recurring schedules, e.g. '0 9 * * *' for every day at 09:00 Korea time" })),
+  action: stringEnum(["add", "list", "update", "cancel"]),
+  time: Type.Optional(Type.String({ description: "24-hour local time in HH:mm format for one-time schedules. For update, setting time switches task to one-time mode." })),
+  date: Type.Optional(Type.String({ description: "Local date in YYYY-MM-DD format for one-time schedules. Optional for add. For update, use with time or with existing one-time task time." })),
+  cron: Type.Optional(Type.String({ description: "Cron expression for recurring schedules, e.g. '0 9 * * *' for every day at 09:00 Korea time. For update, setting cron switches task to recurring mode." })),
   prompt: Type.Optional(Type.String({ description: "Full task prompt to run later in a fresh clean pi session" })),
-  id: Type.Optional(Type.String({ description: "Scheduled task id to cancel" })),
+  id: Type.Optional(Type.String({ description: "Scheduled task id to update or cancel" })),
   mentionUser: Type.Optional(Type.Boolean({ description: "Mention requester when posting scheduled result in channel. Defaults to true." }))
 });
 
@@ -25084,6 +25085,92 @@ var listScheduledTaskAction = (tasks) => {
   return response("list", tasks, lines.join("\n"));
 };
 
+// src/update-action.ts
+var hasNonEmptyCron = (cron) => typeof cron === "string" && cron.trim() !== "";
+var hasUpdateFields = (params) => typeof params.prompt === "string" || typeof params.mentionUser === "boolean" || typeof params.time === "string" || typeof params.date === "string" || typeof params.cron === "string";
+var buildUpdatedSchedule = (current, params, now3) => {
+  const timezone = current.timezone;
+  const hasCron = hasNonEmptyCron(params.cron);
+  if (hasCron) {
+    return {
+      recurrence: "cron",
+      cron: params.cron,
+      scheduledTime: void 0,
+      scheduledDate: void 0,
+      nextRunAt: nextScheduledRunAt({ cron: params.cron, timezone }, now3)
+    };
+  }
+  if (typeof params.time === "string" || typeof params.date === "string") {
+    const scheduledTime = typeof params.time === "string" ? params.time : current.recurrence === "once" ? current.scheduledTime : void 0;
+    if (!scheduledTime) throw new Error("time required when updating one-time schedule.");
+    const scheduledDate = typeof params.time === "string" ? params.date : params.date;
+    return {
+      recurrence: "once",
+      cron: void 0,
+      scheduledTime,
+      scheduledDate,
+      nextRunAt: nextScheduledRunAt({ time: scheduledTime, date: scheduledDate, timezone }, now3)
+    };
+  }
+  return {
+    recurrence: current.recurrence,
+    cron: current.cron,
+    scheduledTime: current.scheduledTime,
+    scheduledDate: current.scheduledDate,
+    nextRunAt: current.nextRunAt
+  };
+};
+var updateScheduledTaskAction = async (params, scopeId, tasksFile, currentScopeTasks, deps) => {
+  if (!params.id) {
+    return response("update", currentScopeTasks, "Error: id required for update.", {
+      error: "id required for update."
+    });
+  }
+  if (!hasUpdateFields(params)) {
+    return response("update", currentScopeTasks, "Error: provide at least one field to update.", {
+      error: "provide at least one field to update."
+    });
+  }
+  if (typeof params.prompt === "string" && params.prompt.trim() === "") {
+    return response("update", currentScopeTasks, "Error: prompt cannot be empty for update.", {
+      error: "prompt cannot be empty for update."
+    });
+  }
+  if (hasNonEmptyCron(params.cron) && (params.time || params.date)) {
+    return response("update", currentScopeTasks, "Error: use cron for recurring schedules, or time/date for one-time schedules, not both.", {
+      error: "use cron for recurring schedules, or time/date for one-time schedules, not both."
+    });
+  }
+  try {
+    const now3 = deps.now?.() ?? DateTime.now();
+    const result = await deps.mutateScheduledTasksFn(tasksFile, async (existing) => {
+      const scoped = scopeScheduledTasks(existing, scopeId);
+      const current = scoped.find((scheduledTask) => scheduledTask.id === params.id);
+      if (!current) return { tasks: existing, result: { tasks: scoped } };
+      const schedule = buildUpdatedSchedule(current, params, now3);
+      const updated = {
+        ...current,
+        ...schedule,
+        ...typeof params.prompt === "string" ? { prompt: params.prompt } : {},
+        ...typeof params.mentionUser === "boolean" ? { mentionUser: params.mentionUser } : {}
+      };
+      const tasks = sortScheduledTasks(existing.map((scheduledTask) => scheduledTask.scopeId === scopeId && scheduledTask.id === params.id ? updated : scheduledTask));
+      return { tasks, result: { updated, tasks: scopeScheduledTasks(tasks, scopeId) } };
+    });
+    if (!result.updated) {
+      return response("update", result.tasks, `Scheduled task not found: ${params.id}`, {
+        error: `Scheduled task not found: ${params.id}`
+      });
+    }
+    return response("update", result.tasks, `Updated scheduled task ${params.id}: ${describeScheduledTask(result.updated)}.`, {
+      updated: result.updated
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return response("update", currentScopeTasks, `Error: ${message}`, { error: message });
+  }
+};
+
 // src/execute.ts
 var executeSchedulerAction = async (params, ctx, deps = {}) => {
   const resolved = resolveExecution(ctx, deps);
@@ -25097,6 +25184,12 @@ var executeSchedulerAction = async (params, ctx, deps = {}) => {
   if (params.action === "list") return listScheduledTaskAction(currentScopeTasks);
   if (params.action === "cancel") {
     return cancelScheduledTaskAction(params.id, resolved.sessionContext.scopeId, resolved.tasksFile, currentScopeTasks, {
+      mutateScheduledTasksFn: resolved.mutateScheduledTasksFn
+    });
+  }
+  if (params.action === "update") {
+    return updateScheduledTaskAction(params, resolved.sessionContext.scopeId, resolved.tasksFile, currentScopeTasks, {
+      ...deps,
       mutateScheduledTasksFn: resolved.mutateScheduledTasksFn
     });
   }

@@ -10,8 +10,8 @@ vi.mock("../src/integrations/pi/discord-session-context.js", () => ({ registerDi
 type Args = { customTools: unknown[]; tools: Array<{ name: string }>; thinkingLevel?: string };
 const bindExtensions = vi.fn(async () => undefined);
 const createSession = () => ({
-  agent: { state: { systemPrompt: "BASE TOOLS\n`scheduler`: create, list, or cancel one-time and cron-based scheduled tasks" } },
-  _baseSystemPrompt: "BASE TOOLS\n`scheduler`: create, list, or cancel one-time and cron-based scheduled tasks",
+  agent: { state: { systemPrompt: "BASE TOOLS\n`scheduler`: create, update, list, or cancel one-time and cron-based scheduled tasks" } },
+  _baseSystemPrompt: "BASE TOOLS\n`scheduler`: create, update, list, or cancel one-time and cron-based scheduled tasks",
   bindExtensions,
 });
 const createAgentSession = vi.fn(async (options: Args) => ({ session: createSession(), options }));
@@ -44,9 +44,9 @@ describe("createPiSession", () => {
     expect(args.customTools).toHaveLength(9);
     expect(args.tools.map((tool) => tool.name)).toEqual(["read", "bash", "edit", "write", "grep", "find", "ls"]);
     expect(session.agent.state.systemPrompt).toContain("BASE TOOLS");
-    expect(session.agent.state.systemPrompt).toContain("`scheduler`: create, list, or cancel one-time and cron-based scheduled tasks");
+    expect(session.agent.state.systemPrompt).toContain("`scheduler`: create, update, list, or cancel one-time and cron-based scheduled tasks");
     expect(session.agent.state.systemPrompt).toContain("discord_* tools");
-    expect(Reflect.get(session, "_baseSystemPrompt")).toContain("`scheduler`: create, list, or cancel one-time and cron-based scheduled tasks");
+    expect(Reflect.get(session, "_baseSystemPrompt")).toContain("`scheduler`: create, update, list, or cancel one-time and cron-based scheduled tasks");
     expect(Reflect.get(session, "_baseSystemPrompt")).toContain("discord_* tools");
     expect(session.agent.state.systemPrompt).toContain("answer from current_* context fields first");
     expect(session.agent.state.systemPrompt).toContain("current_channel_id: c");
