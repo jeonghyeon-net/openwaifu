@@ -23,8 +23,8 @@ describe("discord handlers basic", () => {
     }));
     expect((message.channel as { sendTyping: ReturnType<typeof vi.fn> }).sendTyping).toHaveBeenCalled();
     expect(message.reply).toHaveBeenCalledWith("ok");
-    expect(setPresence).toHaveBeenNthCalledWith(1, { status: "dnd" });
-    expect(setPresence).toHaveBeenNthCalledWith(2, { status: "online" });
+    expect(setPresence).toHaveBeenNthCalledWith(1, { status: "dnd", activities: [] });
+    expect(setPresence).toHaveBeenNthCalledWith(2, { status: "online", activities: [] });
 
     const dm = discordMessage({
       id: "m2",

@@ -5,7 +5,7 @@ import { registerDiscordHandlers } from "../src/integrations/discord/handlers.js
 
 type HandlerClient = {
   on(event: string, handler: (message: unknown) => Promise<void>): void;
-  user: { setPresence(args: { status: string }): void } | null;
+  user: { setPresence(args: { status: string; activities?: Array<{ name: string; state?: string; type: number }> }): void } | null;
 };
 
 export const attachments = (...items: Array<{ name: string | null; url: string; contentType: string | null; size: number }>) => ({

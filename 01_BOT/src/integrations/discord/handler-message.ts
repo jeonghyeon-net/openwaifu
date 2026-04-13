@@ -2,7 +2,12 @@ import type { Message } from "discord.js";
 
 export type DiscordEventClient = {
   on(event: string, handler: (message: IncomingDiscordMessage) => Promise<void>): unknown;
-  user?: { setPresence(args: { status: "dnd" | "online" }): unknown } | null;
+  user?: {
+    setPresence(args: {
+      status: "dnd" | "online";
+      activities?: Array<{ name: string; state?: string; type: number }>;
+    }): unknown;
+  } | null;
 };
 export type IncomingDiscordAttachment = {
   name: string | null;
