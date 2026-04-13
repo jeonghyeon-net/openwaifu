@@ -30,7 +30,7 @@ const schedulerService = createSchedulerService({
     runtime.runScheduledPrompt(
       scheduledTask.scopeId,
       scheduledTask.id,
-      scheduledTask.prompt || scheduledTask.message || "",
+      scheduledTask.prompt,
       {
         authorId: scheduledTask.authorId,
         channelId: scheduledTask.channelId,

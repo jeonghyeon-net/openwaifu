@@ -18,18 +18,18 @@ export const cancelScheduledTaskAction = async (
   const result = await deps.mutateScheduledTasksFn(tasksFile, async (existing) => {
     const scoped = scopeScheduledTasks(existing, scopeId);
     if (!scoped.some((scheduledTask) => scheduledTask.id === taskId)) {
-      return { reminders: existing, result: { removed: false, reminders: scoped } };
+      return { tasks: existing, result: { removed: false, tasks: scoped } };
     }
     const tasks = existing.filter(
       (scheduledTask) => !(scheduledTask.scopeId === scopeId && scheduledTask.id === taskId),
     );
-    return { reminders: tasks, result: { removed: true, reminders: scopeScheduledTasks(tasks, scopeId) } };
+    return { tasks, result: { removed: true, tasks: scopeScheduledTasks(tasks, scopeId) } };
   });
 
   if (!result.removed) {
-    return response("cancel", result.reminders, `Scheduled task not found: ${taskId}`, {
+    return response("cancel", result.tasks, `Scheduled task not found: ${taskId}`, {
       error: `Scheduled task not found: ${taskId}`,
     });
   }
-  return response("cancel", result.reminders, `Cancelled scheduled task ${taskId}.`, { removedId: taskId });
+  return response("cancel", result.tasks, `Cancelled scheduled task ${taskId}.`, { removedId: taskId });
 };

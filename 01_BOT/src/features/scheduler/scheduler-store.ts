@@ -3,27 +3,27 @@ import { dirname } from "node:path";
 
 import type { ScheduledTaskRecord } from "./scheduler-types.js";
 
-type ReminderMutationResult<T> = {
-  reminders: ScheduledTaskRecord[];
+type SchedulerMutationResult<T> = {
+  tasks: ScheduledTaskRecord[];
   result: T;
 };
 
-type ReminderStoreState = {
+type SchedulerStoreState = {
   mutexes: Map<string, { locked: boolean; waiters: Array<() => void> }>;
 };
 
-const reminderStoreStateSymbol = Symbol.for("openwaifu.reminderStoreState");
+const schedulerStoreStateSymbol = Symbol.for("openwaifu.schedulerStoreState");
 
-const reminderStoreState = () => {
+const schedulerStoreState = () => {
   const scope = globalThis as typeof globalThis & {
-    [reminderStoreStateSymbol]?: ReminderStoreState;
+    [schedulerStoreStateSymbol]?: SchedulerStoreState;
   };
-  scope[reminderStoreStateSymbol] ??= { mutexes: new Map() };
-  return scope[reminderStoreStateSymbol];
+  scope[schedulerStoreStateSymbol] ??= { mutexes: new Map() };
+  return scope[schedulerStoreStateSymbol];
 };
 
 const acquireLock = async (filePath: string) => {
-  const state = reminderStoreState();
+  const state = schedulerStoreState();
   const mutex = state.mutexes.get(filePath) ?? { locked: false, waiters: [] };
   state.mutexes.set(filePath, mutex);
 
@@ -37,14 +37,14 @@ const acquireLock = async (filePath: string) => {
 };
 
 const releaseLock = (filePath: string) => {
-  const mutex = reminderStoreState().mutexes.get(filePath)!;
+  const mutex = schedulerStoreState().mutexes.get(filePath)!;
   const waiter = mutex.waiters.shift();
   if (waiter) {
     waiter();
     return;
   }
 
-  reminderStoreState().mutexes.delete(filePath);
+  schedulerStoreState().mutexes.delete(filePath);
 };
 
 const ensureStoreFile = async (filePath: string) => {
@@ -56,32 +56,32 @@ const ensureStoreFile = async (filePath: string) => {
   }
 };
 
-const parseReminders = (content: string): ScheduledTaskRecord[] => {
+const parseScheduledTasks = (content: string): ScheduledTaskRecord[] => {
   const trimmed = content.trim();
   if (!trimmed) return [];
   return JSON.parse(trimmed) as ScheduledTaskRecord[];
 };
 
-const writeReminders = async (filePath: string, reminders: ScheduledTaskRecord[]) => {
+const writeScheduledTasks = async (filePath: string, tasks: ScheduledTaskRecord[]) => {
   const tempPath = `${filePath}.tmp`;
-  await writeFile(tempPath, `${JSON.stringify(reminders, null, 2)}\n`, "utf8");
+  await writeFile(tempPath, `${JSON.stringify(tasks, null, 2)}\n`, "utf8");
   await rename(tempPath, filePath);
 };
 
 export const listScheduledTasks = async (filePath: string) => {
   await ensureStoreFile(filePath);
-  return parseReminders(await readFile(filePath, "utf8"));
+  return parseScheduledTasks(await readFile(filePath, "utf8"));
 };
 
 export const mutateScheduledTasks = async <T>(
   filePath: string,
-  mutate: (current: ScheduledTaskRecord[]) => Promise<ReminderMutationResult<T>> | ReminderMutationResult<T>,
+  mutate: (current: ScheduledTaskRecord[]) => Promise<SchedulerMutationResult<T>> | SchedulerMutationResult<T>,
 ) => {
   const release = await acquireLock(filePath);
   try {
     const current = await listScheduledTasks(filePath);
     const next = await mutate(current);
-    await writeReminders(filePath, next.reminders);
+    await writeScheduledTasks(filePath, next.tasks);
     return next.result;
   } finally {
     release();

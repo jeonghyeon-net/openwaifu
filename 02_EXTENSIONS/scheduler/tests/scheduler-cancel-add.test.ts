@@ -19,7 +19,7 @@ describe("scheduler cancel and add", () => {
     expect(notFound.result.details.error).toBe("Scheduled task not found: missing");
   });
 
-  it("cancels scoped reminders", async () => {
+  it("cancels scoped scheduled tasks", async () => {
     const { result, stored } = await runScheduler(
       { action: "cancel", id: "drop" },
       [schedulerTask({ id: "drop" }), schedulerTask({ id: "keep" }), schedulerTask({ id: "other", scopeId: "scope:2" })],
@@ -29,24 +29,29 @@ describe("scheduler cancel and add", () => {
   });
 
   it("validates add arguments and schedule parsing errors", async () => {
-    expect((await runScheduler({ action: "add" }, [])).result.details.error).toBe("recurrence, time, and prompt required for add.");
+    expect((await runScheduler({ action: "add" }, [])).result.details.error).toBe("prompt and either cron or time required for add.");
     const badTime = await runScheduler(
-      { action: "add", recurrence: "once", time: "9:00", prompt: "wake up" },
+      { action: "add", time: "9:00", prompt: "wake up" },
       [],
       { deps: { now: () => DateTime.fromISO("2026-04-13T08:00:00", { zone: "Asia/Seoul" }) } },
     );
     expect(badTime.result.details.error).toContain("Invalid time");
+    const mixed = await runScheduler(
+      { action: "add", time: "09:00", cron: "0 9 * * *", prompt: "wake up" },
+      [],
+    );
+    expect(mixed.result.details.error).toContain("use cron for recurring schedules");
   });
 
-  it("adds reminders and stringifies non-Error failures", async () => {
+  it("adds scheduled tasks and stringifies non-Error failures", async () => {
     const added = await runScheduler(
-      { action: "add", recurrence: "once", time: "13:00", prompt: "lunch" },
+      { action: "add", time: "13:00", prompt: "lunch" },
       [],
       { deps: { now: () => DateTime.fromISO("2026-04-13T08:00:00", { zone: "Asia/Seoul" }) } },
     );
-    expect(added.result.details.created).toEqual(expect.objectContaining({ id: "new-id", mentionUser: true }));
+    expect(added.result.details.created).toEqual(expect.objectContaining({ id: "new-id", mentionUser: true, recurrence: "once" }));
     const failed = await executeSchedulerAction(
-      { action: "add", recurrence: "once", time: "13:00", prompt: "fail" },
+      { action: "add", cron: "0 9 * * *", prompt: "fail" },
       { cwd: "/repo", sessionFile: "/tmp/session.jsonl" },
       {
         now: () => DateTime.fromISO("2026-04-13T08:00:00", { zone: "Asia/Seoul" }),

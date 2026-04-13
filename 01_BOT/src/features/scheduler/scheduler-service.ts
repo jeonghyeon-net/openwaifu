@@ -3,7 +3,7 @@ import { DateTime } from "luxon";
 import type { DiscordAdminClient } from "../../integrations/discord/tools/discord-admin-types.js";
 import { sendDiscordMessage } from "../../integrations/discord/tools/discord-admin-channel.js";
 import { mutateScheduledTasks } from "./scheduler-store.js";
-import { nextDailyRunAt, retryScheduledRunAt } from "./scheduler-time.js";
+import { nextCronRunAt, retryScheduledRunAt } from "./scheduler-time.js";
 import type { ScheduledTaskRecord } from "./scheduler-types.js";
 
 type SchedulerServiceOptions = {
@@ -71,8 +71,12 @@ export class SchedulerService {
               channelId: scheduledTask.channelId,
               content: scheduledContent(scheduledTask, text),
             });
-            if (scheduledTask.recurrence === "daily") {
-              tasks.push({ ...scheduledTask, lastTriggeredAt: now.toISOString(), nextRunAt: nextDailyRunAt(scheduledTask, nowTime) });
+            if (scheduledTask.recurrence === "cron") {
+              tasks.push({
+                ...scheduledTask,
+                lastTriggeredAt: now.toISOString(),
+                nextRunAt: nextCronRunAt(scheduledTask, nowTime),
+              });
             }
           } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
@@ -80,7 +84,7 @@ export class SchedulerService {
             tasks.push({ ...scheduledTask, nextRunAt: retryScheduledRunAt(nowTime) });
           }
         }
-        return { reminders: tasks, result: undefined };
+        return { tasks, result: undefined };
       });
     } finally {
       this.running = false;

@@ -8,10 +8,10 @@ import { listScheduledTasks, mutateScheduledTasks } from "../src/features/schedu
 import { createSchedulerService } from "../src/features/scheduler/scheduler-service.js";
 import {
   cleanupSchedulerServiceTempRoots,
-  reminder,
+  scheduledTask,
   schedulerServiceClient,
   schedulerServiceTempRoots,
-} from "./reminder-service-test-helpers.js";
+} from "./scheduler-service-test-helpers.js";
 
 const { sendDiscordMessage, runTask } = vi.hoisted(() => ({
   sendDiscordMessage: vi.fn(async () => "sent"),
@@ -27,12 +27,12 @@ beforeEach(() => {
   runTask.mockResolvedValue("generated reply");
 });
 
-describe("reminder service retry", () => {
-  it("retries failed reminders and ignores overlapping dispatch", async () => {
-    const root = mkdtempSync(join(tmpdir(), "reminder-service-"));
+describe("scheduler service retry", () => {
+  it("retries failed tasks and ignores overlapping dispatch", async () => {
+    const root = mkdtempSync(join(tmpdir(), "scheduler-service-"));
     schedulerServiceTempRoots.push(root);
-    const file = join(root, "reminders.json");
-    const seed = async () => mutateScheduledTasks(file, async () => ({ reminders: [reminder({ id: "retry" })], result: undefined }));
+    const file = join(root, "scheduled-tasks.json");
+    const seed = async () => mutateScheduledTasks(file, async () => ({ tasks: [scheduledTask({ id: "retry" })], result: undefined }));
     await seed();
 
     let release: () => void = () => {};

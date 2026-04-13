@@ -8,8 +8,8 @@ export const schedulerServiceClient = {
   guilds: {},
 } as import("../src/integrations/discord/tools/discord-admin-types.js").DiscordAdminClient;
 
-export const reminder = (overrides: Partial<ScheduledTaskRecord>): ScheduledTaskRecord => ({
-  id: "rem-1",
+export const scheduledTask = (overrides: Partial<ScheduledTaskRecord>): ScheduledTaskRecord => ({
+  id: "task-1",
   scopeId: "scope:1",
   authorId: "user-1",
   channelId: "channel-1",
@@ -17,7 +17,6 @@ export const reminder = (overrides: Partial<ScheduledTaskRecord>): ScheduledTask
   isDirectMessage: false,
   recurrence: "once",
   prompt: "wake up",
-  message: "wake up",
   timezone: "Asia/Seoul",
   scheduledTime: "09:00",
   mentionUser: true,

@@ -1,15 +1,16 @@
+import { CronExpressionParser } from "cron-parser";
 import { DateTime } from "luxon";
 
-import type { ScheduledTaskRecord, SchedulerRecurrence } from "./scheduler-types.js";
+import type { ScheduledTaskRecord } from "./scheduler-types.js";
 
 const timePattern = /^([01]\d|2[0-3]):([0-5]\d)$/;
 const datePattern = /^\d{4}-\d{2}-\d{2}$/;
-type NextReminderInput = { recurrence: SchedulerRecurrence; time: string; date?: string; timezone: string };
+type NextScheduledInput = { timezone: string; time?: string; date?: string; cron?: string };
 type AnyDateTime = DateTime<true> | DateTime<false>;
 
 const toUtcIso = (value: AnyDateTime) => {
   const iso = value.toUTC().toISO();
-  if (!iso) throw new Error("Failed to serialize reminder time");
+  if (!iso) throw new Error("Failed to serialize scheduled task time");
   return iso;
 };
 const parseTime = (time: string) => {
@@ -27,17 +28,30 @@ const assertTimezone = (timezone: string) => {
 };
 const scheduleClock = (value: AnyDateTime, hour: number, minute: number) =>
   value.set({ hour, minute, second: 0, millisecond: 0 });
+const assertCron = (cron?: string, timezone?: string) => {
+  if (!cron) return;
+  CronExpressionParser.parse(cron, {
+    currentDate: new Date(),
+    tz: timezone,
+  });
+};
 
-export const nextScheduledRunAt = (input: NextReminderInput, now: AnyDateTime = DateTime.now()) => {
+export const nextScheduledRunAt = (input: NextScheduledInput, now: AnyDateTime = DateTime.now()) => {
   assertTimezone(input.timezone);
   assertDate(input.date);
-  const { hour, minute } = parseTime(input.time);
+  assertCron(input.cron, input.timezone);
   const zonedNow = now.setZone(input.timezone);
 
-  if (input.recurrence === "daily") {
-    const scheduled = scheduleClock(zonedNow, hour, minute);
-    return toUtcIso(scheduled <= zonedNow ? scheduled.plus({ days: 1 }) : scheduled);
+  if (input.cron) {
+    const interval = CronExpressionParser.parse(input.cron, {
+      currentDate: zonedNow.toJSDate(),
+      tz: input.timezone,
+    });
+    return toUtcIso(DateTime.fromJSDate(interval.next().toDate(), { zone: input.timezone }));
   }
+
+  if (!input.time) throw new Error("Time required when cron is not set");
+  const { hour, minute } = parseTime(input.time);
 
   if (input.date) {
     const scheduled = DateTime.fromISO(`${input.date}T${input.time}`, { zone: input.timezone, setZone: true });
@@ -50,15 +64,22 @@ export const nextScheduledRunAt = (input: NextReminderInput, now: AnyDateTime = 
   return toUtcIso(scheduled <= zonedNow ? scheduled.plus({ days: 1 }) : scheduled);
 };
 
-export const nextDailyRunAt = (
-  reminder: Pick<ScheduledTaskRecord, "scheduledTime" | "timezone">,
+export const nextCronRunAt = (
+  task: Pick<ScheduledTaskRecord, "cron" | "timezone">,
   now: AnyDateTime = DateTime.now(),
-) => nextScheduledRunAt({ recurrence: "daily", time: reminder.scheduledTime, timezone: reminder.timezone }, now);
+) => {
+  if (!task.cron) throw new Error("Cron expression required for recurring scheduled task");
+  return nextScheduledRunAt({ cron: task.cron, timezone: task.timezone }, now);
+};
 
-export const describeScheduledTask = (reminder: Pick<ScheduledTaskRecord, "recurrence" | "nextRunAt" | "timezone">) => {
-  const runAt = DateTime.fromISO(reminder.nextRunAt, { zone: "utc" }).setZone(reminder.timezone);
-  if (reminder.recurrence === "daily") return `every day ${runAt.toFormat("HH:mm")} (${reminder.timezone})`;
-  return `${runAt.toFormat("yyyy-LL-dd HH:mm")} (${reminder.timezone})`;
+export const describeScheduledTask = (
+  task: Pick<ScheduledTaskRecord, "recurrence" | "nextRunAt" | "timezone" | "cron">,
+) => {
+  const runAt = DateTime.fromISO(task.nextRunAt, { zone: "utc" }).setZone(task.timezone);
+  if (task.recurrence === "cron" && task.cron) {
+    return `cron ${task.cron} (next ${runAt.toFormat("yyyy-LL-dd HH:mm")} ${task.timezone})`;
+  }
+  return `${runAt.toFormat("yyyy-LL-dd HH:mm")} (${task.timezone})`;
 };
 
 export const retryScheduledRunAt = (now: AnyDateTime = DateTime.now()) =>

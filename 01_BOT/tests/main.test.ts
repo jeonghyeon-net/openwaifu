@@ -135,35 +135,16 @@ describe("main", () => {
       ...baseTask,
       id: "sched-2",
       scopeId: "scope:2",
-      prompt: "",
-      message: "fallback message",
+      prompt: "cron task",
+      recurrence: "cron",
+      cron: "0 9 * * *",
+      scheduledTime: undefined,
     })).resolves.toBe("scheduled reply");
     expect(runtime.runScheduledPrompt).toHaveBeenNthCalledWith(
       2,
       "scope:2",
       "sched-2",
-      "fallback message",
-      {
-        authorId: "u",
-        channelId: "c",
-        channelName: "general",
-        guildId: "g",
-        guildName: "guild",
-        isDirectMessage: false,
-      },
-    );
-    await expect(schedulerServiceArgs.runTask({
-      ...baseTask,
-      id: "sched-3",
-      scopeId: "scope:3",
-      prompt: "",
-      message: "",
-    })).resolves.toBe("scheduled reply");
-    expect(runtime.runScheduledPrompt).toHaveBeenNthCalledWith(
-      3,
-      "scope:3",
-      "sched-3",
-      "",
+      "cron task",
       {
         authorId: "u",
         channelId: "c",

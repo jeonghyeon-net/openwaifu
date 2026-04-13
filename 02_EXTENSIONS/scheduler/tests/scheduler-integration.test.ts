@@ -15,9 +15,9 @@ import {
 afterEach(cleanupSchedulerTempRoots);
 
 describe("scheduler integration", () => {
-  it("keeps reminders fixed to Korea time even if caller wants another timezone", async () => {
+  it("keeps scheduled tasks fixed to Korea time even if caller wants another timezone", async () => {
     const added = await executeSchedulerAction(
-      { action: "add", recurrence: "daily", time: "09:00", mentionUser: false, prompt: "daily standup" },
+      { action: "add", cron: "0 9 * * *", mentionUser: false, prompt: "daily standup" },
       { cwd: "/repo", sessionFile: "/tmp/session.jsonl" },
       {
         now: () => DateTime.fromISO("2026-04-13T08:00:00", { zone: "America/New_York" }),
@@ -27,7 +27,7 @@ describe("scheduler integration", () => {
         mutateScheduledTasksFn: async (_file, mutate) => (await mutate([])).result,
       },
     );
-    expect(added.details.created).toEqual(expect.objectContaining({ mentionUser: false, timezone: "Asia/Seoul" }));
+    expect(added.details.created).toEqual(expect.objectContaining({ mentionUser: false, timezone: "Asia/Seoul", recurrence: "cron", cron: "0 9 * * *" }));
   });
 
   it("uses default store, session registry, generated ids, and fixed Korea timezone", async () => {
@@ -44,10 +44,10 @@ describe("scheduler integration", () => {
     DateTime.now = () => DateTime.fromISO("2026-04-13T08:00:00", { zone: "Asia/Seoul" }) as DateTime<true>;
     try {
       const result = await executeSchedulerAction(
-        { action: "add", recurrence: "once", date: "2099-01-01", time: "13:00", prompt: "env reminder" },
+        { action: "add", date: "2099-01-01", time: "13:00", prompt: "env task" },
         { cwd, sessionFile: "/tmp/real-session.jsonl" },
       );
-      expect(result.details.created).toEqual(expect.objectContaining({ timezone: "Asia/Seoul", isDirectMessage: true }));
+      expect(result.details.created).toEqual(expect.objectContaining({ timezone: "Asia/Seoul", isDirectMessage: true, recurrence: "once" }));
       expect(result.details.created?.id).toHaveLength(8);
       await expect(listScheduledTasks(join(cwd, "01_BOT/.data/scheduler/scheduled-tasks.json"))).resolves.toHaveLength(1);
     } finally {

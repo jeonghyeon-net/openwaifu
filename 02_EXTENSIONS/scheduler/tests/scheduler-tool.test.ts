@@ -8,8 +8,29 @@ describe("scheduler tool", () => {
     expect(tool.name).toBe("scheduler");
     expect(tool.label).toBe("Scheduler");
     expect(tool.promptGuidelines).toHaveLength(6);
-    expect(tool.prepareArguments?.({ action: "add", message: "legacy" })).toEqual({ action: "add", message: "legacy", prompt: "legacy" });
+    expect(tool.prepareArguments?.({ action: "add", message: "legacy" })).toEqual({ action: "add", prompt: "legacy" });
     expect(tool.prepareArguments?.({ action: "add", prompt: "fresh" })).toEqual({ action: "add", prompt: "fresh" });
+    expect(tool.prepareArguments?.({ action: "add", recurrence: "daily", time: "09:15", message: "legacy daily" })).toEqual({
+      action: "add",
+      time: "09:15",
+      cron: "15 09 * * *",
+      prompt: "legacy daily",
+    });
+    expect(tool.prepareArguments?.({ action: "add", cron: "0 9 * * *", prompt: "cron task", mentionUser: false })).toEqual({
+      action: "add",
+      cron: "0 9 * * *",
+      prompt: "cron task",
+      mentionUser: false,
+    });
+    expect(tool.prepareArguments?.({ action: "add", time: "13:00", date: "2099-01-01", prompt: "dated task", id: "task-9" })).toEqual({
+      action: "add",
+      time: "13:00",
+      date: "2099-01-01",
+      prompt: "dated task",
+      id: "task-9",
+    });
+    expect(tool.prepareArguments?.({ action: "cancel", id: "task-1" })).toEqual({ action: "cancel", id: "task-1" });
+    expect(tool.prepareArguments?.({})).toEqual({ action: "list" });
     expect(tool.prepareArguments?.(undefined)).toBeUndefined();
 
     const result = await tool.execute?.(

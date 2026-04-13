@@ -15,7 +15,7 @@ export const schedulerSessionContext = {
 };
 
 export const schedulerTask = (overrides: Partial<ScheduledTaskRecord>): ScheduledTaskRecord => ({
-  id: "rem-1",
+  id: "task-1",
   scopeId: "scope:1",
   authorId: "user-1",
   channelId: "channel-1",
@@ -23,7 +23,6 @@ export const schedulerTask = (overrides: Partial<ScheduledTaskRecord>): Schedule
   isDirectMessage: false,
   recurrence: "once",
   prompt: "wake up",
-  message: "wake up",
   timezone: "Asia/Seoul",
   scheduledTime: "09:00",
   mentionUser: true,
@@ -34,10 +33,10 @@ export const schedulerTask = (overrides: Partial<ScheduledTaskRecord>): Schedule
 
 export const runScheduler = async (
   params: SchedulerToolInput,
-  reminders: ScheduledTaskRecord[],
+  tasks: ScheduledTaskRecord[],
   extra: { sessionFile?: string; deps?: Parameters<typeof executeSchedulerAction>[2] } = {},
 ) => {
-  let stored = [...reminders];
+  let stored = [...tasks];
   const result = await executeSchedulerAction(
     params,
     { cwd: "/repo", sessionFile: extra.sessionFile ?? "/tmp/session.jsonl" },
@@ -48,7 +47,7 @@ export const runScheduler = async (
       listScheduledTasksFn: async () => stored,
       mutateScheduledTasksFn: async (_file, mutate) => {
         const next = await mutate(stored);
-        stored = next.reminders;
+        stored = next.tasks;
         return next.result;
       },
       ...extra.deps,

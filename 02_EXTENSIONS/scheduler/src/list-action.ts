@@ -4,7 +4,7 @@ import type { ScheduledTaskRecord } from "../../../01_BOT/src/features/scheduler
 import { response } from "./helpers.js";
 
 const scheduledTaskPrompt = (scheduledTask: ScheduledTaskRecord) =>
-  scheduledTask.prompt || scheduledTask.message || "";
+  scheduledTask.prompt;
 
 export const listScheduledTaskAction = (tasks: ScheduledTaskRecord[]) => {
   if (tasks.length === 0) return response("list", [], "No scheduled tasks.");

@@ -26,9 +26,15 @@ export const addScheduledTaskAction = async (
     mutateScheduledTasksFn: NonNullable<ExecuteSchedulerDeps["mutateScheduledTasksFn"]>;
   },
 ) => {
-  if (!params.recurrence || !params.time || !params.prompt) {
-    return response("add", currentScopeTasks, "Error: recurrence, time, and prompt required for add.", {
-      error: "recurrence, time, and prompt required for add.",
+  const hasCron = typeof params.cron === "string" && params.cron.trim() !== "";
+  if (!params.prompt || (!hasCron && !params.time)) {
+    return response("add", currentScopeTasks, "Error: prompt and either cron or time required for add.", {
+      error: "prompt and either cron or time required for add.",
+    });
+  }
+  if (hasCron && (params.time || params.date)) {
+    return response("add", currentScopeTasks, "Error: use cron for recurring schedules, or time/date for one-time schedules, not both.", {
+      error: "use cron for recurring schedules, or time/date for one-time schedules, not both.",
     });
   }
 
@@ -44,17 +50,18 @@ export const addScheduledTaskAction = async (
       guildId: sessionContext.discordContext.guildId,
       guildName: sessionContext.discordContext.guildName,
       isDirectMessage: sessionContext.discordContext.isDirectMessage,
-      recurrence: params.recurrence,
+      recurrence: hasCron ? "cron" : "once",
       prompt: params.prompt,
+      cron: hasCron ? params.cron : undefined,
       timezone,
       scheduledTime: params.time,
       scheduledDate: params.date,
       mentionUser: params.mentionUser ?? true,
       createdAt: now.toUTC().toISO()!,
-      nextRunAt: nextScheduledRunAt({ recurrence: params.recurrence, time: params.time, date: params.date, timezone }, now),
+      nextRunAt: nextScheduledRunAt({ cron: hasCron ? params.cron : undefined, time: params.time, date: params.date, timezone }, now),
     };
     const tasks = await deps.mutateScheduledTasksFn(tasksFile, async (existing) => ({
-      reminders: sortScheduledTasks([...existing, scheduledTask]),
+      tasks: sortScheduledTasks([...existing, scheduledTask]),
       result: scopeScheduledTasks([...existing, scheduledTask], scopeId),
     }));
     return response("add", tasks, `Scheduled ${scheduledTask.id} for ${describeScheduledTask(scheduledTask)} in fresh clean session.`, { created: scheduledTask });

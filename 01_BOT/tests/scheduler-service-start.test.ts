@@ -4,7 +4,7 @@ import { createSchedulerService } from "../src/features/scheduler/scheduler-serv
 import {
   cleanupSchedulerServiceTempRoots,
   schedulerServiceClient,
-} from "./reminder-service-test-helpers.js";
+} from "./scheduler-service-test-helpers.js";
 
 const { sendDiscordMessage, runTask } = vi.hoisted(() => ({
   sendDiscordMessage: vi.fn(async () => "sent"),
@@ -24,10 +24,10 @@ beforeEach(() => {
   runTask.mockResolvedValue("generated reply");
 });
 
-describe("reminder service start", () => {
+describe("scheduler service start", () => {
   it("starts once and stops once", async () => {
     vi.useFakeTimers();
-    const service = createSchedulerService({ client: schedulerServiceClient, tasksFile: "/tmp/reminders.json", runTask });
+    const service = createSchedulerService({ client: schedulerServiceClient, tasksFile: "/tmp/scheduled-tasks.json", runTask });
 
     service.start();
     await vi.advanceTimersByTimeAsync(5_000);
