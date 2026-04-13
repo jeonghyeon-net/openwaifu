@@ -1,10 +1,10 @@
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 
-import type { ReminderRecord } from "./reminder-types.js";
+import type { ScheduledTaskRecord } from "./scheduler-types.js";
 
 type ReminderMutationResult<T> = {
-  reminders: ReminderRecord[];
+  reminders: ScheduledTaskRecord[];
   result: T;
 };
 
@@ -56,30 +56,30 @@ const ensureStoreFile = async (filePath: string) => {
   }
 };
 
-const parseReminders = (content: string): ReminderRecord[] => {
+const parseReminders = (content: string): ScheduledTaskRecord[] => {
   const trimmed = content.trim();
   if (!trimmed) return [];
-  return JSON.parse(trimmed) as ReminderRecord[];
+  return JSON.parse(trimmed) as ScheduledTaskRecord[];
 };
 
-const writeReminders = async (filePath: string, reminders: ReminderRecord[]) => {
+const writeReminders = async (filePath: string, reminders: ScheduledTaskRecord[]) => {
   const tempPath = `${filePath}.tmp`;
   await writeFile(tempPath, `${JSON.stringify(reminders, null, 2)}\n`, "utf8");
   await rename(tempPath, filePath);
 };
 
-export const listReminders = async (filePath: string) => {
+export const listScheduledTasks = async (filePath: string) => {
   await ensureStoreFile(filePath);
   return parseReminders(await readFile(filePath, "utf8"));
 };
 
-export const mutateReminders = async <T>(
+export const mutateScheduledTasks = async <T>(
   filePath: string,
-  mutate: (current: ReminderRecord[]) => Promise<ReminderMutationResult<T>> | ReminderMutationResult<T>,
+  mutate: (current: ScheduledTaskRecord[]) => Promise<ReminderMutationResult<T>> | ReminderMutationResult<T>,
 ) => {
   const release = await acquireLock(filePath);
   try {
-    const current = await listReminders(filePath);
+    const current = await listScheduledTasks(filePath);
     const next = await mutate(current);
     await writeReminders(filePath, next.reminders);
     return next.result;

@@ -5,7 +5,7 @@ import { executeSchedulerAction } from "../src/scheduler.js";
 import {
   cleanupSchedulerTempRoots,
   runScheduler,
-  schedulerReminder,
+  schedulerTask,
   schedulerSessionContext,
 } from "./scheduler-test-helpers.js";
 
@@ -13,25 +13,25 @@ afterEach(cleanupSchedulerTempRoots);
 
 describe("scheduler cancel and add", () => {
   it("validates cancel arguments and handles missing ids", async () => {
-    const missingId = await runScheduler({ action: "cancel" }, [schedulerReminder({ id: "keep" })]);
+    const missingId = await runScheduler({ action: "cancel" }, [schedulerTask({ id: "keep" })]);
     expect(missingId.result.details.error).toBe("id required for cancel.");
-    const notFound = await runScheduler({ action: "cancel", id: "missing" }, [schedulerReminder({ id: "keep" })]);
-    expect(notFound.result.details.error).toBe("Reminder not found: missing");
+    const notFound = await runScheduler({ action: "cancel", id: "missing" }, [schedulerTask({ id: "keep" })]);
+    expect(notFound.result.details.error).toBe("Scheduled task not found: missing");
   });
 
   it("cancels scoped reminders", async () => {
     const { result, stored } = await runScheduler(
       { action: "cancel", id: "drop" },
-      [schedulerReminder({ id: "drop" }), schedulerReminder({ id: "keep" }), schedulerReminder({ id: "other", scopeId: "scope:2" })],
+      [schedulerTask({ id: "drop" }), schedulerTask({ id: "keep" }), schedulerTask({ id: "other", scopeId: "scope:2" })],
     );
     expect(result.details.removedId).toBe("drop");
-    expect(stored).toEqual([schedulerReminder({ id: "keep" }), schedulerReminder({ id: "other", scopeId: "scope:2" })]);
+    expect(stored).toEqual([schedulerTask({ id: "keep" }), schedulerTask({ id: "other", scopeId: "scope:2" })]);
   });
 
   it("validates add arguments and schedule parsing errors", async () => {
-    expect((await runScheduler({ action: "add" }, [])).result.details.error).toBe("recurrence, time, and message required for add.");
+    expect((await runScheduler({ action: "add" }, [])).result.details.error).toBe("recurrence, time, and prompt required for add.");
     const badTime = await runScheduler(
-      { action: "add", recurrence: "once", time: "9:00", message: "wake up" },
+      { action: "add", recurrence: "once", time: "9:00", prompt: "wake up" },
       [],
       { deps: { now: () => DateTime.fromISO("2026-04-13T08:00:00", { zone: "Asia/Seoul" }) } },
     );
@@ -40,19 +40,19 @@ describe("scheduler cancel and add", () => {
 
   it("adds reminders and stringifies non-Error failures", async () => {
     const added = await runScheduler(
-      { action: "add", recurrence: "once", time: "13:00", message: "lunch" },
+      { action: "add", recurrence: "once", time: "13:00", prompt: "lunch" },
       [],
       { deps: { now: () => DateTime.fromISO("2026-04-13T08:00:00", { zone: "Asia/Seoul" }) } },
     );
     expect(added.result.details.created).toEqual(expect.objectContaining({ id: "new-id", mentionUser: true }));
     const failed = await executeSchedulerAction(
-      { action: "add", recurrence: "once", time: "13:00", message: "fail" },
+      { action: "add", recurrence: "once", time: "13:00", prompt: "fail" },
       { cwd: "/repo", sessionFile: "/tmp/session.jsonl" },
       {
         now: () => DateTime.fromISO("2026-04-13T08:00:00", { zone: "Asia/Seoul" }),
         getSessionContextFn: () => schedulerSessionContext,
-        listRemindersFn: async () => added.result.details.reminders,
-        mutateRemindersFn: async () => { throw "boom"; },
+        listScheduledTasksFn: async () => added.result.details.tasks,
+        mutateScheduledTasksFn: async () => { throw "boom"; },
       },
     );
     expect(failed.details.error).toBe("boom");

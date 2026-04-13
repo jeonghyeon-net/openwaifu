@@ -1,14 +1,14 @@
 import { rm } from "node:fs/promises";
 
-import type { ReminderRecord } from "../src/features/scheduler/reminder-types.js";
+import type { ScheduledTaskRecord } from "../src/features/scheduler/scheduler-types.js";
 
-export const reminderServiceTempRoots: string[] = [];
-export const reminderServiceClient = {
+export const schedulerServiceTempRoots: string[] = [];
+export const schedulerServiceClient = {
   channels: {},
   guilds: {},
 } as import("../src/integrations/discord/tools/discord-admin-types.js").DiscordAdminClient;
 
-export const reminder = (overrides: Partial<ReminderRecord>): ReminderRecord => ({
+export const reminder = (overrides: Partial<ScheduledTaskRecord>): ScheduledTaskRecord => ({
   id: "rem-1",
   scopeId: "scope:1",
   authorId: "user-1",
@@ -16,6 +16,7 @@ export const reminder = (overrides: Partial<ReminderRecord>): ReminderRecord => 
   guildId: "guild-1",
   isDirectMessage: false,
   recurrence: "once",
+  prompt: "wake up",
   message: "wake up",
   timezone: "Asia/Seoul",
   scheduledTime: "09:00",
@@ -25,8 +26,8 @@ export const reminder = (overrides: Partial<ReminderRecord>): ReminderRecord => 
   ...overrides,
 });
 
-export const cleanupReminderServiceTempRoots = async () => {
+export const cleanupSchedulerServiceTempRoots = async () => {
   await Promise.all(
-    reminderServiceTempRoots.splice(0).map((path) => rm(path, { recursive: true, force: true })),
+    schedulerServiceTempRoots.splice(0).map((path) => rm(path, { recursive: true, force: true })),
   );
 };

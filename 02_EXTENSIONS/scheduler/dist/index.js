@@ -5,10 +5,12 @@ var __export = (target, all) => {
 };
 
 // src/metadata.ts
-var schedulerToolDescription = "Schedule, list, and cancel one-time or daily tasks for current Discord user/session. Scheduled tasks currently post reminder-style messages, and all times use Korea time (Asia/Seoul).";
-var schedulerToolPromptSnippet = "`scheduler`: create, list, or cancel one-time and daily scheduled tasks for current Discord user/session";
+var schedulerToolDescription = "Schedule, list, and cancel one-time or daily tasks for current Discord user/session. Each due task runs the saved prompt in a completely fresh clean pi session, then posts the result back to Discord. All times use Korea time (Asia/Seoul).";
+var schedulerToolPromptSnippet = "`scheduler`: create, list, or cancel one-time and daily scheduled tasks that run later in a fresh clean pi session for current Discord user/session";
 var schedulerToolGuidelines = [
-  "Use this tool when user asks to schedule something later, set reminder, wake-up message, recurring alarm, or timed task.",
+  "Use this tool when user asks to run some task later, set recurring schedule, or execute timed work in future.",
+  "Every scheduled run executes in a completely fresh clean pi session. Do not rely on current conversation history surviving until trigger time.",
+  "Put full task instructions and needed context into `prompt`, because future run will not inherit current chat state.",
   "All scheduler times are fixed to Korea time (Asia/Seoul). Do not ask for or use another timezone.",
   "Use recurrence `once` for single scheduled task. If user gives only time, omit `date` and tool schedules next Korea-time occurrence.",
   "Use recurrence `daily` for every-day schedules like '\uB9E4\uC77C \uC624\uC804 9\uC2DC'."
@@ -2629,10 +2631,10 @@ var schedulerToolParameters = Type.Object({
   action: stringEnum(["add", "list", "cancel"]),
   recurrence: Type.Optional(stringEnum(["once", "daily"])),
   time: Type.Optional(Type.String({ description: "24-hour local time in HH:mm format" })),
-  date: Type.Optional(Type.String({ description: "Local date in YYYY-MM-DD format for one-time reminders" })),
-  message: Type.Optional(Type.String({ description: "Reminder text to send" })),
-  id: Type.Optional(Type.String({ description: "Reminder id to cancel" })),
-  mentionUser: Type.Optional(Type.Boolean({ description: "Mention requester when posting in channel. Defaults to true." }))
+  date: Type.Optional(Type.String({ description: "Local date in YYYY-MM-DD format for one-time schedules" })),
+  prompt: Type.Optional(Type.String({ description: "Full task prompt to run later in a fresh clean pi session" })),
+  id: Type.Optional(Type.String({ description: "Scheduled task id to cancel" })),
+  mentionUser: Type.Optional(Type.Boolean({ description: "Mention requester when posting scheduled result in channel. Defaults to true." }))
 });
 
 // node_modules/luxon/build/es6/luxon.mjs
@@ -15647,7 +15649,7 @@ function friendlyDateTime2(dateTimeish) {
   }
 }
 
-// ../../01_BOT/src/features/scheduler/reminder-time.ts
+// ../../01_BOT/src/features/scheduler/scheduler-time.ts
 var timePattern = /^([01]\d|2[0-3]):([0-5]\d)$/;
 var datePattern = /^\d{4}-\d{2}-\d{2}$/;
 var toUtcIso = (value) => {
@@ -15669,7 +15671,7 @@ var assertTimezone = (timezone) => {
   throw new Error(`Invalid timezone: ${timezone}`);
 };
 var scheduleClock = (value, hour, minute) => value.set({ hour, minute, second: 0, millisecond: 0 });
-var nextReminderRunAt = (input, now3 = DateTime2.now()) => {
+var nextScheduledRunAt = (input, now3 = DateTime2.now()) => {
   assertTimezone(input.timezone);
   assertDate(input.date);
   const { hour, minute } = parseTime(input.time);
@@ -15687,7 +15689,7 @@ var nextReminderRunAt = (input, now3 = DateTime2.now()) => {
   const scheduled = scheduleClock(zonedNow, hour, minute);
   return toUtcIso(scheduled <= zonedNow ? scheduled.plus({ days: 1 }) : scheduled);
 };
-var describeReminder = (reminder) => {
+var describeScheduledTask = (reminder) => {
   const runAt = DateTime2.fromISO(reminder.nextRunAt, { zone: "utc" }).setZone(reminder.timezone);
   if (reminder.recurrence === "daily") return `every day ${runAt.toFormat("HH:mm")} (${reminder.timezone})`;
   return `${runAt.toFormat("yyyy-LL-dd HH:mm")} (${reminder.timezone})`;
@@ -15696,12 +15698,12 @@ var describeReminder = (reminder) => {
 // src/helpers.ts
 import { randomUUID } from "node:crypto";
 
-// ../../01_BOT/src/features/scheduler/reminder-paths.ts
+// ../../01_BOT/src/features/scheduler/scheduler-paths.ts
 import { join } from "node:path";
-var remindersDirectoryForCwd = (cwd) => join(cwd, "01_BOT", ".data", "scheduler");
-var remindersFileForCwd = (cwd) => join(remindersDirectoryForCwd(cwd), "reminders.json");
+var schedulerDirectoryForCwd = (cwd) => join(cwd, "01_BOT", ".data", "scheduler");
+var schedulerFileForCwd = (cwd) => join(schedulerDirectoryForCwd(cwd), "scheduled-tasks.json");
 
-// ../../01_BOT/src/features/scheduler/reminder-store.ts
+// ../../01_BOT/src/features/scheduler/scheduler-store.ts
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 var reminderStoreStateSymbol = Symbol.for("openwaifu.reminderStoreState");
@@ -15749,14 +15751,14 @@ var writeReminders = async (filePath, reminders) => {
 `, "utf8");
   await rename(tempPath, filePath);
 };
-var listReminders = async (filePath) => {
+var listScheduledTasks = async (filePath) => {
   await ensureStoreFile(filePath);
   return parseReminders(await readFile(filePath, "utf8"));
 };
-var mutateReminders = async (filePath, mutate) => {
+var mutateScheduledTasks = async (filePath, mutate) => {
   const release = await acquireLock(filePath);
   try {
-    const current = await listReminders(filePath);
+    const current = await listScheduledTasks(filePath);
     const next = await mutate(current);
     await writeReminders(filePath, next.reminders);
     return next.result;
@@ -15779,85 +15781,88 @@ var getDiscordSessionContext = (sessionFile) => discordSessionContextState().con
 // src/helpers.ts
 var defaultTimezone = () => "Asia/Seoul";
 var makeId = () => randomUUID().slice(0, 8);
-var sortReminders = (reminders) => [...reminders].sort((left, right) => left.nextRunAt.localeCompare(right.nextRunAt));
-var scopeReminders = (reminders, scopeId) => sortReminders(reminders.filter((reminder) => reminder.scopeId === scopeId));
-var response = (action, reminders, text, extra = {}) => ({ content: [{ type: "text", text }], details: { action, reminders, ...extra } });
+var sortScheduledTasks = (tasks) => [...tasks].sort((left, right) => left.nextRunAt.localeCompare(right.nextRunAt));
+var scopeScheduledTasks = (tasks, scopeId) => sortScheduledTasks(tasks.filter((scheduledTask) => scheduledTask.scopeId === scopeId));
+var response = (action, tasks, text, extra = {}) => ({ content: [{ type: "text", text }], details: { action, tasks, ...extra } });
 var resolveExecution = (ctx, deps = {}) => ({
-  remindersFile: remindersFileForCwd(ctx.cwd),
-  listRemindersFn: deps.listRemindersFn ?? listReminders,
-  mutateRemindersFn: deps.mutateRemindersFn ?? mutateReminders,
+  tasksFile: schedulerFileForCwd(ctx.cwd),
+  listScheduledTasksFn: deps.listScheduledTasksFn ?? listScheduledTasks,
+  mutateScheduledTasksFn: deps.mutateScheduledTasksFn ?? mutateScheduledTasks,
   sessionContext: ctx.sessionFile ? (deps.getSessionContextFn ?? getDiscordSessionContext)(ctx.sessionFile) : void 0
 });
 
 // src/add-action.ts
-var addReminderAction = async (params, scopeId, sessionContext, remindersFile, currentScopeReminders, deps) => {
-  if (!params.recurrence || !params.time || !params.message) {
-    return response("add", currentScopeReminders, "Error: recurrence, time, and message required for add.", {
-      error: "recurrence, time, and message required for add."
+var addScheduledTaskAction = async (params, scopeId, sessionContext, tasksFile, currentScopeTasks, deps) => {
+  if (!params.recurrence || !params.time || !params.prompt) {
+    return response("add", currentScopeTasks, "Error: recurrence, time, and prompt required for add.", {
+      error: "recurrence, time, and prompt required for add."
     });
   }
   const timezone = defaultTimezone();
   try {
     const now3 = deps.now?.() ?? DateTime.now();
-    const reminder = {
+    const scheduledTask = {
       id: deps.createId?.() ?? makeId(),
       scopeId,
       authorId: sessionContext.discordContext.authorId,
       channelId: sessionContext.discordContext.channelId,
+      channelName: sessionContext.discordContext.channelName,
       guildId: sessionContext.discordContext.guildId,
+      guildName: sessionContext.discordContext.guildName,
       isDirectMessage: sessionContext.discordContext.isDirectMessage,
       recurrence: params.recurrence,
-      message: params.message,
+      prompt: params.prompt,
       timezone,
       scheduledTime: params.time,
       scheduledDate: params.date,
       mentionUser: params.mentionUser ?? true,
       createdAt: now3.toUTC().toISO(),
-      nextRunAt: nextReminderRunAt({ recurrence: params.recurrence, time: params.time, date: params.date, timezone }, now3)
+      nextRunAt: nextScheduledRunAt({ recurrence: params.recurrence, time: params.time, date: params.date, timezone }, now3)
     };
-    const reminders = await deps.mutateRemindersFn(remindersFile, async (existing) => ({
-      reminders: sortReminders([...existing, reminder]),
-      result: scopeReminders([...existing, reminder], scopeId)
+    const tasks = await deps.mutateScheduledTasksFn(tasksFile, async (existing) => ({
+      reminders: sortScheduledTasks([...existing, scheduledTask]),
+      result: scopeScheduledTasks([...existing, scheduledTask], scopeId)
     }));
-    return response("add", reminders, `Scheduled ${reminder.id} for ${describeReminder(reminder)}.`, { created: reminder });
+    return response("add", tasks, `Scheduled ${scheduledTask.id} for ${describeScheduledTask(scheduledTask)} in fresh clean session.`, { created: scheduledTask });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    return response("add", currentScopeReminders, `Error: ${message}`, { error: message });
+    return response("add", currentScopeTasks, `Error: ${message}`, { error: message });
   }
 };
 
 // src/cancel-action.ts
-var cancelReminderAction = async (reminderId, scopeId, remindersFile, currentScopeReminders, deps) => {
-  if (!reminderId) {
-    return response("cancel", currentScopeReminders, "Error: id required for cancel.", {
+var cancelScheduledTaskAction = async (taskId, scopeId, tasksFile, currentScopeTasks, deps) => {
+  if (!taskId) {
+    return response("cancel", currentScopeTasks, "Error: id required for cancel.", {
       error: "id required for cancel."
     });
   }
-  const result = await deps.mutateRemindersFn(remindersFile, async (existing) => {
-    const scoped = scopeReminders(existing, scopeId);
-    if (!scoped.some((reminder) => reminder.id === reminderId)) {
+  const result = await deps.mutateScheduledTasksFn(tasksFile, async (existing) => {
+    const scoped = scopeScheduledTasks(existing, scopeId);
+    if (!scoped.some((scheduledTask) => scheduledTask.id === taskId)) {
       return { reminders: existing, result: { removed: false, reminders: scoped } };
     }
-    const reminders = existing.filter(
-      (reminder) => !(reminder.scopeId === scopeId && reminder.id === reminderId)
+    const tasks = existing.filter(
+      (scheduledTask) => !(scheduledTask.scopeId === scopeId && scheduledTask.id === taskId)
     );
-    return { reminders, result: { removed: true, reminders: scopeReminders(reminders, scopeId) } };
+    return { reminders: tasks, result: { removed: true, reminders: scopeScheduledTasks(tasks, scopeId) } };
   });
   if (!result.removed) {
-    return response("cancel", result.reminders, `Reminder not found: ${reminderId}`, {
-      error: `Reminder not found: ${reminderId}`
+    return response("cancel", result.reminders, `Scheduled task not found: ${taskId}`, {
+      error: `Scheduled task not found: ${taskId}`
     });
   }
-  return response("cancel", result.reminders, `Cancelled reminder ${reminderId}.`, { removedId: reminderId });
+  return response("cancel", result.reminders, `Cancelled scheduled task ${taskId}.`, { removedId: taskId });
 };
 
 // src/list-action.ts
-var listReminderAction = (reminders) => {
-  if (reminders.length === 0) return response("list", [], "No reminders scheduled.");
-  const lines = reminders.map(
-    (reminder) => `- ${reminder.id}: ${describeReminder(reminder)} -> ${reminder.message}`
+var scheduledTaskPrompt = (scheduledTask) => scheduledTask.prompt || scheduledTask.message || "";
+var listScheduledTaskAction = (tasks) => {
+  if (tasks.length === 0) return response("list", [], "No scheduled tasks.");
+  const lines = tasks.map(
+    (scheduledTask) => `- ${scheduledTask.id}: ${describeScheduledTask(scheduledTask)} -> ${scheduledTaskPrompt(scheduledTask)}`
   );
-  return response("list", reminders, lines.join("\n"));
+  return response("list", tasks, lines.join("\n"));
 };
 
 // src/execute.ts
@@ -15868,21 +15873,21 @@ var executeSchedulerAction = async (params, ctx, deps = {}) => {
       error: "Discord session context unavailable."
     });
   }
-  const currentReminders = await resolved.listRemindersFn(resolved.remindersFile);
-  const currentScopeReminders = scopeReminders(currentReminders, resolved.sessionContext.scopeId);
-  if (params.action === "list") return listReminderAction(currentScopeReminders);
+  const currentTasks = await resolved.listScheduledTasksFn(resolved.tasksFile);
+  const currentScopeTasks = scopeScheduledTasks(currentTasks, resolved.sessionContext.scopeId);
+  if (params.action === "list") return listScheduledTaskAction(currentScopeTasks);
   if (params.action === "cancel") {
-    return cancelReminderAction(params.id, resolved.sessionContext.scopeId, resolved.remindersFile, currentScopeReminders, {
-      mutateRemindersFn: resolved.mutateRemindersFn
+    return cancelScheduledTaskAction(params.id, resolved.sessionContext.scopeId, resolved.tasksFile, currentScopeTasks, {
+      mutateScheduledTasksFn: resolved.mutateScheduledTasksFn
     });
   }
-  return addReminderAction(
+  return addScheduledTaskAction(
     params,
     resolved.sessionContext.scopeId,
     resolved.sessionContext,
-    resolved.remindersFile,
-    currentScopeReminders,
-    { ...deps, mutateRemindersFn: resolved.mutateRemindersFn }
+    resolved.tasksFile,
+    currentScopeTasks,
+    { ...deps, mutateScheduledTasksFn: resolved.mutateScheduledTasksFn }
   );
 };
 
@@ -15894,6 +15899,12 @@ var createSchedulerTool = () => ({
   promptSnippet: schedulerToolPromptSnippet,
   promptGuidelines: schedulerToolGuidelines,
   parameters: schedulerToolParameters,
+  prepareArguments: (args) => {
+    if (!args || typeof args !== "object") return args;
+    const input = args;
+    if (typeof input.prompt === "string" || typeof input.message !== "string") return input;
+    return { ...input, prompt: input.message };
+  },
   execute: async (_toolCallId, params, _signal, _onUpdate, ctx) => executeSchedulerAction(params, {
     cwd: ctx.cwd,
     sessionFile: ctx.sessionManager.getSessionFile()

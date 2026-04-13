@@ -6,11 +6,13 @@ import type { ChatAttachment } from "../../features/chat/chat-attachment.js";
 import type { DiscordAdminClient, DiscordToolContext } from "../discord/tools/discord-admin-types.js";
 import { createPiSession } from "./create-session.js";
 import { ensureProviderAuth } from "./ensure-provider-auth.js";
+import { lastAssistantText } from "./last-assistant-text.js";
 import { createResourceLoader } from "./create-resource-loader.js";
 import { startRuntimePrompt, type ActivePrompt } from "./runtime-prompt.js";
 export type { RuntimeTextChunk } from "./runtime-stream-state.js";
 import { ScopedQueue } from "./scoped-queue.js";
-import { sessionFileForScope } from "./session-path.js";
+import { clearScopeSessionStorage, readScopeSessionStats, sessionStatsFromManager, type ScopeSessionStats } from "./session-admin.js";
+import { sessionFileForScope, sessionFileForScheduledRun } from "./session-path.js";
 
 export type ChatPromptOptions = { messageId: string; attachments: ChatAttachment[] };
 export type PiRuntimeOptions = {
@@ -52,6 +54,54 @@ export class PiRuntime {
     let text = "";
     for await (const chunk of this.stream(scopeId, prompt, discordContext, options)) text += chunk.text;
     return text.trim() ? text : "응답 없음";
+  }
+
+  getScopeStats(scopeId: string): ScopeSessionStats | undefined {
+    const cached = this.sessions.get(scopeId);
+    if (cached) return sessionStatsFromManager(cached.sessionManager);
+    return readScopeSessionStats(this.options.repoRoot, this.options.sessionsRoot, scopeId);
+  }
+
+  async resetScope(scopeId: string) {
+    const activePrompt = this.activePrompts.get(scopeId);
+    if (activePrompt) {
+      activePrompt.interrupted = true;
+      await activePrompt.session.abort().catch(() => undefined);
+      this.activePrompts.delete(scopeId);
+    }
+
+    const session = this.sessions.get(scopeId);
+    if (session) {
+      await session.abort().catch(() => undefined);
+      session.dispose();
+      this.sessions.delete(scopeId);
+    }
+
+    return clearScopeSessionStorage(this.options.repoRoot, this.options.sessionsRoot, scopeId);
+  }
+
+  async runScheduledPrompt(scopeId: string, taskId: string, prompt: string, discordContext: DiscordToolContext) {
+    const sessionManager = SessionManager.open(
+      sessionFileForScheduledRun(this.options.sessionsRoot, scopeId, taskId),
+      this.options.sessionsRoot,
+      this.options.repoRoot,
+    );
+    const session = await createPiSession({
+      repoRoot: this.options.repoRoot,
+      agentDir: this.agentDir,
+      authStorage: this.authStorage,
+      modelRegistry: this.modelRegistry,
+      model: this.model,
+      thinkingLevel: this.options.thinkingLevel,
+      settingsManager: this.settingsManager,
+      resourceLoader: this.loader,
+      sessionManager,
+      scopeId,
+      discordClient: this.options.discordClient,
+      discordContext,
+    });
+    await session.prompt(prompt);
+    return lastAssistantText(session);
   }
 
   stream(scopeId: string, prompt: string, discordContext: DiscordToolContext, options: ChatPromptOptions = { messageId: "", attachments: [] }) {

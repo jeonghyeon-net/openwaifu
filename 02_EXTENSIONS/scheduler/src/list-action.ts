@@ -1,12 +1,15 @@
-import { describeReminder } from "../../../01_BOT/src/features/scheduler/reminder-time.js";
-import type { ReminderRecord } from "../../../01_BOT/src/features/scheduler/reminder-types.js";
+import { describeScheduledTask } from "../../../01_BOT/src/features/scheduler/scheduler-time.js";
+import type { ScheduledTaskRecord } from "../../../01_BOT/src/features/scheduler/scheduler-types.js";
 
 import { response } from "./helpers.js";
 
-export const listReminderAction = (reminders: ReminderRecord[]) => {
-  if (reminders.length === 0) return response("list", [], "No reminders scheduled.");
-  const lines = reminders.map(
-    (reminder) => `- ${reminder.id}: ${describeReminder(reminder)} -> ${reminder.message}`,
+const scheduledTaskPrompt = (scheduledTask: ScheduledTaskRecord) =>
+  scheduledTask.prompt || scheduledTask.message || "";
+
+export const listScheduledTaskAction = (tasks: ScheduledTaskRecord[]) => {
+  if (tasks.length === 0) return response("list", [], "No scheduled tasks.");
+  const lines = tasks.map(
+    (scheduledTask) => `- ${scheduledTask.id}: ${describeScheduledTask(scheduledTask)} -> ${scheduledTaskPrompt(scheduledTask)}`,
   );
-  return response("list", reminders, lines.join("\n"));
+  return response("list", tasks, lines.join("\n"));
 };

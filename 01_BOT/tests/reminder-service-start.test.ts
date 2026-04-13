@@ -1,30 +1,33 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { createReminderService } from "../src/features/scheduler/reminder-service.js";
+import { createSchedulerService } from "../src/features/scheduler/scheduler-service.js";
 import {
-  cleanupReminderServiceTempRoots,
-  reminderServiceClient,
+  cleanupSchedulerServiceTempRoots,
+  schedulerServiceClient,
 } from "./reminder-service-test-helpers.js";
 
-const { sendDiscordMessage } = vi.hoisted(() => ({
+const { sendDiscordMessage, runTask } = vi.hoisted(() => ({
   sendDiscordMessage: vi.fn(async () => "sent"),
+  runTask: vi.fn(async () => "generated reply"),
 }));
 vi.mock("../src/integrations/discord/tools/discord-admin-channel.js", () => ({ sendDiscordMessage }));
 
 afterEach(async () => {
   vi.useRealTimers();
-  await cleanupReminderServiceTempRoots();
+  await cleanupSchedulerServiceTempRoots();
 });
 
 beforeEach(() => {
   sendDiscordMessage.mockReset();
   sendDiscordMessage.mockResolvedValue("sent");
+  runTask.mockReset();
+  runTask.mockResolvedValue("generated reply");
 });
 
 describe("reminder service start", () => {
   it("starts once and stops once", async () => {
     vi.useFakeTimers();
-    const service = createReminderService({ client: reminderServiceClient, remindersFile: "/tmp/reminders.json" });
+    const service = createSchedulerService({ client: schedulerServiceClient, tasksFile: "/tmp/reminders.json", runTask });
 
     service.start();
     await vi.advanceTimersByTimeAsync(5_000);

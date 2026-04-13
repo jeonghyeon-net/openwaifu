@@ -4,11 +4,12 @@ import { env } from "./config/env.js";
 import { paths } from "./config/paths.js";
 import { createChatService } from "./features/chat/chat-service.js";
 import { createChatGptQuotaStatusService } from "./features/chatgpt-quota/chatgpt-quota-service.js";
-import { remindersFileForCwd } from "./features/scheduler/reminder-paths.js";
-import { createReminderService } from "./features/scheduler/reminder-service.js";
+import { schedulerFileForCwd } from "./features/scheduler/scheduler-paths.js";
+import { createSchedulerService } from "./features/scheduler/scheduler-service.js";
 import { createDiscordClient } from "./integrations/discord/client.js";
 import { registerDiscordHandlers } from "./integrations/discord/handlers.js";
 import { createDiscordPresenceService } from "./integrations/discord/presence-service.js";
+import { registerDiscordSessionHandlers, syncDiscordSessionCommands } from "./integrations/discord/session-commands.js";
 import { PiRuntime } from "./integrations/pi/pi-runtime.js";
 
 const client = createDiscordClient();
@@ -22,9 +23,23 @@ const runtime = await PiRuntime.create({
   discordClient: client,
 });
 
-const reminderService = createReminderService({
+const schedulerService = createSchedulerService({
   client,
-  remindersFile: remindersFileForCwd(paths.repoRoot),
+  tasksFile: schedulerFileForCwd(paths.repoRoot),
+  runTask: (scheduledTask) =>
+    runtime.runScheduledPrompt(
+      scheduledTask.scopeId,
+      scheduledTask.id,
+      scheduledTask.prompt || scheduledTask.message || "",
+      {
+        authorId: scheduledTask.authorId,
+        channelId: scheduledTask.channelId,
+        channelName: scheduledTask.channelName,
+        guildId: scheduledTask.guildId,
+        guildName: scheduledTask.guildName,
+        isDirectMessage: scheduledTask.isDirectMessage,
+      },
+    ),
 });
 const presenceService = createDiscordPresenceService(client);
 const chatGptQuotaStatusService = createChatGptQuotaStatusService({
@@ -33,9 +48,13 @@ const chatGptQuotaStatusService = createChatGptQuotaStatusService({
 });
 
 registerDiscordHandlers({ client, chatService: createChatService(runtime), presenceService });
+registerDiscordSessionHandlers({ client, sessionService: runtime });
 client.once(Events.ClientReady, (readyClient) => {
   console.log(`Logged in as ${readyClient.user.tag}`);
-  reminderService.start();
+  void syncDiscordSessionCommands(readyClient)
+    .then(() => console.log("Discord session commands synced"))
+    .catch((error) => console.error("Discord session command sync failed", error));
+  schedulerService.start();
   chatGptQuotaStatusService.start();
 });
 void client.login(env.discordBotToken);

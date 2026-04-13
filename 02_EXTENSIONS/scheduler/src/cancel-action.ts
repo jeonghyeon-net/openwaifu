@@ -1,35 +1,35 @@
-import { response, scopeReminders, type ExecuteSchedulerDeps } from "./helpers.js";
+import { response, scopeScheduledTasks, type ExecuteSchedulerDeps } from "./helpers.js";
 
-export const cancelReminderAction = async (
-  reminderId: string | undefined,
+export const cancelScheduledTaskAction = async (
+  taskId: string | undefined,
   scopeId: string,
-  remindersFile: string,
-  currentScopeReminders: ReturnType<typeof scopeReminders>,
-  deps: Pick<ExecuteSchedulerDeps, "mutateRemindersFn"> & {
-    mutateRemindersFn: NonNullable<ExecuteSchedulerDeps["mutateRemindersFn"]>;
+  tasksFile: string,
+  currentScopeTasks: ReturnType<typeof scopeScheduledTasks>,
+  deps: Pick<ExecuteSchedulerDeps, "mutateScheduledTasksFn"> & {
+    mutateScheduledTasksFn: NonNullable<ExecuteSchedulerDeps["mutateScheduledTasksFn"]>;
   },
 ) => {
-  if (!reminderId) {
-    return response("cancel", currentScopeReminders, "Error: id required for cancel.", {
+  if (!taskId) {
+    return response("cancel", currentScopeTasks, "Error: id required for cancel.", {
       error: "id required for cancel.",
     });
   }
 
-  const result = await deps.mutateRemindersFn(remindersFile, async (existing) => {
-    const scoped = scopeReminders(existing, scopeId);
-    if (!scoped.some((reminder) => reminder.id === reminderId)) {
+  const result = await deps.mutateScheduledTasksFn(tasksFile, async (existing) => {
+    const scoped = scopeScheduledTasks(existing, scopeId);
+    if (!scoped.some((scheduledTask) => scheduledTask.id === taskId)) {
       return { reminders: existing, result: { removed: false, reminders: scoped } };
     }
-    const reminders = existing.filter(
-      (reminder) => !(reminder.scopeId === scopeId && reminder.id === reminderId),
+    const tasks = existing.filter(
+      (scheduledTask) => !(scheduledTask.scopeId === scopeId && scheduledTask.id === taskId),
     );
-    return { reminders, result: { removed: true, reminders: scopeReminders(reminders, scopeId) } };
+    return { reminders: tasks, result: { removed: true, reminders: scopeScheduledTasks(tasks, scopeId) } };
   });
 
   if (!result.removed) {
-    return response("cancel", result.reminders, `Reminder not found: ${reminderId}`, {
-      error: `Reminder not found: ${reminderId}`,
+    return response("cancel", result.reminders, `Scheduled task not found: ${taskId}`, {
+      error: `Scheduled task not found: ${taskId}`,
     });
   }
-  return response("cancel", result.reminders, `Cancelled reminder ${reminderId}.`, { removedId: reminderId });
+  return response("cancel", result.reminders, `Cancelled scheduled task ${taskId}.`, { removedId: taskId });
 };

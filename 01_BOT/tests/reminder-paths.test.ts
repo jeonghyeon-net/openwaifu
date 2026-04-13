@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { remindersDirectoryForCwd, remindersFileForCwd } from "../src/features/scheduler/reminder-paths.js";
+import { schedulerDirectoryForCwd, schedulerFileForCwd } from "../src/features/scheduler/scheduler-paths.js";
 
 describe("reminder paths", () => {
   it("resolves scheduler data paths from repo cwd", () => {
-    expect(remindersDirectoryForCwd("/repo")).toBe("/repo/01_BOT/.data/scheduler");
-    expect(remindersFileForCwd("/repo")).toBe("/repo/01_BOT/.data/scheduler/reminders.json");
+    expect(schedulerDirectoryForCwd("/repo")).toBe("/repo/01_BOT/.data/scheduler");
+    expect(schedulerFileForCwd("/repo")).toBe("/repo/01_BOT/.data/scheduler/scheduled-tasks.json");
   });
 });

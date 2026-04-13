@@ -1,7 +1,7 @@
-import { addReminderAction } from "./add-action.js";
-import { cancelReminderAction } from "./cancel-action.js";
-import { resolveExecution, response, scopeReminders, type ExecuteSchedulerContext, type ExecuteSchedulerDeps } from "./helpers.js";
-import { listReminderAction } from "./list-action.js";
+import { addScheduledTaskAction } from "./add-action.js";
+import { cancelScheduledTaskAction } from "./cancel-action.js";
+import { resolveExecution, response, scopeScheduledTasks, type ExecuteSchedulerContext, type ExecuteSchedulerDeps } from "./helpers.js";
+import { listScheduledTaskAction } from "./list-action.js";
 import type { SchedulerToolInput } from "./schema.js";
 
 export const executeSchedulerAction = async (
@@ -16,20 +16,20 @@ export const executeSchedulerAction = async (
     });
   }
 
-  const currentReminders = await resolved.listRemindersFn(resolved.remindersFile);
-  const currentScopeReminders = scopeReminders(currentReminders, resolved.sessionContext.scopeId);
-  if (params.action === "list") return listReminderAction(currentScopeReminders);
+  const currentTasks = await resolved.listScheduledTasksFn(resolved.tasksFile);
+  const currentScopeTasks = scopeScheduledTasks(currentTasks, resolved.sessionContext.scopeId);
+  if (params.action === "list") return listScheduledTaskAction(currentScopeTasks);
   if (params.action === "cancel") {
-    return cancelReminderAction(params.id, resolved.sessionContext.scopeId, resolved.remindersFile, currentScopeReminders, {
-      mutateRemindersFn: resolved.mutateRemindersFn,
+    return cancelScheduledTaskAction(params.id, resolved.sessionContext.scopeId, resolved.tasksFile, currentScopeTasks, {
+      mutateScheduledTasksFn: resolved.mutateScheduledTasksFn,
     });
   }
-  return addReminderAction(
+  return addScheduledTaskAction(
     params,
     resolved.sessionContext.scopeId,
     resolved.sessionContext,
-    resolved.remindersFile,
-    currentScopeReminders,
-    { ...deps, mutateRemindersFn: resolved.mutateRemindersFn },
+    resolved.tasksFile,
+    currentScopeTasks,
+    { ...deps, mutateScheduledTasksFn: resolved.mutateScheduledTasksFn },
   );
 };

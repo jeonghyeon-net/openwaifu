@@ -5,11 +5,11 @@ import { join } from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { listReminders, mutateReminders } from "../src/features/scheduler/reminder-store.js";
-import type { ReminderRecord } from "../src/features/scheduler/reminder-types.js";
+import { listScheduledTasks, mutateScheduledTasks } from "../src/features/scheduler/scheduler-store.js";
+import type { ScheduledTaskRecord } from "../src/features/scheduler/scheduler-types.js";
 
 const created: string[] = [];
-const reminder = (id: string): ReminderRecord => ({
+const reminder = (id: string): ScheduledTaskRecord => ({
   id,
   scopeId: "scope:1",
   authorId: "user-1",
@@ -17,6 +17,7 @@ const reminder = (id: string): ReminderRecord => ({
   guildId: "guild-1",
   isDirectMessage: false,
   recurrence: "once",
+  prompt: `message-${id}`,
   message: `message-${id}`,
   timezone: "Asia/Seoul",
   scheduledTime: "09:00",
@@ -35,9 +36,9 @@ describe("reminder store", () => {
     created.push(root);
     const file = join(root, "scheduler", "reminders.json");
 
-    await expect(listReminders(file)).resolves.toEqual([]);
+    await expect(listScheduledTasks(file)).resolves.toEqual([]);
     writeFileSync(file, "\n", "utf8");
-    await expect(listReminders(file)).resolves.toEqual([]);
+    await expect(listScheduledTasks(file)).resolves.toEqual([]);
   });
 
   it("serializes concurrent mutations without losing updates", async () => {
@@ -45,17 +46,17 @@ describe("reminder store", () => {
     created.push(root);
     const file = join(root, "scheduler", "reminders.json");
 
-    const first = mutateReminders(file, async (current) => {
+    const first = mutateScheduledTasks(file, async (current) => {
       await new Promise((resolve) => setTimeout(resolve, 25));
       return { reminders: [...current, reminder("one")], result: current.length };
     });
-    const second = mutateReminders(file, async (current) => ({
+    const second = mutateScheduledTasks(file, async (current) => ({
       reminders: [...current, reminder("two")],
       result: current.length,
     }));
 
     await expect(first).resolves.toBe(0);
     await expect(second).resolves.toBe(1);
-    await expect(listReminders(file)).resolves.toEqual([reminder("one"), reminder("two")]);
+    await expect(listScheduledTasks(file)).resolves.toEqual([reminder("one"), reminder("two")]);
   });
 });

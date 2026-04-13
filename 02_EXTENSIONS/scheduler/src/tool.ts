@@ -16,6 +16,12 @@ export const createSchedulerTool = () =>
     promptSnippet: schedulerToolPromptSnippet,
     promptGuidelines: schedulerToolGuidelines,
     parameters: schedulerToolParameters,
+    prepareArguments: (args): SchedulerToolInput => {
+      if (!args || typeof args !== "object") return args as SchedulerToolInput;
+      const input = args as Partial<SchedulerToolInput> & { message?: unknown };
+      if (typeof input.prompt === "string" || typeof input.message !== "string") return input as SchedulerToolInput;
+      return { ...input, prompt: input.message } as SchedulerToolInput;
+    },
     execute: async (_toolCallId, params: SchedulerToolInput, _signal, _onUpdate, ctx) =>
       executeSchedulerAction(params, {
         cwd: ctx.cwd,

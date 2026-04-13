@@ -46,8 +46,8 @@ describe("createPiSession", () => {
     expect(session.agent.state.systemPrompt).toContain("BASE TOOLS");
     expect(session.agent.state.systemPrompt).toContain("`scheduler`: create, list, or cancel one-time and daily scheduled tasks");
     expect(session.agent.state.systemPrompt).toContain("discord_* tools");
-    expect((session as typeof session & { _baseSystemPrompt?: string })._baseSystemPrompt).toContain("`scheduler`: create, list, or cancel one-time and daily scheduled tasks");
-    expect((session as typeof session & { _baseSystemPrompt?: string })._baseSystemPrompt).toContain("discord_* tools");
+    expect(Reflect.get(session, "_baseSystemPrompt")).toContain("`scheduler`: create, list, or cancel one-time and daily scheduled tasks");
+    expect(Reflect.get(session, "_baseSystemPrompt")).toContain("discord_* tools");
     expect(session.agent.state.systemPrompt).toContain("answer from current_* context fields first");
     expect(session.agent.state.systemPrompt).toContain("current_channel_id: c");
     expect(session.agent.state.systemPrompt).toContain("current_channel_name: 개발");

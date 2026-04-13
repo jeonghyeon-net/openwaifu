@@ -1,63 +1,65 @@
 import { DateTime } from "luxon";
 
 import {
-  describeReminder,
-  nextReminderRunAt,
-} from "../../../01_BOT/src/features/scheduler/reminder-time.js";
-import type { ReminderRecord } from "../../../01_BOT/src/features/scheduler/reminder-types.js";
+  describeScheduledTask,
+  nextScheduledRunAt,
+} from "../../../01_BOT/src/features/scheduler/scheduler-time.js";
+import type { ScheduledTaskRecord } from "../../../01_BOT/src/features/scheduler/scheduler-types.js";
 
 import type { SchedulerToolInput } from "./schema.js";
 import {
   defaultTimezone,
   makeId,
   response,
-  scopeReminders,
-  sortReminders,
+  scopeScheduledTasks,
+  sortScheduledTasks,
   type ExecuteSchedulerDeps,
 } from "./helpers.js";
 
-export const addReminderAction = async (
+export const addScheduledTaskAction = async (
   params: SchedulerToolInput,
   scopeId: string,
   sessionContext: NonNullable<ReturnType<NonNullable<ExecuteSchedulerDeps["getSessionContextFn"]>>>,
-  remindersFile: string,
-  currentScopeReminders: ReminderRecord[],
+  tasksFile: string,
+  currentScopeTasks: ScheduledTaskRecord[],
   deps: ExecuteSchedulerDeps & {
-    mutateRemindersFn: NonNullable<ExecuteSchedulerDeps["mutateRemindersFn"]>;
+    mutateScheduledTasksFn: NonNullable<ExecuteSchedulerDeps["mutateScheduledTasksFn"]>;
   },
 ) => {
-  if (!params.recurrence || !params.time || !params.message) {
-    return response("add", currentScopeReminders, "Error: recurrence, time, and message required for add.", {
-      error: "recurrence, time, and message required for add.",
+  if (!params.recurrence || !params.time || !params.prompt) {
+    return response("add", currentScopeTasks, "Error: recurrence, time, and prompt required for add.", {
+      error: "recurrence, time, and prompt required for add.",
     });
   }
 
   const timezone = defaultTimezone();
   try {
     const now = deps.now?.() ?? DateTime.now();
-    const reminder: ReminderRecord = {
+    const scheduledTask: ScheduledTaskRecord = {
       id: deps.createId?.() ?? makeId(),
       scopeId,
       authorId: sessionContext.discordContext.authorId,
       channelId: sessionContext.discordContext.channelId,
+      channelName: sessionContext.discordContext.channelName,
       guildId: sessionContext.discordContext.guildId,
+      guildName: sessionContext.discordContext.guildName,
       isDirectMessage: sessionContext.discordContext.isDirectMessage,
       recurrence: params.recurrence,
-      message: params.message,
+      prompt: params.prompt,
       timezone,
       scheduledTime: params.time,
       scheduledDate: params.date,
       mentionUser: params.mentionUser ?? true,
       createdAt: now.toUTC().toISO()!,
-      nextRunAt: nextReminderRunAt({ recurrence: params.recurrence, time: params.time, date: params.date, timezone }, now),
+      nextRunAt: nextScheduledRunAt({ recurrence: params.recurrence, time: params.time, date: params.date, timezone }, now),
     };
-    const reminders = await deps.mutateRemindersFn(remindersFile, async (existing) => ({
-      reminders: sortReminders([...existing, reminder]),
-      result: scopeReminders([...existing, reminder], scopeId),
+    const tasks = await deps.mutateScheduledTasksFn(tasksFile, async (existing) => ({
+      reminders: sortScheduledTasks([...existing, scheduledTask]),
+      result: scopeScheduledTasks([...existing, scheduledTask], scopeId),
     }));
-    return response("add", reminders, `Scheduled ${reminder.id} for ${describeReminder(reminder)}.`, { created: reminder });
+    return response("add", tasks, `Scheduled ${scheduledTask.id} for ${describeScheduledTask(scheduledTask)} in fresh clean session.`, { created: scheduledTask });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    return response("add", currentScopeReminders, `Error: ${message}`, { error: message });
+    return response("add", currentScopeTasks, `Error: ${message}`, { error: message });
   }
 };

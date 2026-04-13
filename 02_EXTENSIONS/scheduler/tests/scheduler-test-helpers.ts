@@ -1,6 +1,6 @@
 import { rm } from "node:fs/promises";
 
-import type { ReminderRecord } from "../../../01_BOT/src/features/scheduler/reminder-types.js";
+import type { ScheduledTaskRecord } from "../../../01_BOT/src/features/scheduler/scheduler-types.js";
 import { executeSchedulerAction, type SchedulerToolInput } from "../src/scheduler.js";
 
 export const schedulerTempRoots: string[] = [];
@@ -14,7 +14,7 @@ export const schedulerSessionContext = {
   },
 };
 
-export const schedulerReminder = (overrides: Partial<ReminderRecord>): ReminderRecord => ({
+export const schedulerTask = (overrides: Partial<ScheduledTaskRecord>): ScheduledTaskRecord => ({
   id: "rem-1",
   scopeId: "scope:1",
   authorId: "user-1",
@@ -22,6 +22,7 @@ export const schedulerReminder = (overrides: Partial<ReminderRecord>): ReminderR
   guildId: "guild-1",
   isDirectMessage: false,
   recurrence: "once",
+  prompt: "wake up",
   message: "wake up",
   timezone: "Asia/Seoul",
   scheduledTime: "09:00",
@@ -33,7 +34,7 @@ export const schedulerReminder = (overrides: Partial<ReminderRecord>): ReminderR
 
 export const runScheduler = async (
   params: SchedulerToolInput,
-  reminders: ReminderRecord[],
+  reminders: ScheduledTaskRecord[],
   extra: { sessionFile?: string; deps?: Parameters<typeof executeSchedulerAction>[2] } = {},
 ) => {
   let stored = [...reminders];
@@ -44,8 +45,8 @@ export const runScheduler = async (
       createId: () => "new-id",
       getSessionContextFn: (sessionFile) =>
         sessionFile === "/tmp/session.jsonl" ? schedulerSessionContext : undefined,
-      listRemindersFn: async () => stored,
-      mutateRemindersFn: async (_file, mutate) => {
+      listScheduledTasksFn: async () => stored,
+      mutateScheduledTasksFn: async (_file, mutate) => {
         const next = await mutate(stored);
         stored = next.reminders;
         return next.result;

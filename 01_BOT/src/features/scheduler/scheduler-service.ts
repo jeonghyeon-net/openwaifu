@@ -2,13 +2,14 @@ import { DateTime } from "luxon";
 
 import type { DiscordAdminClient } from "../../integrations/discord/tools/discord-admin-types.js";
 import { sendDiscordMessage } from "../../integrations/discord/tools/discord-admin-channel.js";
-import { mutateReminders } from "./reminder-store.js";
-import { nextDailyRunAt, retryReminderRunAt } from "./reminder-time.js";
-import type { ReminderRecord } from "./reminder-types.js";
+import { mutateScheduledTasks } from "./scheduler-store.js";
+import { nextDailyRunAt, retryScheduledRunAt } from "./scheduler-time.js";
+import type { ScheduledTaskRecord } from "./scheduler-types.js";
 
-type ReminderServiceOptions = {
+type SchedulerServiceOptions = {
   client: DiscordAdminClient;
-  remindersFile: string;
+  tasksFile: string;
+  runTask: (scheduledTask: ScheduledTaskRecord) => Promise<string>;
   pollMs?: number;
   now?: () => Date;
   logger?: Pick<Console, "error">;
@@ -16,12 +17,12 @@ type ReminderServiceOptions = {
   clearIntervalFn?: typeof clearInterval;
 };
 
-const reminderContent = (reminder: ReminderRecord) =>
-  reminder.isDirectMessage || !reminder.mentionUser
-    ? reminder.message
-    : `<@${reminder.authorId}> ${reminder.message}`;
+const scheduledContent = (scheduledTask: ScheduledTaskRecord, text: string) =>
+  scheduledTask.isDirectMessage || !scheduledTask.mentionUser
+    ? text
+    : `<@${scheduledTask.authorId}> ${text}`;
 
-export class ReminderService {
+export class SchedulerService {
   private readonly pollMs: number;
   private readonly logger: Pick<Console, "error">;
   private readonly setIntervalFn: typeof setInterval;
@@ -29,7 +30,7 @@ export class ReminderService {
   private interval?: ReturnType<typeof setInterval>;
   private running = false;
 
-  constructor(private readonly options: ReminderServiceOptions) {
+  constructor(private readonly options: SchedulerServiceOptions) {
     this.pollMs = options.pollMs ?? 5_000;
     this.logger = options.logger ?? console;
     this.setIntervalFn = options.setIntervalFn ?? setInterval;
@@ -57,28 +58,29 @@ export class ReminderService {
       const nowMs = now.getTime();
       const nowTime = DateTime.fromJSDate(now);
 
-      await mutateReminders(this.options.remindersFile, async (current) => {
-        const reminders: ReminderRecord[] = [];
-        for (const reminder of current) {
-          if (Date.parse(reminder.nextRunAt) > nowMs) {
-            reminders.push(reminder);
+      await mutateScheduledTasks(this.options.tasksFile, async (current) => {
+        const tasks: ScheduledTaskRecord[] = [];
+        for (const scheduledTask of current) {
+          if (Date.parse(scheduledTask.nextRunAt) > nowMs) {
+            tasks.push(scheduledTask);
             continue;
           }
           try {
-            await sendDiscordMessage(this.options.client, reminder, {
-              channelId: reminder.channelId,
-              content: reminderContent(reminder),
+            const text = await this.options.runTask(scheduledTask);
+            await sendDiscordMessage(this.options.client, scheduledTask, {
+              channelId: scheduledTask.channelId,
+              content: scheduledContent(scheduledTask, text),
             });
-            if (reminder.recurrence === "daily") {
-              reminders.push({ ...reminder, lastTriggeredAt: now.toISOString(), nextRunAt: nextDailyRunAt(reminder, nowTime) });
+            if (scheduledTask.recurrence === "daily") {
+              tasks.push({ ...scheduledTask, lastTriggeredAt: now.toISOString(), nextRunAt: nextDailyRunAt(scheduledTask, nowTime) });
             }
           } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
-            this.logger.error(`Failed to dispatch reminder ${reminder.id}: ${message}`);
-            reminders.push({ ...reminder, nextRunAt: retryReminderRunAt(nowTime) });
+            this.logger.error(`Failed to dispatch scheduled task ${scheduledTask.id}: ${message}`);
+            tasks.push({ ...scheduledTask, nextRunAt: retryScheduledRunAt(nowTime) });
           }
         }
-        return { reminders, result: undefined };
+        return { reminders: tasks, result: undefined };
       });
     } finally {
       this.running = false;
@@ -86,4 +88,4 @@ export class ReminderService {
   }
 }
 
-export const createReminderService = (options: ReminderServiceOptions) => new ReminderService(options);
+export const createSchedulerService = (options: SchedulerServiceOptions) => new SchedulerService(options);

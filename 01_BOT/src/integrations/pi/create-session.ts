@@ -66,6 +66,6 @@ export const createPiSession = async (options: CreatePiSessionOptions): Promise<
     discordContextPrompt(options.discordContext),
   ].filter((line): line is string => Boolean(line)).join("\n\n");
   session.agent.state.systemPrompt = systemPrompt;
-  (session as AgentSession & { _baseSystemPrompt?: string })._baseSystemPrompt = systemPrompt;
+  Reflect.set(session, "_baseSystemPrompt", systemPrompt);
   return session;
 };
