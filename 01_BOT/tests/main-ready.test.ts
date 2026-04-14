@@ -19,8 +19,10 @@ describe("main ready flow", () => {
     if (!quotaArgs) throw new Error("quota status service args missing");
     quotaArgs.onStatusText("5h 35% used · Weekly 62% used");
     quotaArgs.onError?.(new Error("boom"));
+    quotaArgs.onError?.("oops");
     expect(setCustomStatus).toHaveBeenCalledWith("5h 35% used · Weekly 62% used");
     expect(createChatGptQuotaStatusService).toHaveBeenCalled();
+    expect(quotaArgs.onError).toBeTypeOf("function");
 
     const onReady = readyHandler();
     if (!onReady) throw new Error("ready handler missing");

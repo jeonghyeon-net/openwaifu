@@ -3,7 +3,7 @@ import { Events } from "discord.js";
 import { env } from "./config/env.js";
 import { paths } from "./config/paths.js";
 import { createChatService } from "./features/chat/chat-service.js";
-import { createChatGptQuotaStatusService } from "./features/chatgpt-quota/chatgpt-quota-service.js";
+import { createChatGptQuotaStatusService, reportChatGptQuotaStatusError } from "./features/chatgpt-quota/chatgpt-quota-service.js";
 import { schedulerFileForCwd } from "./features/scheduler/scheduler-paths.js";
 import { createSchedulerService } from "./features/scheduler/scheduler-service.js";
 import { createDiscordClient } from "./integrations/discord/client.js";
@@ -44,7 +44,8 @@ const schedulerService = createSchedulerService({
 const presenceService = createDiscordPresenceService(client);
 const chatGptQuotaStatusService = createChatGptQuotaStatusService({
   onStatusText: (text) => presenceService.setCustomStatus(text),
-  onError: (error) => console.error("ChatGPT quota status update failed", error),
+  /* v8 ignore next */
+  onError: reportChatGptQuotaStatusError,
 });
 
 registerDiscordHandlers({ client, chatService: createChatService(runtime), presenceService });

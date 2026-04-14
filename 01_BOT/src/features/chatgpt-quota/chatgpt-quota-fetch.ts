@@ -1,4 +1,11 @@
-import { JWT_CLAIM_PATH, QUOTA_USER_AGENT, normalizeApiBase, type FetchLike, type RawQuotaResponse } from "./chatgpt-quota-shared.js";
+import {
+  DEFAULT_REQUEST_TIMEOUT_MS,
+  JWT_CLAIM_PATH,
+  QUOTA_USER_AGENT,
+  normalizeApiBase,
+  type FetchLike,
+  type RawQuotaResponse,
+} from "./chatgpt-quota-shared.js";
 
 const decodeJwtPayload = (token: string) => {
   const parts = token.split(".");
@@ -22,18 +29,33 @@ export const fetchChatGptQuota = async ({
   accessToken,
   apiBase,
   fetchImpl = fetch,
+  timeoutMs = DEFAULT_REQUEST_TIMEOUT_MS,
 }: {
   accessToken: string;
   apiBase?: string;
   fetchImpl?: FetchLike;
+  timeoutMs?: number;
 }) => {
-  const response = await fetchImpl(`${normalizeApiBase(apiBase)}/wham/usage`, {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "ChatGPT-Account-Id": getAccountIdFromToken(accessToken),
-      "User-Agent": QUOTA_USER_AGENT,
-    },
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  let response: Response;
+  try {
+    response = await fetchImpl(`${normalizeApiBase(apiBase)}/wham/usage`, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "ChatGPT-Account-Id": getAccountIdFromToken(accessToken),
+        "User-Agent": QUOTA_USER_AGENT,
+      },
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error(`ChatGPT quota request timed out after ${timeoutMs}ms`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
   if (!response.ok) throw new Error(`ChatGPT quota request failed: ${response.status}`);
   return await response.json() as RawQuotaResponse;
 };

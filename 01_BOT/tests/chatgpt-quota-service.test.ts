@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { buildChatGptQuotaStatus, createChatGptQuotaStatusService } from "../src/features/chatgpt-quota/chatgpt-quota-service.js";
+import { buildChatGptQuotaStatus, createChatGptQuotaStatusService, reportChatGptQuotaStatusError } from "../src/features/chatgpt-quota/chatgpt-quota-service.js";
 import { accessToken, fixedNow } from "./chatgpt-quota-test-helpers.js";
 
 describe("chatgpt quota status service", () => {
@@ -28,7 +28,13 @@ describe("chatgpt quota status service", () => {
     await expect(buildChatGptQuotaStatus({ authStorage, fetchImpl: vi.fn<typeof fetch>().mockResolvedValue(new Response(JSON.stringify({ rate_limit: {} }))), now: fixedNow })).rejects.toThrow("ChatGPT quota windows unavailable");
   });
 
-  it("polls once, avoids duplicate start, reports errors, and stops", async () => {
+  it("formats logged quota errors, polls once, avoids duplicate start, skips overlapping refreshes, reports errors, and stops", async () => {
+    const logger = { error: vi.fn() };
+    reportChatGptQuotaStatusError(new Error("boom"), logger);
+    reportChatGptQuotaStatusError("oops", logger);
+    expect(logger.error).toHaveBeenNthCalledWith(1, "ChatGPT quota status update failed:", "Error: boom");
+    expect(logger.error).toHaveBeenNthCalledWith(2, "ChatGPT quota status update failed:", "oops");
+
     let intervalHandler: (() => void) | undefined;
     const setIntervalImpl = (handler: TimerHandler) => {
       if (typeof handler !== "function") throw new Error("handler missing");
@@ -41,7 +47,13 @@ describe("chatgpt quota status service", () => {
     const onStatusText = vi.fn();
     const onError = vi.fn();
     let shouldFail = false;
+    let release: (() => void) | undefined;
+    let holdNext = false;
     const fetchImpl = vi.fn<typeof fetch>(async () => {
+      if (holdNext) {
+        holdNext = false;
+        await new Promise<void>((resolve) => { release = resolve; });
+      }
       if (shouldFail) throw new Error("boom");
       return new Response(JSON.stringify({ rate_limit: { primary_window: { used_percent: 35, reset_after_seconds: 3600 }, secondary_window: { used_percent: 62, reset_after_seconds: 604800 } } }));
     });
@@ -51,6 +63,15 @@ describe("chatgpt quota status service", () => {
     service.start();
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(onStatusText).toHaveBeenCalledWith("5h 35% used · Weekly 62% used");
+
+    holdNext = true;
+    intervalHandler?.();
+    intervalHandler?.();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    release?.();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
     shouldFail = true;
     intervalHandler?.();
     await new Promise((resolve) => setTimeout(resolve, 0));

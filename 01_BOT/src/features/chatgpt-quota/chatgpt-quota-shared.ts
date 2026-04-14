@@ -2,6 +2,7 @@ import { AuthStorage } from "@mariozechner/pi-coding-agent";
 
 export const DEFAULT_CHATGPT_API_BASE = "https://chatgpt.com/backend-api";
 export const DEFAULT_POLL_MS = 60_000;
+export const DEFAULT_REQUEST_TIMEOUT_MS = 5_000;
 export const QUOTA_USER_AGENT = "codex_cli_rs/0.76.0 (Debian 13.0.0; x86_64) WindowsTerminal";
 export const JWT_CLAIM_PATH = "https://api.openai.com/auth";
 
