@@ -1,21 +1,14 @@
-import { createRequire } from "node:module";
+import { CronExpressionParser } from "cron-parser";
 import { DateTime } from "luxon";
 
 import type { ScheduledTaskRecord } from "./scheduler-types.js";
 
-const require = createRequire(import.meta.url);
 const timePattern = /^([01]\d|2[0-3]):([0-5]\d)$/;
 const datePattern = /^\d{4}-\d{2}-\d{2}$/;
 type NextScheduledInput = { timezone: string; time?: string; date?: string; cron?: string };
 type AnyDateTime = DateTime<true> | DateTime<false>;
-type CronParserModule = typeof import("cron-parser");
-let cronParser: CronParserModule["CronExpressionParser"] | undefined;
 
-const getCronExpressionParser = () => {
-  if (cronParser) return cronParser;
-  ({ CronExpressionParser: cronParser } = require("cron-parser") as CronParserModule);
-  return cronParser;
-};
+const getCronExpressionParser = () => CronExpressionParser;
 
 const toUtcIso = (value: AnyDateTime) => {
   const iso = value.toUTC().toISO();
